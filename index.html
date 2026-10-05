@@ -467,7 +467,7 @@ function openPriceCandidateMarkup(key,c,index,store){
 function openPriceLookupPanel(store){
  const lookup=state.openPriceLookups?.[store];
  if(!lookup)return '';
- if(lookup.loading)return `<div class="auto-price-loading">Searching product prices for ${escape(store)}… live catalogue searches can take a little longer.</div>`;
+ if(lookup.loading){const p=lookup.progress||{};const batch=p.totalBatches>0?` · batch ${Number(p.currentBatch||0)} of ${Number(p.totalBatches)}`:'';return `<div class="auto-price-loading"><b>${escape(p.message||`Searching product prices for ${store}…`)}</b>${batch?`<span>${escape(batch)}</span>`:''}<p class="auto-price-note">The search runs in the background, so this page can keep checking progress without waiting on one long request.</p></div>`;}
  const results=Array.isArray(lookup.results)?lookup.results:[];
  const applied=results.filter(r=>r.autoApplied).length;
  const withCandidates=results.filter(r=>r.candidates?.length).length;
@@ -490,17 +490,46 @@ function saveOpenPriceCandidate(store,key,candidate){
 }
 function isAutoPriceQuote(q){const s=String(q?.source||'').toLowerCase();return s.includes('open prices')||s.includes('apify')||s.includes('live retailer')||s.includes('daily uk staple')||s.includes('automated retailer price')}
 function lookupInputItems(){return Object.entries(buildShopping()).map(([key,item])=>({key,name:item.name,unknown:Boolean(item.unknown),groups:Object.entries(item.groups||{}).filter(([,g])=>g.remaining>0.0001).map(([dim,g])=>({dim,remaining:g.remaining,label:g.label}))})).slice(0,80)}
+const PRICE_LOOKUP_MAX_WAIT_MS=12*60*1000;
+const priceLookupSleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function lookupSelectedStorePrices(){
  if(openPriceLookupBusy)return;
  const store=selectedShoppingStore(),api=(localStorage.getItem('mealPlannerImportApiUrl')||'').trim().replace(/\/+$/,''),token=(localStorage.getItem('mealPlannerImportApiToken')||'').trim();
  if(!api||!token){toast('Connect the existing recipe-import backend in Recipes → Add a recipe first');return}
  if(!/^https:\/\//i.test(api)){toast('The saved backend URL must start with https://');return}
  const items=lookupInputItems();if(!items.length){toast('Generate a meal plan first to build the shopping list');return}
- openPriceLookupBusy=true;state.openPriceLookups=state.openPriceLookups||{};state.openPriceLookups[store]={loading:true,expanded:true,startedAt:new Date().toISOString(),results:[]};renderShop();
+ openPriceLookupBusy=true;state.openPriceLookups=state.openPriceLookups||{};state.openPriceLookups[store]={loading:true,expanded:true,startedAt:new Date().toISOString(),progress:{message:`Starting product-price search for ${store}…`,currentBatch:0,totalBatches:0},results:[]};renderShop();
+ const startedAt=Date.now();
  try{
-  const response=await fetch(api+'/api/prices/lookup',{method:'POST',headers:{'Content-Type':'application/json','X-Import-Token':token},body:JSON.stringify({store,items}),signal:AbortSignal.timeout(125000)});
+  const headers={'Content-Type':'application/json','X-Import-Token':token};
+  const response=await fetch(api+'/api/prices/lookup',{method:'POST',headers,body:JSON.stringify({store,items}),signal:AbortSignal.timeout(25000)});
   let data={};try{data=await response.json()}catch(_){ }
   if(!response.ok)throw new Error(data.error||`Price lookup failed (${response.status}).`);
+  if(data.async&&data.jobId){
+   const jobId=String(data.jobId);
+   state.openPriceLookups[store].progress=data.progress||{message:`Queued price lookup for ${store}…`,currentBatch:0,totalBatches:0};renderShop();
+   let completed=false,lastTransientError='';
+   for(let pollIndex=0;Date.now()-startedAt<PRICE_LOOKUP_MAX_WAIT_MS;pollIndex++){
+    await priceLookupSleep(Math.max(1500,Math.min(4000,Number(data.pollAfterMs)||2500)));
+    let pollResponse,job;
+    try{
+     pollResponse=await fetch(api+'/api/prices/lookup/'+encodeURIComponent(jobId),{method:'GET',headers:{'X-Import-Token':token},signal:AbortSignal.timeout(15000)});
+     try{job=await pollResponse.json()}catch(_){job={}}
+     if(!pollResponse.ok){if(pollResponse.status===404)throw new Error(job.error||'The price lookup job expired. Please start the lookup again.');throw new Error(job.error||`Could not check lookup progress (${pollResponse.status}).`)}
+    }catch(pollError){
+     if(pollError?.message?.includes('expired')||pollError?.message?.includes('lookup progress'))throw pollError;
+     lastTransientError=String(pollError?.message||'Temporary connection issue');
+     const active=state.openPriceLookups?.[store];if(active){active.progress={...(active.progress||{}),message:`Waiting for the price-search service to respond${pollIndex%2?'…':' . . .'} Retry continues automatically.`,updatedAt:new Date().toISOString()};renderShop()}
+     continue;
+    }
+    if(job.status==='failed')throw new Error(job.error||'The selected-store price lookup failed.');
+    if(job.progress){state.openPriceLookups[store].progress=job.progress;state.openPriceLookups[store].loading=job.status!=='completed';renderShop()}
+    if(job.status==='completed'){
+     data=job.result||{};completed=true;break;
+    }
+   }
+   if(!completed){throw new Error(`Price search has not finished after ${Math.round((Date.now()-startedAt)/60000)} minutes. You can retry; ${lastTransientError?'the latest connection issue was: '+lastTransientError:''}`)}
+  }
   const results=(data.results||[]).map(r=>({...r,autoApplied:false,autoSkippedManual:false}));
   for(const result of results){
    const dimQuotes=state.packQuotes?.[store]?.[result.key]||{};
@@ -524,7 +553,7 @@ async function lookupSelectedStorePrices(){
   const automatic=results.filter(r=>r.autoApplied).length,matched=results.filter(r=>r.candidates?.length).length;
   toast(`Matched ${matched}/${results.length} ingredients; saved ${automatic} high-confidence product prices`);
  }catch(e){
-  state.openPriceLookups=state.openPriceLookups||{};state.openPriceLookups[store]={loading:false,expanded:true,error:String(e?.message||'Automatic price lookup failed.'),checkedAt:new Date().toISOString(),results:[]};save();renderShop();toast('Price lookup failed. Check the backend is redeployed.');
+  state.openPriceLookups=state.openPriceLookups||{};state.openPriceLookups[store]={loading:false,expanded:true,error:String(e?.message||'Automatic price lookup failed.'),checkedAt:new Date().toISOString(),results:[]};save();renderShop();toast('Price lookup failed. Check the backend logs for details.');
  }finally{openPriceLookupBusy=false;}
 }
 function applyOpenPriceCandidate(key,index,store){
