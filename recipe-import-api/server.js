@@ -66,12 +66,16 @@ function safeEqual(a, b) {
 function authenticated(req, res, next) {
   if (!IMPORT_API_TOKEN) return res.status(503).json({ error: 'Backend is not configured: set IMPORT_API_TOKEN in the service environment.' });
   if (!safeEqual(req.get('x-import-token'), IMPORT_API_TOKEN)) return res.status(401).json({ error: 'Invalid importer access token. Check the token saved in your app.' });
-  const key = req.ip || req.socket.remoteAddress || 'unknown';
-  const now = Date.now();
-  const previous = hits.get(key) || [];
-  const recent = previous.filter(t => now - t < RATE_WINDOW_MS);
-  if (recent.length >= RATE_LIMIT) return res.status(429).json({ error: 'Too many requests from this connection. Try again in a few minutes.' });
-  recent.push(now); hits.set(key, recent);
+  // Price-job status polling is authenticated but should not consume the same limit as expensive job starts.
+  const isPriceJobPoll = req.method === 'GET' && /^\/api\/prices\/lookup\/[^/]+$/.test(req.path);
+  if (!isPriceJobPoll) {
+    const key = req.ip || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    const previous = hits.get(key) || [];
+    const recent = previous.filter(t => now - t < RATE_WINDOW_MS);
+    if (recent.length >= RATE_LIMIT) return res.status(429).json({ error: 'Too many requests from this connection. Try again in a few minutes.' });
+    recent.push(now); hits.set(key, recent);
+  }
   next();
 }
 function cleanString(v, max = 8000) { return typeof v === 'string' ? v.trim().slice(0, max) : ''; }
@@ -465,6 +469,10 @@ const PRICE_LOOKUP_STORES = {
 const openPricesCache = new Map();
 const LIVE_PRICE_CACHE_MS = 12 * 60 * 60 * 1000;
 const livePriceCache = new Map();
+// Price jobs run in the background so a multi-batch retailer search doesn't exceed the browser's HTTP timeout.
+const priceLookupJobs = new Map();
+const PRICE_JOB_TTL_MS = 20 * 60 * 1000;
+const PRICE_JOB_MAX_COUNT = 50;
 const RETAILER_SLUGS = { 'Lidl':'lidl', 'Aldi':'aldi', 'Asda':'asda', 'Tesco':'tesco', 'Sainsbury’s':'sainsburys', 'Morrisons':'morrisons', 'Waitrose':'waitrose', 'Ocado':'ocado', 'Iceland':'iceland', 'Co-op':'coop' };
 const YAPPMAN_STORES = new Set(['Aldi','Asda','Tesco','Sainsbury’s']);
 
@@ -830,7 +838,7 @@ async function readApifyActorItems(actorId, input, { timeoutSeconds = 90, maxIte
   if (!Array.isArray(body)) throw new Error('The live retailer catalogue did not return a product list.');
   return body;
 }
-async function fetchLiveRetailerRows(store, items) {
+async function fetchLiveRetailerRows(store, items, reportProgress = () => {}, jobId = '') {
   const retailer = RETAILER_SLUGS[store];
   if (!retailer) throw new Error('The selected supermarket is not supported by the live catalogue provider.');
 
@@ -850,6 +858,10 @@ async function fetchLiveRetailerRows(store, items) {
   // maxTotalChargeUsd cap; on the Apify Free plan, requests stop when monthly credit is used.
   for (let index = 0; index < queryBatches.length; index++) {
     const batch = queryBatches[index];
+    const batchProgress = { stage: 'searching', message: `Searching ${store} product catalogue — batch ${index + 1} of ${queryBatches.length}.`, currentBatch: index + 1, totalBatches: queryBatches.length };
+    reportProgress(batchProgress);
+    console.info(`[PriceLookup ${jobId || 'direct'}] ${batchProgress.message} (${batch.length} search terms)`);
+    const batchStartedAt = Date.now();
     try {
       let rows;
       if (YAPPMAN_STORES.has(store)) {
@@ -867,10 +879,15 @@ async function fetchLiveRetailerRows(store, items) {
           timeoutPerSourceSecs: 30
         }, { timeoutSeconds: 90, maxItems, maxChargeUsd: 5.00 });
       }
-      allRows.push(...rows.filter(r => retailerSlug(r?.retailer) === expectedSlug));
+      const retailerRows = rows.filter(r => retailerSlug(r?.retailer) === expectedSlug);
+      allRows.push(...retailerRows);
+      console.info(`[PriceLookup ${jobId || 'direct'}] Batch ${index + 1}/${queryBatches.length} finished in ${Math.round((Date.now() - batchStartedAt) / 1000)}s; ${retailerRows.length} selected-store rows accepted.`);
+      reportProgress({ stage: 'batch-complete', message: `Finished batch ${index + 1} of ${queryBatches.length}; ${allRows.length} product rows collected so far.`, currentBatch: index + 1, totalBatches: queryBatches.length });
     } catch (error) {
       const detail = cleanString(error?.message || 'Unknown catalogue error', 220);
+      console.error(`[PriceLookup ${jobId || 'direct'}] Batch ${index + 1}/${queryBatches.length} failed after ${Math.round((Date.now() - batchStartedAt) / 1000)}s: ${detail}`);
       batchErrors.push(`batch ${index + 1}/${queryBatches.length}: ${detail}`);
+      reportProgress({ stage: 'batch-failed', message: `Batch ${index + 1} of ${queryBatches.length} failed; continuing with any other results.`, currentBatch: index + 1, totalBatches: queryBatches.length });
     }
   }
 
@@ -941,6 +958,128 @@ function buildPriceCandidate(row, item, store) {
   };
 }
 function productIdentity(candidate) { return candidate.productCode || normalizePriceText(candidate.productName); }
+function prunePriceLookupJobs() {
+  const cutoff = Date.now() - PRICE_JOB_TTL_MS;
+  for (const [id, job] of priceLookupJobs) {
+    if (job.createdAt < cutoff && job.status !== 'running') priceLookupJobs.delete(id);
+  }
+  if (priceLookupJobs.size > PRICE_JOB_MAX_COUNT) {
+    const older = [...priceLookupJobs.entries()].sort((a, b) => a[1].createdAt - b[1].createdAt);
+    for (const [id, job] of older) {
+      if (priceLookupJobs.size <= PRICE_JOB_MAX_COUNT) break;
+      if (job.status !== 'running') priceLookupJobs.delete(id);
+    }
+  }
+}
+
+async function performPriceLookup(store, items, reportProgress = () => {}, jobId = '') {
+  const cacheKey = `${store}:${items.map(i => `${i.key}:${i.name}`).sort().join('|')}`;
+  const cached = livePriceCache.get(cacheKey);
+  let productRows = [], providerWarning = '', sourceMode = '', cacheHit = false, recordsScanned = 0, locationsScanned = 0, source = '', sourceUrl = '';
+
+  if (cached && Date.now() - cached.at < LIVE_PRICE_CACHE_MS) {
+    ({ rows: productRows, sourceMode, source, sourceUrl, recordsScanned, locationsScanned, providerWarning = '' } = cached.value);
+    cacheHit = true;
+    reportProgress({ stage: 'matching', message: 'Using cached product results and matching them to your shopping list.', currentBatch: 0, totalBatches: 0 });
+  } else if (APIFY_API_TOKEN) {
+    reportProgress({ stage: 'starting-search', message: `Starting retailer product search for ${items.length} ingredient groups.`, currentBatch: 0, totalBatches: Math.ceil(Math.min(items.length, 80) / 20) });
+    productRows = await fetchLiveRetailerRows(store, items, reportProgress, jobId);
+    providerWarning = productRows.lookupWarning || '';
+    sourceMode = 'live-retailer-catalogue';
+    source = 'Live retailer product search via Apify';
+    sourceUrl = YAPPMAN_STORES.has(store) ? 'https://apify.com/yappman/uk-supermarket-price-scraper' : 'https://apify.com/stores/studio-amba/uk-grocery-price-matrix';
+    recordsScanned = productRows.length;
+    locationsScanned = 0;
+    livePriceCache.set(cacheKey, { at: Date.now(), value: { rows: productRows, sourceMode, source, sourceUrl, recordsScanned, locationsScanned, providerWarning } });
+  } else {
+    reportProgress({ stage: 'community-search', message: 'Checking the free community price observations.', currentBatch: 0, totalBatches: 0 });
+    const community = await fetchStorePriceRows(store);
+    productRows = community.rows.map(r => ({
+      ...r,
+      sourceType: 'community-observation',
+      sourceName: 'Open Prices community observation',
+      sourceUrl: r.id ? `https://prices.openfoodfacts.org/prices/${encodeURIComponent(String(r.id))}` : 'https://prices.openfoodfacts.org/'
+    }));
+    cacheHit = Boolean(community.cacheHit);
+    sourceMode = 'community-observations';
+    source = 'Open Prices community observations';
+    sourceUrl = 'https://prices.openfoodfacts.org/';
+    recordsScanned = productRows.length;
+    locationsScanned = community.locationsScanned || 0;
+    providerWarning = 'Broad supermarket product search is not configured. Open Prices is community-submitted and may have few or no matches for this retailer. Add APIFY_API_TOKEN in Render to search current product catalogues. Generic starter prices are not used as actual store prices.';
+  }
+
+  reportProgress({ stage: 'matching', message: `Matching ${productRows.length} returned price records against ${items.length} ingredients.`, currentBatch: 0, totalBatches: 0 });
+  const results = items.map(item => {
+    const bestByProduct = new Map();
+    for (const row of productRows) {
+      const rowRetailer = row?.retailer ? retailerSlug(row.retailer) : null;
+      if (rowRetailer && rowRetailer !== retailerSlug(store)) continue;
+      const country = normalizePriceText(row?.location?.osm_address_country_code || 'gb');
+      if (country && !['gb','uk','united kingdom'].includes(country)) continue;
+      if (!rowRetailer && !priceStoreMatches(row, store)) continue;
+      if (!row.date || normalizePriceText(row.currency || 'GBP') !== 'gbp') continue;
+      const candidate = buildPriceCandidate(row, item, store);
+      if (!candidate) continue;
+      const identity = productIdentity(candidate);
+      const existing = bestByProduct.get(identity);
+      if (!existing || candidate.score > existing.score || (candidate.score === existing.score && candidate.date > existing.date)) bestByProduct.set(identity, candidate);
+    }
+    const candidates = [...bestByProduct.values()].sort((a,b) => b.score-a.score || b.date.localeCompare(a.date)).slice(0, 4);
+    const top = candidates[0] || null;
+    const runnerUp = candidates[1] || null;
+    const clearMargin = !runnerUp || top.score - runnerUp.score >= 0.10 || top.score >= 0.96;
+    const strongScore = top?.sourceType === 'live-retailer' ? top.score >= 0.82 : top?.sourceType === 'daily-snapshot' ? top.score >= 0.86 : top?.score >= 0.84;
+    const sufficientlyFresh = top && (top.sourceType === 'live-retailer' ? top.ageDays <= 7 : top.ageDays <= 45);
+    const autoCandidate = top && top.canApply && sufficientlyFresh && clearMargin && strongScore ? top : null;
+    return {
+      key: item.key, name: item.name, candidates, autoCandidate,
+      status: autoCandidate ? 'strong-recent-match' : candidates.length ? 'review-match' : 'no-price-match',
+      note: candidates.length ? '' : sourceMode === 'live-retailer-catalogue' ? `No matching ${store} product price was found in the current catalogue results.` : `No matching ${store} product price was found in the available Open Prices community observations.`
+    };
+  });
+  const candidateCount = results.filter(x => x.candidates.length).length;
+  const autoCount = results.filter(x => x.autoCandidate).length;
+  const coverageNote = sourceMode === 'live-retailer-catalogue'
+    ? `Live product search checked ${store} listings against ${items.length} shopping ingredients. Prices and availability can vary by postcode, delivery area and loyalty card.`
+    : 'Open Prices observations are community-submitted and can be sparse or out of date; absence of a record does not mean a product is unavailable.';
+  return {
+    ok: true, store, source, sourceUrl,
+    attribution: sourceMode === 'live-retailer-catalogue'
+      ? 'Product prices retrieved from a third-party retailer product-search provider. Check the product link for current price, availability and promotions; prices are not guaranteed at checkout.'
+      : 'Open Prices by Open Food Facts; community-reported prices. Observations may be incomplete or out of date.',
+    checkedAt: new Date().toISOString(), cacheHit, sourceMode, coverageNote, providerWarning,
+    recordsScanned, locationsScanned, itemCount: results.length, candidateCount, autoCandidateCount: autoCount,
+    livePriceSearchConfigured: Boolean(APIFY_API_TOKEN), results
+  };
+}
+
+async function runPriceLookupJob(jobId, store, items) {
+  const job = priceLookupJobs.get(jobId);
+  if (!job) return;
+  const startedAt = Date.now();
+  try {
+    console.info(`[PriceLookup ${jobId}] Accepted request: store=${store}; ingredients=${items.length}; liveCatalogue=${Boolean(APIFY_API_TOKEN)}.`);
+    job.status = 'running';
+    job.progress = { stage: 'starting', message: `Starting price lookup for ${store}.`, currentBatch: 0, totalBatches: APIFY_API_TOKEN ? Math.ceil(Math.min(items.length, 80) / 20) : 0 };
+    const result = await performPriceLookup(store, items, progress => {
+      job.progress = { ...progress, updatedAt: new Date().toISOString() };
+    }, jobId);
+    job.status = 'completed';
+    job.result = result;
+    job.finishedAt = Date.now();
+    job.progress = { stage: 'complete', message: `Completed: ${result.candidateCount} ingredient matches from ${result.recordsScanned} returned product/price rows.`, currentBatch: result.livePriceSearchConfigured ? Math.ceil(Math.min(items.length, 80) / 20) : 0, totalBatches: result.livePriceSearchConfigured ? Math.ceil(Math.min(items.length, 80) / 20) : 0, updatedAt: new Date().toISOString() };
+    console.info(`[PriceLookup ${jobId}] Completed in ${Math.round((Date.now() - startedAt) / 1000)}s; store=${store}; rows=${result.recordsScanned}; candidates=${result.candidateCount}; autoCandidates=${result.autoCandidateCount}.`);
+  } catch (e) {
+    const message = cleanString(e?.message, 450) || 'Automatic price lookup failed.';
+    job.status = 'failed';
+    job.error = `Could not complete the selected-store price lookup: ${message}`;
+    job.finishedAt = Date.now();
+    job.progress = { ...(job.progress || {}), stage: 'failed', message: job.error, updatedAt: new Date().toISOString() };
+    console.error(`[PriceLookup ${jobId}] Failed after ${Math.round((Date.now() - startedAt) / 1000)}s; store=${store}; ${message}`);
+  }
+}
+
 app.post('/api/prices/lookup', authenticated, async (req, res) => {
   const store = cleanString(req.body?.store, 50);
   if (!PRICE_LOOKUP_STORES[store]) return res.status(400).json({ error: 'Select one of the supported UK supermarkets.' });
@@ -953,90 +1092,23 @@ app.post('/api/prices/lookup', authenticated, async (req, res) => {
     groups: Array.isArray(x?.groups) ? x.groups.slice(0, 8).map(g => ({ dim: cleanString(g?.dim, 80), remaining: Number(g?.remaining) || 0, label: cleanString(g?.label, 30) })) : []
   })).filter(x => x.key && x.name);
   if (!items.length) return res.status(400).json({ error: 'No valid shopping ingredients were supplied.' });
-  try {
-    const cacheKey = `${store}:${items.map(i => `${i.key}:${i.name}`).sort().join('|')}`;
-    const cached = livePriceCache.get(cacheKey);
-    let productRows = [], providerWarning = '', sourceMode = '', cacheHit = false, recordsScanned = 0, locationsScanned = 0, source = '', sourceUrl = '';
+  prunePriceLookupJobs();
+  const jobId = crypto.randomUUID();
+  const job = { id: jobId, store, status: 'queued', progress: { stage: 'queued', message: `Price lookup queued for ${store}.`, currentBatch: 0, totalBatches: APIFY_API_TOKEN ? Math.ceil(Math.min(items.length, 80) / 20) : 0 }, createdAt: Date.now(), result: null, error: null };
+  priceLookupJobs.set(jobId, job);
+  // Do not await a multi-minute Apify scrape in the request-response cycle. The UI polls the job endpoint.
+  res.status(202).json({ ok: true, async: true, jobId, status: job.status, progress: job.progress, pollAfterMs: 2000 });
+  setImmediate(() => { void runPriceLookupJob(jobId, store, items); });
+});
 
-    if (cached && Date.now() - cached.at < LIVE_PRICE_CACHE_MS) {
-      ({ rows: productRows, sourceMode, source, sourceUrl, recordsScanned, locationsScanned, providerWarning = '' } = cached.value);
-      cacheHit = true;
-    } else if (APIFY_API_TOKEN) {
-      // Prefer an actual selected-retailer catalogue. Only one retailer is queried per request.
-      productRows = await fetchLiveRetailerRows(store, items);
-      providerWarning = productRows.lookupWarning || '';
-      sourceMode = 'live-retailer-catalogue';
-      source = 'Live retailer product search via Apify';
-      sourceUrl = YAPPMAN_STORES.has(store) ? 'https://apify.com/yappman/uk-supermarket-price-scraper' : 'https://apify.com/stores/studio-amba/uk-grocery-price-matrix';
-      recordsScanned = productRows.length;
-      locationsScanned = 0;
-      livePriceCache.set(cacheKey, { at: Date.now(), value: { rows: productRows, sourceMode, source, sourceUrl, recordsScanned, locationsScanned, providerWarning } });
-    } else {
-      // No third-party scraper key: use only price observations explicitly submitted to Open Prices.
-      // This avoids pretending a short-lived snapshot URL or generic starter prices are a live catalogue.
-      const community = await fetchStorePriceRows(store);
-      productRows = community.rows.map(r => ({
-        ...r,
-        sourceType: 'community-observation',
-        sourceName: 'Open Prices community observation',
-        sourceUrl: r.id ? `https://prices.openfoodfacts.org/prices/${encodeURIComponent(String(r.id))}` : 'https://prices.openfoodfacts.org/'
-      }));
-      cacheHit = Boolean(community.cacheHit);
-      sourceMode = 'community-observations';
-      source = 'Open Prices community observations';
-      sourceUrl = 'https://prices.openfoodfacts.org/';
-      recordsScanned = productRows.length;
-      locationsScanned = community.locationsScanned || 0;
-      providerWarning = 'Broad supermarket product search is not configured. Open Prices is community-submitted and may have few or no matches for this retailer. Add APIFY_API_TOKEN in Render to search current product catalogues. Generic starter prices are not used as actual store prices.';
-    }
-
-    const results = items.map(item => {
-      const bestByProduct = new Map();
-      for (const row of productRows) {
-        const rowRetailer = row?.retailer ? retailerSlug(row.retailer) : null;
-        if (rowRetailer && rowRetailer !== retailerSlug(store)) continue;
-        const country = normalizePriceText(row?.location?.osm_address_country_code || 'gb');
-        if (country && !['gb','uk','united kingdom'].includes(country)) continue;
-        // For catalogue rows, the requested single-retailer filter above is authoritative.
-        if (!rowRetailer && !priceStoreMatches(row, store)) continue;
-        if (!row.date || normalizePriceText(row.currency || 'GBP') !== 'gbp') continue;
-        const candidate = buildPriceCandidate(row, item, store);
-        if (!candidate) continue;
-        const identity = productIdentity(candidate);
-        const existing = bestByProduct.get(identity);
-        if (!existing || candidate.score > existing.score || (candidate.score === existing.score && candidate.date > existing.date)) bestByProduct.set(identity, candidate);
-      }
-      const candidates = [...bestByProduct.values()].sort((a,b) => b.score-a.score || b.date.localeCompare(a.date)).slice(0, 4);
-      const top = candidates[0] || null;
-      const runnerUp = candidates[1] || null;
-      const clearMargin = !runnerUp || top.score - runnerUp.score >= 0.10 || top.score >= 0.96;
-      const strongScore = top?.sourceType === 'live-retailer' ? top.score >= 0.82 : top?.sourceType === 'daily-snapshot' ? top.score >= 0.86 : top?.score >= 0.84;
-      const sufficientlyFresh = top && (top.sourceType === 'live-retailer' ? top.ageDays <= 7 : top.ageDays <= 45);
-      const autoCandidate = top && top.canApply && sufficientlyFresh && clearMargin && strongScore ? top : null;
-      return {
-        key: item.key, name: item.name, candidates, autoCandidate,
-        status: autoCandidate ? 'strong-recent-match' : candidates.length ? 'review-match' : 'no-price-match',
-        note: candidates.length ? '' : sourceMode === 'live-retailer-catalogue' ? `No matching ${store} product price was found in the current catalogue results.` : `No matching ${store} product price was found in the available Open Prices community observations.`
-      };
-    });
-    const candidateCount = results.filter(x => x.candidates.length).length;
-    const autoCount = results.filter(x => x.autoCandidate).length;
-    const coverageNote = sourceMode === 'live-retailer-catalogue'
-      ? `Live product search checked ${store} listings against ${items.length} shopping ingredients. Prices and availability can vary by postcode, delivery area and loyalty card.`
-      : `Open Prices observations are community-submitted and can be sparse or out of date; absence of a record does not mean a product is unavailable.`;
-    return res.json({
-      ok: true, store, source, sourceUrl,
-      attribution: sourceMode === 'live-retailer-catalogue'
-        ? 'Product prices retrieved from a third-party retailer product-search provider. Check the product link for current price, availability and promotions; prices are not guaranteed at checkout.'
-        : 'Open Prices by Open Food Facts; community-reported prices. Observations may be incomplete or out of date.',
-      checkedAt: new Date().toISOString(), cacheHit, sourceMode, coverageNote, providerWarning,
-      recordsScanned, locationsScanned, itemCount: results.length, candidateCount, autoCandidateCount: autoCount,
-      livePriceSearchConfigured: Boolean(APIFY_API_TOKEN), results
-    });
-  } catch (e) {
-    const message = cleanString(e?.message, 450) || 'Automatic price lookup failed.';
-    return res.status(502).json({ error: `Could not complete the selected-store price lookup: ${message}`, source: APIFY_API_TOKEN ? 'Live retailer product search' : 'Open Prices community observations' });
-  }
+app.get('/api/prices/lookup/:jobId', authenticated, (req, res) => {
+  prunePriceLookupJobs();
+  const job = priceLookupJobs.get(cleanString(req.params?.jobId, 80));
+  if (!job) return res.status(404).json({ error: 'This price lookup job has expired or is no longer available. Please start a new lookup.' });
+  const response = { ok: true, jobId: job.id, status: job.status, progress: job.progress || null, pollAfterMs: 2500 };
+  if (job.status === 'completed') response.result = job.result;
+  if (job.status === 'failed') response.error = job.error;
+  return res.json(response);
 });
 
 app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner-recipe-import', aiProvider: 'Google Gemini API', aiConfigured: Boolean(GEMINI_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, fallbackModels: FALLBACK_MODELS, retryPolicy: 'exponential-backoff-and-model-fallback', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, livePriceSearchConfigured: Boolean(APIFY_API_TOKEN), freePriceSnapshotAvailable: false, priceDataSource: APIFY_API_TOKEN ? 'Apify retailer product catalogue with capped result counts; Open Prices community fallback' : 'Open Prices community observations only; broad retailer product search requires APIFY_API_TOKEN' }));
