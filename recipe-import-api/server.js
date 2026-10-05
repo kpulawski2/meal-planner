@@ -833,25 +833,61 @@ async function readApifyActorItems(actorId, input, { timeoutSeconds = 90, maxIte
 async function fetchLiveRetailerRows(store, items) {
   const retailer = RETAILER_SLUGS[store];
   if (!retailer) throw new Error('The selected supermarket is not supported by the live catalogue provider.');
-  const queries = items.map(x => grocerySearchTerm(x.name)).filter(Boolean).slice(0, 80);
-  if (YAPPMAN_STORES.has(store)) {
-    const rows = await readApifyActorItems('yappman~uk-supermarket-price-scraper', {
-      retailers: [retailer], mode: 'search', queries,
-      categoryUrls: [], productUrls: [], maxItems: Math.min(180, Math.max(40, queries.length * 3))
-    }, { timeoutSeconds: 85, maxItems: Math.min(180, Math.max(40, queries.length * 3)), maxChargeUsd: 5.00 });
-    const expectedSlug = retailerSlug(store);
-    return rows.filter(r => retailerSlug(r?.retailer) === expectedSlug).map(r => adaptRetailProduct(r, store, 'live-retailer')).filter(Boolean);
-  }
-  // The multi-store adapter is asked for exactly one retailer per run, with a limited result count.
-  // This avoids paying to compare ten stores when the user selected only one.
-  const rows = await readApifyActorItems('studio-amba~uk-grocery-price-matrix', {
-    searchQueries: queries,
-    retailers: [retailer],
-    maxItemsPerSource: 2,
-    timeoutPerSourceSecs: 24
-  }, { timeoutSeconds: 90, maxItems: Math.min(140, Math.max(40, queries.length * 2)), maxChargeUsd: 5.00 });
+
+  // The Studio Amba actor accepts at most 20 searchQueries per run. Keep all actors
+  // within that limit so retailer lookups with a large shopping list are split safely.
+  const queries = [...new Set(items.map(x => grocerySearchTerm(x.name).trim()).filter(Boolean))].slice(0, 80);
+  const queryBatches = [];
+  for (let i = 0; i < queries.length; i += 20) queryBatches.push(queries.slice(i, i + 20));
+  if (!queryBatches.length) throw new Error('No usable ingredient search terms were generated.');
+
   const expectedSlug = retailerSlug(store);
-  return rows.filter(r => retailerSlug(r?.retailer) === expectedSlug).map(r => adaptRetailProduct(r, store, 'live-retailer')).filter(Boolean);
+  const allRows = [];
+  const batchErrors = [];
+
+  // Run batches sequentially: this avoids launching several paid-cap actor runs at once
+  // and stays within the provider's per-run input limit. Each run still uses the configured
+  // maxTotalChargeUsd cap; on the Apify Free plan, requests stop when monthly credit is used.
+  for (let index = 0; index < queryBatches.length; index++) {
+    const batch = queryBatches[index];
+    try {
+      let rows;
+      if (YAPPMAN_STORES.has(store)) {
+        const maxItems = Math.min(180, Math.max(40, batch.length * 3));
+        rows = await readApifyActorItems('yappman~uk-supermarket-price-scraper', {
+          retailers: [retailer], mode: 'search', queries: batch,
+          categoryUrls: [], productUrls: [], maxItems
+        }, { timeoutSeconds: 85, maxItems, maxChargeUsd: 5.00 });
+      } else {
+        const maxItems = Math.min(140, Math.max(40, batch.length * 2));
+        rows = await readApifyActorItems('studio-amba~uk-grocery-price-matrix', {
+          searchQueries: batch,
+          retailers: [retailer],
+          maxItemsPerSource: 2,
+          timeoutPerSourceSecs: 24
+        }, { timeoutSeconds: 90, maxItems, maxChargeUsd: 5.00 });
+      }
+      allRows.push(...rows.filter(r => retailerSlug(r?.retailer) === expectedSlug));
+    } catch (error) {
+      const detail = cleanString(error?.message || 'Unknown catalogue error', 220);
+      batchErrors.push(`batch ${index + 1}/${queryBatches.length}: ${detail}`);
+    }
+  }
+
+  if (!allRows.length && batchErrors.length) {
+    throw new Error(`All ${queryBatches.length} product-search batch(es) failed. ${batchErrors.slice(0, 2).join(' | ')}`);
+  }
+  // Attach non-enumerable lookup metadata to the array; callers can report partial results
+  // without turning a partially successful lookup into a misleading full failure.
+  Object.defineProperty(allRows, 'lookupWarning', {
+    value: batchErrors.length
+      ? `Some product searches could not be completed (${batchErrors.length} of ${queryBatches.length} batches failed). Price coverage is partial. ${batchErrors.slice(0, 2).join(' | ')}`
+      : '',
+    enumerable: false,
+    configurable: true
+  });
+  Object.defineProperty(allRows, 'queryBatchCount', { value: queryBatches.length, enumerable: false, configurable: true });
+  return allRows;
 }
 
 function buildPriceCandidate(row, item, store) {
@@ -923,17 +959,18 @@ app.post('/api/prices/lookup', authenticated, async (req, res) => {
     let productRows = [], providerWarning = '', sourceMode = '', cacheHit = false, recordsScanned = 0, locationsScanned = 0, source = '', sourceUrl = '';
 
     if (cached && Date.now() - cached.at < LIVE_PRICE_CACHE_MS) {
-      ({ rows: productRows, sourceMode, source, sourceUrl, recordsScanned, locationsScanned } = cached.value);
+      ({ rows: productRows, sourceMode, source, sourceUrl, recordsScanned, locationsScanned, providerWarning = '' } = cached.value);
       cacheHit = true;
     } else if (APIFY_API_TOKEN) {
       // Prefer an actual selected-retailer catalogue. Only one retailer is queried per request.
       productRows = await fetchLiveRetailerRows(store, items);
+      providerWarning = productRows.lookupWarning || '';
       sourceMode = 'live-retailer-catalogue';
       source = 'Live retailer product search via Apify';
       sourceUrl = YAPPMAN_STORES.has(store) ? 'https://apify.com/yappman/uk-supermarket-price-scraper' : 'https://apify.com/stores/studio-amba/uk-grocery-price-matrix';
       recordsScanned = productRows.length;
       locationsScanned = 0;
-      livePriceCache.set(cacheKey, { at: Date.now(), value: { rows: productRows, sourceMode, source, sourceUrl, recordsScanned, locationsScanned } });
+      livePriceCache.set(cacheKey, { at: Date.now(), value: { rows: productRows, sourceMode, source, sourceUrl, recordsScanned, locationsScanned, providerWarning } });
     } else {
       // No third-party scraper key: use only price observations explicitly submitted to Open Prices.
       // This avoids pretending a short-lived snapshot URL or generic starter prices are a live catalogue.
