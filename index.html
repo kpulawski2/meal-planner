@@ -30,6 +30,7 @@
 .swap-empty{padding:22px 10px;text-align:center;color:var(--muted)}
 @media(min-width:560px){.swap-list{grid-template-columns:1fr 1fr}.swap-option{display:flex;flex-direction:column}.swap-option-actions{margin-top:auto}}
 @media(min-width:760px){.tabs{position:sticky;bottom:auto;border:0;background:transparent;justify-content:flex-start;padding:8px 16px}.app{box-shadow:0 0 35px #ddd;min-height:100vh}}
+.shop-row{flex-wrap:wrap}.pantry-note{display:block;flex:0 0 calc(100% - 29px);margin:3px 0 0 29px;font-size:12px;color:var(--muted)}
 </style></head>
 <body><div class="app">
 <header class="top"><div class="brand">Meal Planner</div><div class="sub">Your personal mise-style planner</div></header>
@@ -151,9 +152,82 @@ function totals(day){let rs=state.week.find(d=>d.day===day)?.meals.map(getRecipe
 function mealCard(r,day,idx){return `<div class="card"><div class="meal"><div class="meal-icon">${r.icon}</div><div class="meal-main"><div class="meal-name">${r.name}</div><div class="meal-meta">${kcalText(r.kcal)} · ${proteinText(r.p)} · ${costText(r.cost)}</div></div><div class="meal-actions"><button onclick="swapMeal('${day}',${idx})">Swap</button><button onclick="showRecipe('${r.id}')">Recipe</button></div></div></div>`}
 function renderHome(){let today=new Date().getDay();let idx=(today+6)%7;let d=state.week[idx]||state.week[0];if(!d){generateWeek();return}let t=totals(d.day);document.getElementById('home').innerHTML=`<div class="hero"><h1>${d.day}'s plan</h1><p>Targets: ${state.profile.calories} kcal and ${state.profile.protein}g protein.</p><div class="stats"><div class="stat"><b>${t.kcalKnown?t.kcal:'—'}</b><span>kcal</span></div><div class="stat"><b>${t.pKnown?t.p+'g':'—'}</b><span>protein</span></div><div class="stat"><b>${d.meals.map(getRecipe).every(r=>r.cost!==null&&r.cost!==undefined)?'£'+d.meals.map(getRecipe).reduce((a,r)=>a+(+r.cost||0),0).toFixed(2):'—'}</b><span>cost estimated</span></div></div><p class="sub">${t.kcalKnown?Math.round(t.kcal/state.profile.calories*100)+'% of calorie target':'Some meal calories are missing'} · ${t.pKnown?Math.round(t.p/state.profile.protein*100)+'% of protein target':'Some meal protein values are missing'}</p></div><div class="actions"><button class="btn" onclick="generateWeek()">Generate plan</button><button class="btn secondary" onclick="showTab('shop')">Shopping list</button></div><div class="section-title">Today's meals</div>${d.meals.map((id,i)=>mealCard(getRecipe(id),d.day,i)).join('')}`}
 function renderWeek(){if(!state.week.length){generateWeek();return}let prep='';if(state.profile.batch||state.profile.mealPrep){let counts={};state.week.forEach(d=>d.meals.forEach(id=>counts[id]=(counts[id]||0)+1));let repeated=Object.entries(counts).filter(([id,n])=>n>1).map(([id,n])=>`<li><b>${getRecipe(id).name}</b> — prepare ${n*(+state.profile.people||1)} portions across the plan</li>`).join('');prep=`<div class="card"><h3>🍱 Meal-prep plan</h3><p class="sub">Prepare repeated recipes together to save time. Cool food promptly, refrigerate portions for the next few days and freeze later portions.</p>${repeated?`<ul>${repeated}</ul>`:'<p class="sub">This plan has no repeated recipes yet; use the recipe buttons to choose meals you would like to batch-cook.</p>'}</div>`}document.getElementById('week').innerHTML=`<div class="actions"><button class="btn" onclick="generateWeek()">Generate new plan</button></div>${prep}${state.week.map(d=>{let t=totals(d.day);let pct=Math.min(100,Math.round(t.kcal/state.profile.calories*100));return `<div class="day-head"><h3>${d.day}</h3><span class="pill">${t.kcalKnown?t.kcal+' kcal':'Calories —'} · ${t.pKnown?t.p+'g P':'Protein —'}</span></div><div class="progress"><i style="width:${pct}%"></i></div>${d.meals.map((id,i)=>mealCard(getRecipe(id),d.day,i)).join('')}`}).join('')}`}
-function buildShopping(){let map={};for(const d of state.week)for(const id of d.meals)for(const [n,q,u] of getRecipe(id).ings){let k=n;if(!map[k])map[k]={q:0,u,c:category(n),unknown:false};if(+q>0)map[k].q+=q*(+state.profile.people||1);else map[k].unknown=true}for(const x of state.pantry){if(map[x.name]&&map[x.name].q>0)map[x.name].q=Math.max(0,map[x.name].q-(+x.qty||0))}return Object.fromEntries(Object.entries(map).filter(([k,v])=>v.q>0||v.unknown))}
-function category(n){if(/chicken|beef|tuna|egg/i.test(n))return 'Protein';if(/yoghurt|cottage/i.test(n))return 'Dairy';if(/rice|pasta|oat|bread|potato|bean/i.test(n))return 'Carbs & cupboard';if(/berry|banana|tomato|pepper|vegetable|salad|sweetcorn/i.test(n))return 'Fruit & veg';return 'Other'}
-function renderShop(){let m=buildShopping();let cats={};Object.entries(m).forEach(([n,x])=>(cats[x.c]??=[]).push([n,x]));let checked=Object.values(state.shopping).filter(Boolean).length;document.getElementById('shop').innerHTML=`<div class="hero"><h1>Shopping list</h1><p>Consolidated across your ${state.week.length}-day plan. Tick items off as you shop.</p><div class="stats"><div class="stat"><b>${Object.keys(m).length}</b><span>items to buy</span></div><div class="stat"><b>${checked}</b><span>checked off</span></div><div class="stat"><b>£${(+state.profile.budget||45).toFixed(0)}</b><span>weekly budget</span></div></div></div>${Object.entries(cats).map(([c,items])=>`<div class="category">${c}</div><div class="card">${items.map(([n,x])=>`<label class="shop-row"><input type="checkbox" ${state.shopping[n]?'checked':''} onchange="toggleShoppingItem('${escape(n)}',this.checked)"><span class="name" style="${state.shopping[n]?'text-decoration:line-through;color:#888':''}">${escape(n)}</span><span class="qty">${x.unknown&&x.q===0?'quantity to confirm':`${fmt(x.q)} ${x.u}${x.unknown?' + check':''}`}</span></label>`).join('')}</div>`).join('')||'<div class="empty">Generate a meal plan to build your shopping list.</div>'}<div class="actions"><button class="btn secondary" onclick="clearShoppingChecks()">Uncheck all</button><button class="btn secondary" onclick="window.print()">Print / save list</button></div><p class="sub">Quantities account for your servings and pantry inventory where ingredient names match. Prices are estimates, not live supermarket prices.</p>`}function toggleShoppingItem(name,checked){state.shopping[name]=checked;save();renderShop()}function clearShoppingChecks(){state.shopping={};save();renderShop()}
+function canonicalIngredientName(name){return String(name||'').trim().replace(/\s+/g,' ').toLowerCase().replace(/\byogurt\b/g,'yoghurt')}
+function unitMeta(unit,name){
+ let u=String(unit||'').trim().toLowerCase().replace(/\./g,'').replace(/\s+/g,' ');
+ if(['g','gram','grams'].includes(u))return {dim:'mass',factor:1,label:'g'};
+ if(['kg','kilogram','kilograms'].includes(u))return {dim:'mass',factor:1000,label:'g'};
+ if(['ml','millilitre','millilitres','milliliter','milliliters'].includes(u))return {dim:'volume',factor:1,label:'ml'};
+ if(['l','litre','litres','liter','liters'].includes(u))return {dim:'volume',factor:1000,label:'ml'};
+ if(['tsp','teaspoon','teaspoons'].includes(u))return {dim:'tsp',factor:1,label:'tsp'};
+ if(['tbsp','tablespoon','tablespoons'].includes(u))return {dim:'tbsp',factor:1,label:'tbsp'};
+ if(['slice','slices'].includes(u))return {dim:'slice',factor:1,label:'slices'};
+ if(['portion','portions','serving','servings'].includes(u))return {dim:'portion',factor:1,label:'portions'};
+ if(['piece','pieces','pcs','pc','each','ea',''].includes(u)){
+  if(!u&&/cinnamon|paprika|seasoning|oil|salt|pepper|sauce|stock|powder|spice/i.test(name||''))return {dim:'unit',factor:1,label:'units'};
+  return {dim:'each',factor:1,label:'pieces'};
+ }
+ return {dim:'unit:'+u,factor:1,label:u||'units'};
+}
+function buildShopping(){
+ const map={};
+ for(const d of state.week)for(const id of d.meals){
+  const r=getRecipe(id), servings=Math.max(1,Number(r.servings)||1), portions=Math.max(1,Number(state.profile.people)||1), scale=portions/servings;
+  for(const [rawName,rawQty,rawUnit] of (r.ings||[])){
+   const name=String(rawName||'').trim().replace(/\s+/g,' ');if(!name)continue;
+   const key=canonicalIngredientName(name), qty=Number(rawQty)||0, unit=unitMeta(rawUnit,name);
+   if(!map[key])map[key]={name,c:category(name),groups:{},unknown:false,pantryNotes:[]};
+   const item=map[key];
+   if(qty>0){
+    if(!item.groups[unit.dim])item.groups[unit.dim]={need:0,remaining:0,label:unit.label,dim:unit.dim,pantry:0};
+    item.groups[unit.dim].need+=qty*scale*unit.factor;
+   }else item.unknown=true;
+  }
+ }
+ // Deduct inventory case-insensitively, including g/kg and ml/l conversions.
+ const stock={};
+ for(const x of (state.pantry||[])){
+  const key=canonicalIngredientName(x.name), meta=unitMeta(x.unit,x.name), qty=Math.max(0,Number(x.qty)||0);
+  if(!stock[key])stock[key]={};
+  if(!stock[key][meta.dim])stock[key][meta.dim]=0;
+  stock[key][meta.dim]+=qty*meta.factor;
+ }
+ for(const [key,item] of Object.entries(map)){
+  for(const [dim,g] of Object.entries(item.groups)){
+   g.pantry=(stock[key]&&stock[key][dim])||0;
+   const used=Math.min(g.need,g.pantry);g.remaining=Math.max(0,g.need-used);g.pantryUsed=used;
+   if(g.pantry>0)item.pantryNotes.push(`${fmt(g.pantry)} ${g.label} in inventory`);
+  }
+  // When quantity is unknown, show pantry stock as context but never assume it is sufficient.
+  if(item.unknown&&!item.pantryNotes.length&&stock[key])item.pantryNotes=Object.entries(stock[key]).map(([dim,q])=>`${fmt(q)} ${Object.keys(item.groups).includes(dim)?item.groups[dim].label:dim==='mass'?'g':dim==='volume'?'ml':dim==='each'?'pieces':'units'} in inventory`);
+ }
+ return Object.fromEntries(Object.entries(map).filter(([key,item])=>item.unknown||Object.values(item.groups).some(g=>g.remaining>0.0001)));
+}
+function safeArg(value){return encodeURIComponent(String(value)).replace(/'/g,'%27')}
+function shoppingQtyLabel(item){
+ const parts=Object.values(item.groups).filter(g=>g.remaining>0.0001).map(g=>`${fmt(g.remaining)} ${g.label}`);
+ if(item.unknown)parts.push('quantity to confirm');
+ return parts.join(' + ')||'Covered by pantry';
+}
+function category(n){if(/chicken|beef|tuna|egg|turkey|pork|prawn/i.test(n))return 'Protein';if(/yoghurt|cottage|milk|cheese|skyr/i.test(n))return 'Dairy';if(/rice|pasta|oat|bread|potato|bean|noodle|couscous|wrap|pitta|flour/i.test(n))return 'Carbs & cupboard';if(/berry|banana|tomato|pepper|vegetable|salad|sweetcorn|cucumber|carrot|spinach|apple|pear|broccoli|onion|fruit/i.test(n))return 'Fruit & veg';return 'Other'}
+function renderShop(){
+ const m=buildShopping(), entries=Object.entries(m), cats={};
+ entries.forEach(([key,x])=>(cats[x.c]??=[]).push([key,x]));
+ const checked=entries.filter(([key,x])=>Boolean(state.shopping[key]||state.shopping[x.name])).length;
+ const unknownCount=entries.filter(([key,x])=>x.unknown).length;
+ const coveredCount=state.week.reduce((a,d)=>a+d.meals.length,0)*(+state.profile.people||1);
+ document.getElementById('shop').innerHTML=`<div class="hero"><h1>Shopping list</h1><p>Consolidated across your ${state.week.length}-day plan. Quantities are scaled for ${+state.profile.people||1} ${(+state.profile.people||1)===1?'person':'people'} and each recipe's servings where specified.</p><div class="stats"><div class="stat"><b>${entries.length}</b><span>items to buy</span></div><div class="stat"><b>${checked}</b><span>checked off</span></div><div class="stat"><b>${unknownCount}</b><span>quantities to check</span></div></div></div>${Object.entries(cats).map(([c,items])=>`<div class="category">${escape(c)}</div><div class="card">${items.map(([key,x])=>{const isChecked=Boolean(state.shopping[key]||state.shopping[x.name]);return `<label class="shop-row"><input type="checkbox" ${isChecked?'checked':''} onchange="toggleShoppingItem(decodeURIComponent('${safeArg(key)}'),this.checked,'${safeArg(x.name)}')"><span class="name" style="${isChecked?'text-decoration:line-through;color:#888':''}">${escape(x.name)}</span><span class="qty">${escape(shoppingQtyLabel(x))}</span>${x.pantryNotes.length?`<small class="sub pantry-note">${escape('Pantry: '+x.pantryNotes.join(', '))}</small>`:''}</label>`}).join('')}</div>`).join('')||(state.week.length?'<div class="empty">Everything in this plan appears to be covered by your pantry inventory.</div>':'<div class="empty">Generate a meal plan to build your shopping list.</div>')}<div class="actions"><button class="btn secondary" onclick="clearShoppingChecks()">Uncheck all</button><button class="btn secondary" onclick="copyShoppingList()">Copy list</button><button class="btn secondary" onclick="window.print()">Print / save list</button></div><p class="sub">Ingredients are consolidated by name; g/kg and ml/l are converted to a common unit. Pantry quantities are deducted only when ingredient names and units are compatible. Unknown ingredient amounts remain flagged for review. Prices are estimates, not live supermarket prices.</p>`;
+}
+function toggleShoppingItem(name,checked,legacyName){state.shopping[name]=checked;if(legacyName&&legacyName!==name)delete state.shopping[legacyName];save();renderShop()}
+function clearShoppingChecks(){state.shopping={};save();renderShop()}
+function copyShoppingList(){
+ const m=buildShopping(), lines=['Meal Planner shopping list'];
+ const cats={};Object.entries(m).forEach(([key,x])=>(cats[x.c]??=[]).push([key,x]));
+ for(const [cat,items] of Object.entries(cats)){lines.push('',cat.toUpperCase());for(const [key,x] of items)lines.push(`${state.shopping[key]||state.shopping[x.name]?'[x]':'[ ]'} ${x.name} — ${shoppingQtyLabel(x)}${x.pantryNotes.length?' (Pantry: '+x.pantryNotes.join(', ')+')':''}`)}
+ const text=lines.join('\n');
+ if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(()=>toast('Shopping list copied')).catch(()=>copyShoppingFallback(text))}else copyShoppingFallback(text);
+}
+function copyShoppingFallback(text){const area=document.createElement('textarea');area.value=text;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}area.remove();toast(ok?'Shopping list copied':'Copy was blocked by this browser');}
 function fmt(n){return Number.isInteger(n)?n:(Math.round(n*10)/10)}
 function presetButtons(key, values, current, suffix=''){return `<div class="checkrow presets">${values.map(v=>`<button type="button" class="chip ${+current===v?'on':''}" onclick="setPreset('${key}',${v})">${v}${suffix}</button>`).join('')}</div>`}
 function choiceButtons(key, values, current){return `<div class="checkrow presets">${values.map(v=>`<button type="button" class="chip ${current===v?'on':''}" onclick="setChoice('${key}','${v}')">${v}</button>`).join('')}</div>`}
