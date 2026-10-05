@@ -68,7 +68,7 @@ function authenticated(req, res, next) {
   const now = Date.now();
   const previous = hits.get(key) || [];
   const recent = previous.filter(t => now - t < RATE_WINDOW_MS);
-  if (recent.length >= RATE_LIMIT) return res.status(429).json({ error: 'Too many imports from this connection. Try again in a few minutes.' });
+  if (recent.length >= RATE_LIMIT) return res.status(429).json({ error: 'Too many requests from this connection. Try again in a few minutes.' });
   recent.push(now); hits.set(key, recent);
   next();
 }
@@ -442,7 +442,351 @@ async function parseWithAI(material) {
     ingredients, steps, confidence: ['high','medium','low'].includes(r.confidence) ? r.confidence : 'low', warnings: [...new Set(warnings)]
   };
 }
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner-recipe-import', aiProvider: 'Google Gemini API', aiConfigured: Boolean(GEMINI_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, fallbackModels: FALLBACK_MODELS, retryPolicy: 'exponential-backoff-and-model-fallback', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name) }));
+const OPEN_PRICES_BASE = 'https://prices.openfoodfacts.org/api/v1';
+const PRICE_LOOKUP_CACHE_MS = 10 * 60 * 1000;
+const PRICE_LOOKUP_PAGE_SIZE = 100;
+const PRICE_LOOKUP_LOCATION_PAGE_LIMIT = 3;
+const PRICE_LOOKUP_FALLBACK_LOCATION_PAGE_LIMIT = 4;
+const PRICE_LOOKUP_MAX_ITEMS = 80;
+const PRICE_LOOKUP_STORES = {
+  'Lidl': { query: ['Lidl'], match: ['lidl'] },
+  'Aldi': { query: ['Aldi'], match: ['aldi'] },
+  'Asda': { query: ['Asda'], match: ['asda'] },
+  'Tesco': { query: ['Tesco'], match: ['tesco'] },
+  'Sainsbury’s': { query: ['Sainsbury'], match: ['sainsbury'] },
+  'Morrisons': { query: ['Morrisons'], match: ['morrisons'] },
+  'Waitrose': { query: ['Waitrose'], match: ['waitrose'] },
+  'Ocado': { query: ['Ocado'], match: ['ocado'] },
+  'Iceland': { query: ['Iceland'], match: ['iceland'] },
+  'Co-op': { query: ['Co-op', 'Co-operative'], match: ['co-op', 'co op', 'coop', 'co-operative'] }
+};
+const openPricesCache = new Map();
+
+function normalizePriceText(value) {
+  return String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function priceStoreMatches(row, store) {
+  const config = PRICE_LOOKUP_STORES[store];
+  if (!config) return false;
+  const loc = row?.location || {};
+  const country = normalizePriceText(loc.osm_address_country_code || '');
+  if (country && !['gb', 'uk'].includes(country)) return false;
+  // Match on store/location metadata only. Product brands and owner comments are
+  // not proof of which retailer sold the item.
+  const text = normalizePriceText([
+    loc.osm_brand, loc.osm_name, loc.osm_display_name, loc.osm_tag_value,
+    loc.website_url
+  ].filter(Boolean).join(' '));
+  return config.match.some(alias => text.includes(normalizePriceText(alias)));
+}
+function priceTokens(value) {
+  const aliases = normalizePriceText(value)
+    .replace(/\b(yogurt|yoghurts)\b/g, 'yoghurt')
+    .replace(/\b(eggs)\b/g, 'egg').replace(/\b(berries)\b/g, 'berry')
+    .replace(/\b(tomatoes)\b/g, 'tomato').replace(/\b(potatoes)\b/g, 'potato')
+    .replace(/\b(vegetables)\b/g, 'vegetable').replace(/\b(wraps)\b/g, 'wrap')
+    .replace(/\b(noodles)\b/g, 'noodle').replace(/\b(beans)\b/g, 'bean')
+    .replace(/\b(apples)\b/g, 'apple').replace(/\b(bananas)\b/g, 'banana')
+    .replace(/\b(peppers)\b/g, 'pepper').replace(/\b(carrots)\b/g, 'carrot')
+    .replace(/\b(onions)\b/g, 'onion').replace(/\b(mushrooms)\b/g, 'mushroom');
+  const stop = new Set(['and','the','of','with','fresh','british','farm','foods','food','brand','pack','packaging','product','size','each','per','approx','approximate','g','kg','ml','l','cl','x','%','light','low','fat','lean','skinless','boneless','raw','cooked','sliced','diced','chopped','plain']);
+  return [...new Set(aliases.split(' ').filter(w => w && !stop.has(w) && !/^\d+$/.test(w) && w.length > 1))];
+}
+function priceMatchScore(ingredient, productName) {
+  const target = priceTokens(ingredient);
+  const product = priceTokens(productName);
+  if (!target.length || !product.length) return 0;
+  const overlap = target.filter(t => product.includes(t));
+  const recall = overlap.length / target.length;
+  const precision = overlap.length / Math.max(1, Math.min(product.length, target.length + 2));
+  const normProduct = ` ${normalizePriceText(productName)} `;
+  const normTarget = ` ${normalizePriceText(ingredient).replace(/\b\d+(?:\.\d+)?\s*percent\b/g, ' ')} `;
+  const phrase = normTarget.trim().length > 3 && normProduct.includes(normTarget.trim()) ? 0.12 : 0;
+  const blockers = ['crisps','crisp','soup','sauce','ketchup','juice','drink','flavour','flavor','powder','cereal','cake','cakes','pudding','ready meal','wedge','wedges'];
+  if (target.length <= 2 && blockers.some(word => normProduct.includes(` ${word} `)) && !target.includes(word)) return 0;
+  return Math.max(0, Math.min(1, recall * 0.78 + precision * 0.22 + phrase));
+}
+function priceUnitMeta(unit) {
+  const u = normalizePriceText(unit);
+  if (['g','gram','grams','grm'].includes(u)) return { dim: 'mass', unit: 'g', factor: 1 };
+  if (['kg','kilogram','kilograms','kilo'].includes(u)) return { dim: 'mass', unit: 'kg', factor: 1000 };
+  if (['ml','millilitre','millilitres','milliliter','milliliters','millilitre'].includes(u)) return { dim: 'volume', unit: 'ml', factor: 1 };
+  if (['l','litre','litres','liter','liters'].includes(u)) return { dim: 'volume', unit: 'l', factor: 1000 };
+  if (['piece','pieces','pc','pcs','unit','units','each','ea','item','items'].includes(u)) return { dim: 'each', unit: 'pieces', factor: 1 };
+  if (['slice','slices'].includes(u)) return { dim: 'slice', unit: 'slices', factor: 1 };
+  return null;
+}
+function parseProductPack(product) {
+  if (!product || typeof product !== 'object') return null;
+  let quantity = Number(product.product_quantity);
+  let unit = String(product.product_quantity_unit || '').trim();
+  if (!(quantity > 0 && Number.isFinite(quantity))) {
+    const text = String(product.quantity || product.product_name || '');
+    const m = text.match(/(?:^|\b)(\d+(?:[.,]\d+)?)\s*(kg|kilograms?|g|grams?|ml|millilit(?:re|er)s?|l|lit(?:re|er)s?|pieces?|units?|pcs|slices?)(?:\b|$)/i);
+    if (!m) return null;
+    quantity = Number(m[1].replace(',', '.'));
+    unit = m[2];
+  }
+  const meta = priceUnitMeta(unit);
+  if (!meta || quantity <= 0 || quantity > 10000000) return null;
+  return { size: quantity, unit: meta.unit, dim: meta.dim };
+}
+function computeObservedPackPrice(price, pricePer, pack) {
+  const val = Number(price);
+  if (!Number.isFinite(val) || val < 0 || !pack) return null;
+  const rate = normalizePriceText(pricePer || 'unit').replace(/\s/g, '');
+  if (!rate || ['unit','units','each','piece','pieces','item','items'].includes(rate)) return val;
+  const qtyBase = pack.size * (pack.dim === 'mass' && pack.unit === 'kg' ? 1000 : pack.dim === 'volume' && pack.unit === 'l' ? 1000 : 1);
+  if (pack.dim === 'mass') {
+    if (['kg','perkg','kilogram','kilograms','perkilogram','perkilograms'].includes(rate)) return val * qtyBase / 1000;
+    if (['100g','per100g','per100grams'].includes(rate)) return val * qtyBase / 100;
+    if (['g','perg'].includes(rate)) return val * qtyBase;
+  }
+  if (pack.dim === 'volume') {
+    if (['l','perl','litre','liter','perlitre','perliter'].includes(rate)) return val * qtyBase / 1000;
+    if (['100ml','per100ml'].includes(rate)) return val * qtyBase / 100;
+    if (['ml','perml'].includes(rate)) return val * qtyBase;
+  }
+  return null;
+}
+async function readOpenPricesPage(params, resource = 'prices') {
+  const allowed = new Set(['prices', 'locations']);
+  if (!allowed.has(resource)) throw new Error('Unsupported Open Prices resource.');
+  const url = new URL(`${OPEN_PRICES_BASE}/${resource}`);
+  for (const [key, value] of Object.entries(params)) if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value));
+  const response = await fetch(url, {
+    headers: { 'Accept': 'application/json', 'User-Agent': 'MealPlannerPersonal/1.0 (+https://kpulawski2.github.io/meal-planner/)' },
+    signal: AbortSignal.timeout(12000)
+  });
+  if (!response.ok) throw new Error(`Open Prices returned HTTP ${response.status}.`);
+  const data = await response.json();
+  return { items: Array.isArray(data?.items) ? data.items : [], pages: Number(data?.pages) || 1, total: Number(data?.total) || 0 };
+}
+async function fetchStorePriceRows(store) {
+  const cached = openPricesCache.get(store);
+  if (cached && Date.now() - cached.at < PRICE_LOOKUP_CACHE_MS) return { ...cached.value, cacheHit: true };
+  const config = PRICE_LOOKUP_STORES[store];
+  if (!config) throw new Error('Select a supported UK supermarket.');
+  const since = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const locationsById = new Map();
+  let pagesFetched = 0;
+
+  // Find actual UK branches for the selected supermarket first. Open Prices
+  // stores observations against location IDs; querying prices without these IDs
+  // risks accidentally mixing another retailer's prices into the basket.
+  for (const alias of config.query) {
+    try {
+      for (let page = 1; page <= PRICE_LOOKUP_LOCATION_PAGE_LIMIT; page++) {
+        const result = await readOpenPricesPage({
+          osm_address_country__like: 'United Kingdom',
+          osm_name__like: alias,
+          size: PRICE_LOOKUP_PAGE_SIZE, page, order_by: '-price_count'
+        }, 'locations');
+        pagesFetched++;
+        for (const loc of result.items) {
+          const country = normalizePriceText(loc?.osm_address_country_code || '');
+          if (country && !['gb', 'uk'].includes(country)) continue;
+          if (!priceStoreMatches({ location: loc }, store)) continue;
+          if (!(Number(loc.price_count) > 0)) continue;
+          locationsById.set(String(loc.id), loc);
+        }
+        if (locationsById.size >= 20 || page >= result.pages || result.items.length < PRICE_LOOKUP_PAGE_SIZE) break;
+      }
+    } catch (error) {
+      // A secondary alias or location search may not be supported by every
+      // index version; continue to the next search/fallback instead of failing.
+      console.warn(`[Open Prices] location search for ${store} (${alias}) failed:`, error.message);
+    }
+    if (locationsById.size >= 20) break;
+  }
+
+  // If name-indexed lookup missed stores whose OSM name is generic, inspect a
+  // bounded number of UK locations and match via brand/name metadata.
+  if (!locationsById.size) {
+    try {
+      for (let page = 1; page <= PRICE_LOOKUP_FALLBACK_LOCATION_PAGE_LIMIT; page++) {
+        const result = await readOpenPricesPage({
+          osm_address_country__like: 'United Kingdom',
+          size: PRICE_LOOKUP_PAGE_SIZE, page, order_by: '-price_count'
+        }, 'locations');
+        pagesFetched++;
+        for (const loc of result.items) {
+          const country = normalizePriceText(loc?.osm_address_country_code || '');
+          if (country && !['gb', 'uk'].includes(country)) continue;
+          if (!priceStoreMatches({ location: loc }, store)) continue;
+          if (!(Number(loc.price_count) > 0)) continue;
+          locationsById.set(String(loc.id), loc);
+        }
+        if (page >= result.pages || result.items.length < PRICE_LOOKUP_PAGE_SIZE || locationsById.size >= 20) break;
+      }
+    } catch (error) {
+      console.warn(`[Open Prices] broad UK location search for ${store} failed:`, error.message);
+    }
+  }
+
+  const locations = [...locationsById.values()]
+    .sort((a, b) => Number(b.price_count || 0) - Number(a.price_count || 0))
+    .slice(0, 12);
+  if (!locations.length) {
+    const value = {
+      rows: [], checkedAt: new Date().toISOString(), pagesFetched,
+      totalObservedRows: 0, sourceMode: 'no-matching-UK-store-locations',
+      coverageNote: `Open Prices did not return any UK ${store} locations with recorded price data. This is a gap in community-dataset coverage, not proof that the retailer has no prices.`,
+      oldestCutoff: since, locationsScanned: 0
+    };
+    openPricesCache.set(store, { at: Date.now(), value });
+    return { ...value, cacheHit: false };
+  }
+
+  // Query each selected retailer branch by its documented location_id filter.
+  // Keep the number of concurrent public API requests bounded and avoid pulling
+  // the global dataset then treating unrelated rows as if they were this store.
+  const locBatches = locations.map(loc => async () => {
+    const rows = [];
+    for (let page = 1; page <= 2; page++) {
+      const result = await readOpenPricesPage({
+        currency: 'GBP', date__gte: since, location_id: loc.id,
+        size: 100, page, order_by: '-date', type: 'PRODUCT', duplicate_of__isnull: true
+      }, 'prices');
+      pagesFetched++;
+      rows.push(...result.items.map(row => ({ ...row, location: row.location || loc })));
+      if (page >= result.pages || result.items.length < 100) break;
+    }
+    return rows;
+  });
+  const allRows = [];
+  let successfulBranchLookups = 0, failedBranchLookups = 0;
+  const concurrency = 4;
+  for (let offset = 0; offset < locBatches.length; offset += concurrency) {
+    const chunk = locBatches.slice(offset, offset + concurrency);
+    const settled = await Promise.allSettled(chunk.map(fn => fn()));
+    for (const result of settled) {
+      if (result.status === 'fulfilled') { successfulBranchLookups++; allRows.push(...result.value); }
+      else { failedBranchLookups++; console.warn(`[Open Prices] branch price lookup failed for ${store}:`, result.reason?.message || result.reason); }
+    }
+  }
+
+  if (successfulBranchLookups === 0 && failedBranchLookups > 0) {
+    throw new Error(`UK ${store} locations were found, but Open Prices failed to return their price records. Please try again shortly.`);
+  }
+  const seen = new Set();
+  const retailerRows = allRows.filter(row => {
+    const country = normalizePriceText(row?.location?.osm_address_country_code || '');
+    if (country && !['gb', 'uk'].includes(country)) return false;
+    if (!priceStoreMatches(row, store)) return false;
+    // Only GBP observations with a date and a product price are useful here.
+    if (normalizePriceText(row.currency) !== 'gbp' || String(row.type || '').toUpperCase() !== 'PRODUCT' || !row.date) return false;
+    const id = String(row.id || `${row.location?.id}:${row.product_code}:${row.date}:${row.price}`);
+    if (seen.has(id)) return false;
+    seen.add(id); return true;
+  });
+  const value = {
+    rows: retailerRows, checkedAt: new Date().toISOString(), pagesFetched,
+    totalObservedRows: retailerRows.length, sourceMode: 'matched-UK-store-location-ids',
+    coverageNote: failedBranchLookups ? `Checked ${successfulBranchLookups} of ${locations.length} matched UK ${store} locations; ${failedBranchLookups} price lookups failed, so coverage may be incomplete.` : `Looked up prices attached to ${locations.length} UK ${store} location records.`,
+    oldestCutoff: since, locationsScanned: locations.length, successfulBranchLookups, failedBranchLookups
+  };
+  openPricesCache.set(store, { at: Date.now(), value });
+  return { ...value, cacheHit: false };
+}
+function buildPriceCandidate(row, item, store) {
+  const product = row?.product || { product_name: row?.product_name || '' };
+  const productName = cleanString(row?.product_name || product.product_name, 180);
+  const score = priceMatchScore(item.name, productName);
+  if (score < 0.38) return null;
+  const price = Number(row.price);
+  if (!Number.isFinite(price) || price < 0 || !row.date) return null;
+  const observationDate = String(row.date).slice(0, 10);
+  const ageDays = Math.max(0, Math.floor((Date.now() - new Date(`${observationDate}T00:00:00Z`).getTime()) / 86400000));
+  if (!Number.isFinite(ageDays) || ageDays > 366) return null;
+  const pack = parseProductPack(product);
+  const unitPrice = cleanString(row.price_per || 'UNIT', 40).toUpperCase();
+  const packPrice = computeObservedPackPrice(price, unitPrice, pack);
+  const compatibleGroup = pack ? (item.groups || []).find(g => g.dim === pack.dim) : null;
+  const loc = row.location || {};
+  const direct = packPrice !== null && packPrice >= 0 && Boolean(pack) && Boolean(compatibleGroup);
+  return {
+    recordId: Number(row.id) || null,
+    productCode: cleanString(row.product_code || product.code, 40),
+    productName,
+    brands: cleanString(product.brands, 120),
+    price: Math.round(price * 100) / 100,
+    pricePer: unitPrice,
+    packPrice: direct ? Math.round(packPrice * 100) / 100 : null,
+    packSize: pack?.size ?? null,
+    packUnit: pack?.unit ?? null,
+    dimension: pack?.dim ?? null,
+    compatibleDim: compatibleGroup?.dim ?? null,
+    compatible: direct,
+    date: observationDate,
+    ageDays,
+    location: cleanString(loc.osm_display_name || loc.osm_name || loc.osm_brand || store, 180),
+    countryCode: cleanString(loc.osm_address_country_code, 8),
+    evidenceType: cleanString(row?.proof?.type || '', 30),
+    proofAvailable: Boolean(row.proof_id || row.proof?.id),
+    source: 'Open Prices community observation',
+    sourceUrl: row.id ? `https://prices.openfoodfacts.org/prices/${encodeURIComponent(String(row.id))}` : 'https://prices.openfoodfacts.org/',
+    score: Math.round(score * 100) / 100,
+    fresh: ageDays <= 45,
+    recent: ageDays <= 90,
+    canApply: direct && packPrice !== null
+  };
+}
+function productIdentity(candidate) { return candidate.productCode || normalizePriceText(candidate.productName); }
+app.post('/api/prices/lookup', authenticated, async (req, res) => {
+  const store = cleanString(req.body?.store, 50);
+  if (!PRICE_LOOKUP_STORES[store]) return res.status(400).json({ error: 'Select one of the supported UK supermarkets.' });
+  const incoming = Array.isArray(req.body?.items) ? req.body.items : [];
+  if (!incoming.length) return res.status(400).json({ error: 'No shopping ingredients were supplied.' });
+  if (incoming.length > PRICE_LOOKUP_MAX_ITEMS) return res.status(400).json({ error: `Price lookup supports up to ${PRICE_LOOKUP_MAX_ITEMS} ingredients per request.` });
+  const items = incoming.map(x => ({
+    key: cleanString(x?.key, 140), name: cleanString(x?.name, 140),
+    groups: Array.isArray(x?.groups) ? x.groups.slice(0, 8).map(g => ({ dim: cleanString(g?.dim, 80), remaining: Number(g?.remaining) || 0, label: cleanString(g?.label, 30) })) : []
+  })).filter(x => x.key && x.name);
+  if (!items.length) return res.status(400).json({ error: 'No valid shopping ingredients were supplied.' });
+  try {
+    const feed = await fetchStorePriceRows(store);
+    const results = items.map(item => {
+      const bestByProduct = new Map();
+      for (const row of feed.rows) {
+        const country = normalizePriceText(row?.location?.osm_address_country_code || '');
+        if (country && !['gb','uk'].includes(country)) continue;
+        const candidate = buildPriceCandidate(row, item, store);
+        if (!candidate) continue;
+        const identity = productIdentity(candidate);
+        const existing = bestByProduct.get(identity);
+        if (!existing || candidate.score > existing.score || (candidate.score === existing.score && candidate.date > existing.date)) bestByProduct.set(identity, candidate);
+      }
+      const candidates = [...bestByProduct.values()].sort((a,b) => b.score-a.score || b.date.localeCompare(a.date)).slice(0, 4);
+      const top = candidates[0] || null;
+      const runnerUp = candidates[1] || null;
+      const unambiguous = Boolean(top && top.score >= 0.84 && (!runnerUp || top.score - runnerUp.score >= 0.1 || top.score >= 0.96));
+      const autoCandidate = top && top.canApply && top.ageDays <= 45 && unambiguous && top.score >= 0.84 ? top : null;
+      return {
+        key: item.key, name: item.name, candidates,
+        autoCandidate,
+        status: autoCandidate ? 'strong-recent-match' : candidates.length ? 'review-match' : 'no-price-match',
+        note: candidates.length ? '' : `Open Prices has no matching ${store} price observation for this ingredient in the last year.`
+      };
+    });
+    const candidateCount = results.filter(x => x.candidates.length).length;
+    const autoCount = results.filter(x => x.autoCandidate).length;
+    return res.json({
+      ok: true, store, source: 'Open Prices / Open Food Facts community price observations',
+      sourceUrl: 'https://prices.openfoodfacts.org/', attribution: 'Open Prices by Open Food Facts; community-reported prices. Observations may be incomplete or out of date.',
+      checkedAt: feed.checkedAt, cacheHit: feed.cacheHit, sourceMode: feed.sourceMode, coverageNote: feed.coverageNote || '',
+      recordsScanned: feed.totalObservedRows, pagesFetched: feed.pagesFetched, locationsScanned: feed.locationsScanned || 0, successfulBranchLookups: feed.successfulBranchLookups || 0, failedBranchLookups: feed.failedBranchLookups || 0,
+      itemCount: results.length, candidateCount, autoCandidateCount: autoCount,
+      results
+    });
+  } catch (e) {
+    const message = cleanString(e?.message, 450) || 'Automatic price lookup failed.';
+    return res.status(502).json({ error: `Could not query the free Open Prices database: ${message}`, source: 'Open Prices' });
+  }
+});
+
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner-recipe-import', aiProvider: 'Google Gemini API', aiConfigured: Boolean(GEMINI_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, fallbackModels: FALLBACK_MODELS, retryPolicy: 'exponential-backoff-and-model-fallback', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, priceDataSource: 'Open Prices / Open Food Facts community observations' }));
 app.post('/api/import-recipe', authenticated, async (req, res) => {
   const url = cleanString(req.body?.url, 2000);
   const pastedText = cleanString(req.body?.pastedText, 18000);
