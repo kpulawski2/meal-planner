@@ -805,7 +805,10 @@ function adaptRetailProduct(raw, selectedStore, sourceType) {
     rawProduct: raw
   };
 }
-async function readApifyActorItems(actorId, input, { timeoutSeconds = 90, maxItems = 180, maxChargeUsd = 0.50 } = {}) {
+// The selected Apify actors reject maxTotalChargeUsd caps below USD 5.00.
+// This is a maximum allowed run-cost cap, not a promise that each run costs USD 5.
+// Keep the Apify account on its Free plan to stop requests when monthly credits run out.
+async function readApifyActorItems(actorId, input, { timeoutSeconds = 90, maxItems = 180, maxChargeUsd = 5.00 } = {}) {
   if (!APIFY_API_TOKEN) throw new Error('Live supermarket product search is not configured. Add APIFY_API_TOKEN in Render Environment; without it, only sparse Open Prices community observations are available.')
   const url = new URL(`https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items`);
   url.searchParams.set('timeout', String(timeoutSeconds));
@@ -835,7 +838,7 @@ async function fetchLiveRetailerRows(store, items) {
     const rows = await readApifyActorItems('yappman~uk-supermarket-price-scraper', {
       retailers: [retailer], mode: 'search', queries,
       categoryUrls: [], productUrls: [], maxItems: Math.min(180, Math.max(40, queries.length * 3))
-    }, { timeoutSeconds: 85, maxItems: Math.min(180, Math.max(40, queries.length * 3)), maxChargeUsd: 0.50 });
+    }, { timeoutSeconds: 85, maxItems: Math.min(180, Math.max(40, queries.length * 3)), maxChargeUsd: 5.00 });
     const expectedSlug = retailerSlug(store);
     return rows.filter(r => retailerSlug(r?.retailer) === expectedSlug).map(r => adaptRetailProduct(r, store, 'live-retailer')).filter(Boolean);
   }
@@ -846,7 +849,7 @@ async function fetchLiveRetailerRows(store, items) {
     retailers: [retailer],
     maxItemsPerSource: 2,
     timeoutPerSourceSecs: 24
-  }, { timeoutSeconds: 90, maxItems: Math.min(140, Math.max(40, queries.length * 2)), maxChargeUsd: 0.75 });
+  }, { timeoutSeconds: 90, maxItems: Math.min(140, Math.max(40, queries.length * 2)), maxChargeUsd: 5.00 });
   const expectedSlug = retailerSlug(store);
   return rows.filter(r => retailerSlug(r?.retailer) === expectedSlug).map(r => adaptRetailProduct(r, store, 'live-retailer')).filter(Boolean);
 }
