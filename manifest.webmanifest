@@ -1,1 +1,11 @@
-{"name":"Meal Planner","short_name":"Meals","start_url":"./index.html","display":"standalone","background_color":"#f6f6f3","theme_color":"#111111","icons":[]}
+{
+  "name": "Meal Planner",
+  "short_name": "Meal Planner",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f6f6f3",
+  "theme_color": "#111111",
+  "icons": [],
+  "scope": "./",
+  "description": "Personal meal planner, pantry and shopping list."
+}
