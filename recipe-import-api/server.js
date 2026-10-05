@@ -2,12 +2,13 @@ import express from 'express';
 import * as cheerio from 'cheerio';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, readFile, stat, rm, readdir } from 'node:fs/promises';
+import { mkdtemp, readFile, stat, rm, readdir, copyFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import dns from 'node:dns/promises';
 import net from 'node:net';
 import crypto from 'node:crypto';
+import multer from 'multer';
 
 const execFileAsync = promisify(execFile);
 const app = express();
@@ -21,6 +22,20 @@ const RECIPE_MODEL = process.env.GEMINI_RECIPE_MODEL || GEMINI_MODEL;
 const MAX_AUDIO_BYTES = 14 * 1024 * 1024;
 const MAX_PAGE_BYTES = 1_500_000;
 const MAX_SOURCE_TEXT = 24_000;
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+const ACCEPTED_VIDEO_EXTS = new Set(['.mp4', '.mov', '.webm', '.m4v', '.mkv', '.3gp']);
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, callback) => callback(null, os.tmpdir()),
+    filename: (_req, file, callback) => callback(null, `meal-recipe-upload-${crypto.randomUUID()}${path.extname(file.originalname).toLowerCase()}`)
+  }),
+  limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 },
+  fileFilter: (_req, file, callback) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ACCEPTED_VIDEO_EXTS.has(ext) && (file.mimetype.startsWith('video/') || file.mimetype === 'application/octet-stream')) return callback(null, true);
+    callback(new Error('Upload a supported video file: MP4, MOV, WebM, M4V, MKV or 3GP.'));
+  }
+});
 const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT = 10;
 const hits = new Map();
@@ -282,53 +297,91 @@ async function transcribeAudioWithGemini(audio) {
   return /^\[NO SPEECH DETECTED\]$/i.test(result.trim()) ? '' : cleanString(result, 18000);
 }
 
+const VIDEO_DOWNLOAD_STRATEGIES = [
+  { name: 'Chrome browser impersonation', args: ['--impersonate', 'chrome'] },
+  // A yt-dlp maintainer has documented this as a sometimes-effective workaround
+  // for TikTok's web challenge. It is attempted only if impersonation fails.
+  { name: 'alternate User-Agent', args: ['--user-agent', 'abc'] }
+];
+
+function summarizeYtDlpFailure(error) {
+  const stderr = String(error?.stderr || '').trim();
+  const lines = stderr.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  const useful = lines.filter(line => /ERROR:|Unexpected response|Unable to extract|Video not available|status code 0|challenge/i.test(line));
+  return cleanString(useful.at(-1) || lines.at(-1) || error?.message || 'Unknown yt-dlp error.', 650);
+}
+
+async function runYtDlpWithFallback(args, options, beforeRetry = async () => {}) {
+  let lastError;
+  for (let i = 0; i < VIDEO_DOWNLOAD_STRATEGIES.length; i++) {
+    const strategy = VIDEO_DOWNLOAD_STRATEGIES[i];
+    try {
+      return await execFileAsync('yt-dlp', [...strategy.args, ...args], options);
+    } catch (error) {
+      lastError = error;
+      console.warn(`yt-dlp TikTok attempt ${i + 1}/${VIDEO_DOWNLOAD_STRATEGIES.length} (${strategy.name}) failed: ${summarizeYtDlpFailure(error)}`);
+      if (i < VIDEO_DOWNLOAD_STRATEGIES.length - 1) await beforeRetry();
+    }
+  }
+  const detail = summarizeYtDlpFailure(lastError);
+  if (/Unexpected response|Unable to extract webpage video data|Video not available|status code 0|challenge/i.test(detail)) {
+    throw new Error(`TikTok blocked the server-side video request (${detail}). The importer tried browser impersonation and a fallback User-Agent. Try the new “Upload a saved video” option or paste the caption/transcript.`);
+  }
+  throw new Error(`TikTok video download failed after two request strategies: ${detail}`);
+}
+
+async function analyzeVideoFile(videoPath, dir) {
+  const videoInfo = await stat(videoPath);
+  if (videoInfo.size > MAX_UPLOAD_BYTES) throw new Error('The video is too large. Maximum size is 50 MB.');
+  const probe = await execFileAsync('ffprobe', ['-v','error','-show_entries','format=duration','-of','default=noprint_wrappers=1:nokey=1',videoPath], { timeout: 10000, maxBuffer: 20000 });
+  const rawDuration = Number.parseFloat(probe.stdout.trim()) || 0;
+  if (rawDuration > 300) throw new Error('The video is longer than five minutes. Trim it to a shorter clip and try again.');
+  const duration = Math.max(1, rawDuration);
+  const audioPath = path.join(dir, 'source.mp3');
+  let transcript = '';
+  try {
+    await execFileAsync('ffmpeg', ['-y','-i',videoPath,'-vn','-ac','1','-ar','16000','-b:a','48k','-t','300',audioPath], { timeout: 30000, maxBuffer: 1 * 1024 * 1024 });
+    const audioInfo = await stat(audioPath);
+    if (audioInfo.size > MAX_AUDIO_BYTES) throw new Error('Audio is too large for transcription.');
+    if (audioInfo.size > 1000) {
+      const audio = await readFile(audioPath);
+      transcript = await transcribeAudioWithGemini(audio);
+    }
+  } catch (e) {
+    console.warn('Audio extraction/transcription unavailable:', cleanString(e.message, 180));
+  }
+  const frameImages = [];
+  for (let i = 0; i < 8; i++) {
+    const at = Math.max(0, Math.min(duration - 0.1, duration * ([0, .12, .25, .38, .5, .62, .75, .9][i])));
+    const framePath = path.join(dir, `frame-${i}.jpg`);
+    try {
+      await execFileAsync('ffmpeg', ['-y','-ss',String(at),'-i',videoPath,'-frames:v','1','-vf','scale=720:-1','-q:v','8',framePath], { timeout: 12000, maxBuffer: 256 * 1024 });
+      const frameInfo = await stat(framePath);
+      if (frameInfo.size > 0 && frameInfo.size <= 350000) frameImages.push((await readFile(framePath)).toString('base64'));
+    } catch { /* Continue with other sampled frames. */ }
+  }
+  if (!transcript && !frameImages.length) throw new Error('No usable audio or video frames could be extracted. Try a different video file.');
+  return { transcript, frameImages, durationSeconds: Math.round(duration) };
+}
+
 async function extractTikTokMedia(url) {
   if (audioBusy) throw new Error('Another video is being processed right now. Please try again in a minute.');
   audioBusy = true;
   const dir = await mkdtemp(path.join(os.tmpdir(), 'meal-recipe-'));
   const outputTemplate = path.join(dir, 'source.%(ext)s');
+  const cleanDownloadedFiles = async () => {
+    for (const name of await readdir(dir)) await rm(path.join(dir, name), { recursive: true, force: true }).catch(() => {});
+  };
   try {
-    await execFileAsync('yt-dlp', [
+    await runYtDlpWithFallback([
       '--no-playlist','--no-warnings','--no-progress','--format','best[ext=mp4]/best',
-      '--match-filter','duration <= 300','--max-filesize','50M','--socket-timeout','15','--retries','1','--fragment-retries','1',
+      '--match-filter','duration <= 300','--max-filesize','50M','--socket-timeout','12','--retries','1','--fragment-retries','1',
       '-o',outputTemplate,url
-    ], { timeout: 125000, maxBuffer: 2 * 1024 * 1024 });
+    ], { timeout: 40000, maxBuffer: 2 * 1024 * 1024 }, cleanDownloadedFiles);
     const files = await readdir(dir);
-    const videoName = files.find(n => /^source\.(mp4|webm|mkv|mov|m4v)$/i.test(n));
-    if (!videoName) throw new Error('The source platform did not provide a downloadable video file.');
-    const videoPath = path.join(dir, videoName);
-    const videoInfo = await stat(videoPath);
-    if (videoInfo.size > 50 * 1024 * 1024) throw new Error('The video is too large to process. Paste its caption/transcript or try a shorter clip.');
-    const probe = await execFileAsync('ffprobe', ['-v','error','-show_entries','format=duration','-of','default=noprint_wrappers=1:nokey=1',videoPath], { timeout: 10000, maxBuffer: 20000 });
-    const duration = Math.min(300, Math.max(1, Number.parseFloat(probe.stdout.trim()) || 0));
-    const audioPath = path.join(dir, 'source.mp3');
-    let transcript = '';
-    try {
-      // Some clips have no audio or an audio stream ffmpeg cannot decode. Keep going so frame analysis can still work.
-      await execFileAsync('ffmpeg', ['-y','-i',videoPath,'-vn','-ac','1','-ar','16000','-b:a','48k','-t','300',audioPath], { timeout: 30000, maxBuffer: 1 * 1024 * 1024 });
-      const audioInfo = await stat(audioPath);
-      if (audioInfo.size > MAX_AUDIO_BYTES) throw new Error('Audio is too large for transcription.');
-      if (audioInfo.size > 1000) {
-        const audio = await readFile(audioPath);
-        transcript = await transcribeAudioWithGemini(audio);
-      }
-    } catch (e) {
-      // Video frame analysis can still recover on-screen recipe details if audio is absent or transcription fails.
-      console.warn('Audio extraction/transcription unavailable:', cleanString(e.message, 180));
-    }
-    // Sample eight points across the clip so ingredient overlays are not limited to the opening seconds.
-    const frameImages = [];
-    for (let i = 0; i < 8; i++) {
-      const at = Math.max(0, Math.min(duration - 0.1, duration * ([0, .12, .25, .38, .5, .62, .75, .9][i])));
-      const framePath = path.join(dir, `frame-${i}.jpg`);
-      try {
-        await execFileAsync('ffmpeg', ['-y','-ss',String(at),'-i',videoPath,'-frames:v','1','-vf','scale=720:-1','-q:v','8',framePath], { timeout: 12000, maxBuffer: 256 * 1024 });
-        const frameInfo = await stat(framePath);
-        if (frameInfo.size > 0 && frameInfo.size <= 350000) frameImages.push((await readFile(framePath)).toString('base64'));
-      } catch { /* Some video formats don't seek cleanly; continue with the other sampled frames. */ }
-    }
-    if (!transcript && !frameImages.length) throw new Error('No usable audio or video frames could be extracted.');
-    return { transcript, frameImages, durationSeconds: Math.round(duration) };
+    const videoName = files.find(n => /^source\.(mp4|webm|mkv|mov|m4v|3gp)$/i.test(n));
+    if (!videoName) throw new Error('The source platform did not provide a downloadable video file. Try uploading a saved video instead.');
+    return await analyzeVideoFile(path.join(dir, videoName), dir);
   } finally {
     audioBusy = false;
     await rm(dir, { recursive: true, force: true }).catch(() => {});
@@ -346,7 +399,7 @@ async function fetchTikTokMeta(url) {
   } catch { /* TikTok oEmbed is optional; try the metadata extractor below. */ }
   // yt-dlp can expose the post description/caption even when the video itself cannot be downloaded.
   try {
-    const { stdout } = await execFileAsync('yt-dlp', ['--no-playlist','--no-warnings','--skip-download','--dump-single-json','--socket-timeout','10','--retries','0',url], { timeout: 25000, maxBuffer: 2 * 1024 * 1024 });
+    const { stdout } = await runYtDlpWithFallback(['--no-playlist','--no-warnings','--skip-download','--dump-single-json','--socket-timeout','6','--retries','0',url], { timeout: 9000, maxBuffer: 2 * 1024 * 1024 });
     const d = JSON.parse(stdout);
     meta = {
       ...meta,
@@ -389,7 +442,7 @@ async function parseWithAI(material) {
     ingredients, steps, confidence: ['high','medium','low'].includes(r.confidence) ? r.confidence : 'low', warnings: [...new Set(warnings)]
   };
 }
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner-recipe-import', aiProvider: 'Google Gemini API', aiConfigured: Boolean(GEMINI_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, fallbackModels: FALLBACK_MODELS, retryPolicy: 'exponential-backoff-and-model-fallback' }));
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner-recipe-import', aiProvider: 'Google Gemini API', aiConfigured: Boolean(GEMINI_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, fallbackModels: FALLBACK_MODELS, retryPolicy: 'exponential-backoff-and-model-fallback', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name) }));
 app.post('/api/import-recipe', authenticated, async (req, res) => {
   const url = cleanString(req.body?.url, 2000);
   const pastedText = cleanString(req.body?.pastedText, 18000);
@@ -436,7 +489,49 @@ app.post('/api/import-recipe', authenticated, async (req, res) => {
     return res.status(500).json({ error: message });
   }
 });
+app.post('/api/import-video', authenticated, upload.single('video'), async (req, res) => {
+  let workingDir = '';
+  let claimedAudioSlot = false;
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Choose a video file to upload.' });
+    if (!GEMINI_API_KEY) return res.status(503).json({ error: 'Backend is missing GEMINI_API_KEY. Add it to the hosting service environment variables.' });
+    if (audioBusy) return res.status(409).json({ error: 'Another video is being processed right now. Please try again in a minute.' });
+    audioBusy = true;
+    claimedAudioSlot = true;
+    workingDir = await mkdtemp(path.join(os.tmpdir(), 'meal-recipe-upload-'));
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    const videoPath = path.join(workingDir, `uploaded${ext}`);
+    await copyFile(req.file.path, videoPath);
+    const media = await analyzeVideoFile(videoPath, workingDir);
+    const pastedText = cleanString(req.body?.pastedText, 18000);
+    let sourceUrl = cleanString(req.body?.url, 2000);
+    if (sourceUrl) {
+      try { const parsed = new URL(sourceUrl); if (parsed.protocol !== 'https:') throw new Error(); }
+      catch { return res.status(400).json({ error: 'If you include a source link, it must be a valid HTTPS URL.' }); }
+    }
+    let sourceText = 'The user uploaded this video file directly because the source website may block server-side downloading. Extract only details that can be heard or read in the supplied audio and sampled frames.\n';
+    if (media.transcript) sourceText += `\nTranscript extracted from uploaded video audio:\n${media.transcript}\n`;
+    if (media.frameImages.length) sourceText += `\n${media.frameImages.length} frames sampled across the uploaded video for reading on-screen recipe text.\n`;
+    if (pastedText) sourceText += `\nUser-pasted caption/transcript/recipe text:\n${pastedText}\n`;
+    const recipe = await parseWithAI({ sourceUrl, meta: {}, sourceText: cleanString(sourceText, MAX_SOURCE_TEXT), frameImages: media.frameImages });
+    recipe.sourceUrl = sourceUrl || '';
+    if (media.transcript) recipe.transcript = media.transcript.slice(0, 12000);
+    if (!media.transcript) recipe.warnings = [...new Set([...(recipe.warnings || []), 'No intelligible speech transcript was recovered; the recipe may rely on visible on-screen text and any caption you provided.'])].slice(0, 18);
+    return res.json({ recipe, extraction: { videoUploaded: true, videoTranscribed: Boolean(media.transcript), videoFramesAnalyzed: media.frameImages.length, pageMetadataFound: false, pastedTextUsed: Boolean(pastedText) } });
+  } catch (e) {
+    const message = cleanString(e?.message, 650) || 'Uploaded-video recipe extraction failed.';
+    const status = /too large|longer than five minutes|supported video file/i.test(message) ? 400 : 500;
+    return res.status(status).json({ error: message });
+  } finally {
+    if (claimedAudioSlot) audioBusy = false;
+    if (workingDir) await rm(workingDir, { recursive: true, force: true }).catch(() => {});
+    if (req.file?.path) await rm(req.file.path, { force: true }).catch(() => {});
+  }
+});
+
 app.use((err, _req, res, _next) => {
+  if (err?.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'Video uploads must be 50 MB or smaller.' });
+  if (err?.message?.startsWith('Upload a supported video file')) return res.status(400).json({ error: err.message });
   if (err?.type === 'entity.too.large') return res.status(413).json({ error: 'The submitted caption/transcript is too large.' });
   return res.status(400).json({ error: 'The request could not be read. Please check the input and retry.' });
 });
