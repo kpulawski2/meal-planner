@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: meal-planner-recipe-import
+    runtime: docker
+    rootDir: recipe-import-api
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: IMPORT_API_TOKEN
+        sync: false
+      - key: OPENAI_RECIPE_MODEL
+        value: gpt-4.1-mini
+      - key: OPENAI_TRANSCRIPTION_MODEL
+        value: gpt-4o-mini-transcribe
+      - key: ALLOWED_ORIGINS
+        value: https://kpulawski2.github.io
