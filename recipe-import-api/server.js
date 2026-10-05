@@ -864,7 +864,7 @@ async function fetchLiveRetailerRows(store, items) {
           searchQueries: batch,
           retailers: [retailer],
           maxItemsPerSource: 2,
-          timeoutPerSourceSecs: 24
+          timeoutPerSourceSecs: 30
         }, { timeoutSeconds: 90, maxItems, maxChargeUsd: 5.00 });
       }
       allRows.push(...rows.filter(r => retailerSlug(r?.retailer) === expectedSlug));
