@@ -504,7 +504,7 @@ function priceMatchScore(ingredient, productName) {
   const normTarget = ` ${normalizePriceText(ingredient).replace(/\b\d+(?:\.\d+)?\s*percent\b/g, ' ')} `;
   const phrase = normTarget.trim().length > 3 && normProduct.includes(normTarget.trim()) ? 0.12 : 0;
   const blockers = ['crisps','crisp','soup','sauce','ketchup','juice','drink','flavour','flavor','powder','cereal','cake','cakes','pudding','ready meal','wedge','wedges'];
-  if (target.length <= 2 && blockers.some(word => normProduct.includes(` ${word} `)) && !target.includes(word)) return 0;
+  if (target.length <= 2 && blockers.some(blocker => normProduct.includes(` ${blocker} `) && !target.includes(blocker))) return 0;
   return Math.max(0, Math.min(1, recall * 0.78 + precision * 0.22 + phrase));
 }
 function priceUnitMeta(unit) {
