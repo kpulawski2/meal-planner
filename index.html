@@ -10,6 +10,11 @@
 .swap-intro{padding:11px 13px;background:#f5f5f1;border-radius:13px;margin:12px 0;color:#555;font-size:13px;line-height:1.45}
 .swap-search{position:sticky;top:0;background:#fff;padding:7px 0 10px;z-index:1}
 .swap-search input{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.swap-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:5px 0 10px}
+.swap-filter label{display:block;font-size:11px;font-weight:700;color:#555;margin:0 0 5px}
+.swap-filter input{width:100%;min-width:0;padding:10px 8px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.swap-filter-tools{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;font-size:12px;color:var(--muted)}
+.swap-filter-tools button{padding:7px 10px;border-radius:9px;background:#f2f2ee;font-size:11px}
 .swap-list{display:grid;grid-template-columns:1fr;gap:9px;margin:4px 0 14px}
 .swap-option{border:1px solid var(--line);border-radius:15px;padding:12px;background:#fff}
 .swap-option-top{display:flex;align-items:flex-start;gap:10px}
@@ -177,10 +182,29 @@ function swapOptionCards(list){return list.map(r=>`<div class="swap-option"><div
 function renderSwapModal(){
  if(!pendingSwap)return;
  const current=getRecipe(pendingSwap.currentId),candidates=pendingSwap.candidates;
- document.getElementById('sheet').innerHTML=`<button class="close" onclick="closeModal();pendingSwap=null">×</button><h2>Swap ${escape((current.cat||'meal').toLowerCase())}</h2><p class="sub">Choose from several alternatives at once. Your current meal is <b>${escape(current.name)}</b>.</p><div class="swap-intro">Showing ${candidates.length} suitable alternative${candidates.length===1?'':'s'}${candidates.some(r=>r._otherCategory)?'. Same-category options appear first; other meal types are included because there are few matches.':` in ${escape(current.cat)}.`} Nutrition and cost values may be estimates.</div><div class="swap-search"><input id="swapSearch" type="search" placeholder="Search recipes or ingredients…" oninput="filterSwapOptions()"></div><div id="swapOptionList" class="swap-list">${swapOptionCards(candidates)}</div><div class="actions"><button class="btn secondary" onclick="closeModal();pendingSwap=null">Cancel</button></div>`;
- document.getElementById('modal').style.display='flex';
+ pendingSwap.filters=pendingSwap.filters||{query:'',maxKcal:'',minProtein:'',maxCost:''};
+ const f=pendingSwap.filters;
+ document.getElementById('sheet').innerHTML=`<button class="close" onclick="closeModal();pendingSwap=null">×</button><h2>Swap ${escape((current.cat||'meal').toLowerCase())}</h2><p class="sub">Choose from several alternatives at once. Your current meal is <b>${escape(current.name)}</b>.</p><div class="swap-intro">${candidates.length} suitable alternative${candidates.length===1?'':'s'} available${candidates.some(r=>r._otherCategory)?'. Same-category options appear first; other meal types are included because there are few matches.':` in ${escape(current.cat)}.`} Nutrition and cost values may be estimates.</div><div class="swap-search"><input id="swapSearch" type="search" value="${escape(f.query)}" placeholder="Search recipes or ingredients…" oninput="filterSwapOptions()"></div><div class="swap-filters"><div class="swap-filter"><label for="swapMaxKcal">Max calories</label><input id="swapMaxKcal" type="number" min="0" step="25" value="${escape(f.maxKcal)}" placeholder="Any" oninput="filterSwapOptions()"></div><div class="swap-filter"><label for="swapMinProtein">Min protein (g)</label><input id="swapMinProtein" type="number" min="0" step="5" value="${escape(f.minProtein)}" placeholder="Any" oninput="filterSwapOptions()"></div><div class="swap-filter"><label for="swapMaxCost">Max cost (£)</label><input id="swapMaxCost" type="number" min="0" step="0.25" value="${escape(f.maxCost)}" placeholder="Any" oninput="filterSwapOptions()"></div></div><div class="swap-filter-tools"><span id="swapResultCount" aria-live="polite"></span><button type="button" onclick="resetSwapFilters()">Clear filters</button></div><div id="swapOptionList" class="swap-list"></div><div class="actions"><button class="btn secondary" onclick="closeModal();pendingSwap=null">Cancel</button></div>`;
+ document.getElementById('modal').style.display='flex';filterSwapOptions();
 }
-function filterSwapOptions(){if(!pendingSwap)return;const q=(document.getElementById('swapSearch')?.value||'').toLowerCase().trim();const list=pendingSwap.candidates.filter(r=>(r.name+' '+r.cat+' '+r.ings.map(x=>x[0]).join(' ')).toLowerCase().includes(q));document.getElementById('swapOptionList').innerHTML=swapOptionCards(list)}
+function filterSwapOptions(){
+ if(!pendingSwap)return;
+ const read=(id)=>document.getElementById(id)?.value||'';
+ pendingSwap.filters={query:read('swapSearch').toLowerCase().trim(),maxKcal:read('swapMaxKcal'),minProtein:read('swapMinProtein'),maxCost:read('swapMaxCost')};
+ const f=pendingSwap.filters;
+ let list=pendingSwap.candidates.filter(r=>{
+  const hay=(r.name+' '+r.cat+' '+r.ings.map(x=>x[0]).join(' ')).toLowerCase();
+  if(f.query&&!hay.includes(f.query))return false;
+  const hasNumber=v=>v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v));
+  if(f.maxKcal!==''&&(!hasNumber(r.kcal)||Number(r.kcal)>Number(f.maxKcal)))return false;
+  if(f.minProtein!==''&&(!hasNumber(r.p)||Number(r.p)<Number(f.minProtein)))return false;
+  if(f.maxCost!==''&&(!hasNumber(r.cost)||Number(r.cost)>Number(f.maxCost)))return false;
+  return true;
+ });
+ const listEl=document.getElementById('swapOptionList');if(listEl)listEl.innerHTML=swapOptionCards(list);
+ const countEl=document.getElementById('swapResultCount');if(countEl)countEl.textContent=`Showing ${list.length} of ${pendingSwap.candidates.length} options`;
+}
+function resetSwapFilters(){if(!pendingSwap)return;pendingSwap.filters={query:'',maxKcal:'',minProtein:'',maxCost:''};renderSwapModal()}
 function chooseSwapMeal(id){if(!pendingSwap)return;const d=state.week.find(x=>x.day===pendingSwap.day);const r=getRecipe(id);if(!d||!r||!recipeAllowed(r)){toast('That recipe is no longer suitable with your settings.');return}d.meals[pendingSwap.idx]=id;const day=pendingSwap.day;pendingSwap=null;closeModal();save();renderAll();toast(`${r.name} added to ${day}`)}
 function viewSwapRecipe(id){if(!pendingSwap)return;showRecipe(id);const actions=document.querySelector('#sheet .actions');if(actions){const back=document.createElement('button');back.className='btn secondary';back.textContent='Back to options';back.onclick=renderSwapModal;actions.appendChild(back)}}
 function showRecipe(id){let r=getRecipe(id);document.getElementById('sheet').innerHTML=`<button class="close" onclick="closeModal()">×</button><h2>${escape(r.icon||'🍽️')} ${escape(r.name)}</h2><p class="sub">${kcalText(r.kcal)} · ${proteinText(r.p)} · ${costText(r.cost)}</p><h3>Ingredients</h3>${r.ings.map(x=>`<div class="recipe-ing"><span>${escape(x[0])}</span><b>${x[1]>0?`${x[1]} ${escape(x[2])}`:'Quantity to confirm'}</b></div>`).join('')}<h3>Method</h3><p>${escape(r.method||'Prep all ingredients. Cook the protein thoroughly, add vegetables and seasonings, then combine with the carbohydrate component. For batch cooking, divide evenly into containers and refrigerate or freeze portions promptly.')}</p>${r.source?`<p><a href="${escape(r.source)}" target="_blank" rel="noopener">Open original recipe source ↗</a></p>`:''}<div class="actions"><button class="btn" onclick="openAddToPlan('${r.id}')">＋ Add to plan</button><button class="btn secondary" onclick="closeModal()">Done</button></div>`;document.getElementById('modal').style.display='flex'}
