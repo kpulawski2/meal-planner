@@ -144,31 +144,131 @@ function recipeSchemaText(recipe) {
     `Prep time: ${recipe.prepTime || ''}; cook time: ${recipe.cookTime || ''}`
   ].join('\n');
 }
-async function geminiGenerate(model, parts, generationConfig = {}, timeoutMs = 90000) {
-  if (!GEMINI_API_KEY) throw new Error('Backend is missing GEMINI_API_KEY. Add it to the hosting service environment variables.');
+class GeminiApiError extends Error {
+  constructor(message, { status = 0, kind = 'unknown', retryAfterMs = null, model = '' } = {}) {
+    super(message);
+    this.name = 'GeminiApiError';
+    this.status = status;
+    this.kind = kind;
+    this.retryAfterMs = retryAfterMs;
+    this.model = model;
+  }
+}
+
+const FALLBACK_MODELS = [...new Set(
+  (process.env.GEMINI_FALLBACK_MODELS || 'gemini-3.5-flash,gemini-3.5-flash-lite')
+    .split(',').map(x => x.trim()).filter(Boolean)
+)];
+const GEMINI_RETRY_DELAYS_MS = [1000, 2500];
+const GEMINI_MODEL_RETRIES = 2;
+
+function parseRetryAfter(response) {
+  const value = response.headers.get('retry-after');
+  if (!value) return null;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds)) return Math.max(0, Math.min(seconds * 1000, 8000));
+  const date = Date.parse(value);
+  return Number.isFinite(date) ? Math.max(0, Math.min(date - Date.now(), 8000)) : null;
+}
+function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+function isQuotaExhaustion(detail, statusText = '') {
+  return /quota|daily limit|per day|billing|limit for.*day|free.?tier.*exhaust/i.test(`${detail} ${statusText}`);
+}
+async function geminiGenerateOnce(model, parts, generationConfig = {}, timeoutMs = 90000) {
+  if (!GEMINI_API_KEY) throw new GeminiApiError('Backend is missing GEMINI_API_KEY. Add it to the hosting service environment variables.', { kind: 'configuration', model });
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'x-goog-api-key': GEMINI_API_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig }),
-    signal: AbortSignal.timeout(timeoutMs)
-  });
+  let response;
+  try {
+    response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'x-goog-api-key': GEMINI_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig }),
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+  } catch (e) {
+    const timedOut = e?.name === 'TimeoutError' || e?.name === 'AbortError';
+    throw new GeminiApiError(
+      timedOut ? `Gemini request timed out on ${model}.` : `Network error while contacting Gemini on ${model}.`,
+      { kind: 'transient', model }
+    );
+  }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const detail = cleanString(data.error?.message, 500);
-    if (response.status === 429) throw new Error('Gemini free-tier rate limit reached. Wait a little and try again.');
-    if (response.status === 403 || response.status === 400 && /API_KEY|key|billing|permission/i.test(detail)) {
-      throw new Error(`Gemini API rejected the request. Check your Google AI Studio API key, model access and free-tier availability. ${detail}`.trim());
+    const detail = cleanString(data.error?.message, 700);
+    const apiStatus = cleanString(data.error?.status, 80);
+    const retryAfterMs = parseRetryAfter(response);
+    if (response.status === 429) {
+      const quota = isQuotaExhaustion(detail, apiStatus);
+      throw new GeminiApiError(
+        quota ? `Gemini free-tier quota appears exhausted on ${model}. ${detail}`.trim() : `Gemini rate limit reached on ${model}. ${detail}`.trim(),
+        { status: 429, kind: quota ? 'quota' : 'rate_limit', retryAfterMs, model }
+      );
     }
-    throw new Error(detail || `Gemini request failed (HTTP ${response.status}).`);
+    if ([408, 500, 502, 503, 504].includes(response.status)) {
+      throw new GeminiApiError(`Gemini is temporarily unavailable on ${model} (HTTP ${response.status}). ${detail}`.trim(), { status: response.status, kind: 'transient', retryAfterMs, model });
+    }
+    if ([400, 404].includes(response.status) && /model|not found|not supported|unsupported/i.test(detail)) {
+      throw new GeminiApiError(`Gemini model ${model} is unavailable for this request. ${detail}`.trim(), { status: response.status, kind: 'model_unavailable', model });
+    }
+    if (response.status === 403 || response.status === 400 && /API_KEY|key|billing|permission/i.test(detail)) {
+      throw new GeminiApiError(`Gemini API rejected the request. Check your Google AI Studio API key, model access and free-tier availability. ${detail}`.trim(), { status: response.status, kind: 'configuration', model });
+    }
+    throw new GeminiApiError(detail || `Gemini request failed (HTTP ${response.status}).`, { status: response.status, kind: 'fatal', model });
   }
   const candidate = data.candidates?.[0];
   const text = (candidate?.content?.parts || []).map(part => part.text || '').join('\n').trim();
   if (!text) {
     const reason = candidate?.finishReason || data.promptFeedback?.blockReason || 'empty response';
-    throw new Error(`Gemini returned no text (${cleanString(reason, 120)}). Try another source or paste the recipe caption.`);
+    throw new GeminiApiError(`Gemini returned no text (${cleanString(reason, 120)}). Try another source or paste the recipe caption.`, { kind: 'empty_response', model });
   }
   return text;
+}
+async function geminiGenerate(model, parts, generationConfig = {}, timeoutMs = 90000) {
+  const models = [...new Set([model, ...FALLBACK_MODELS].filter(Boolean))];
+  let lastError = null;
+  for (let modelIndex = 0; modelIndex < models.length; modelIndex++) {
+    const currentModel = models[modelIndex];
+    let retryCount = 0;
+    while (true) {
+      try {
+        const result = await geminiGenerateOnce(currentModel, parts, generationConfig, timeoutMs);
+        if (currentModel !== model) console.info(`Gemini fallback succeeded using ${currentModel}; configured model ${model} was unavailable.`);
+        return result;
+      } catch (error) {
+        const e = error instanceof GeminiApiError ? error : new GeminiApiError(cleanString(error?.message, 500) || 'Gemini request failed.', { kind: 'fatal', model: currentModel });
+        lastError = e;
+        const transient = e.kind === 'transient';
+        const rateLimit = e.kind === 'rate_limit';
+        const canRetrySameModel = transient && retryCount < GEMINI_MODEL_RETRIES || rateLimit && retryCount < 1;
+        if (canRetrySameModel) {
+          const base = e.retryAfterMs ?? GEMINI_RETRY_DELAYS_MS[Math.min(retryCount, GEMINI_RETRY_DELAYS_MS.length - 1)];
+          const waitMs = Math.min(8000, base + Math.floor(Math.random() * 350));
+          retryCount += 1;
+          console.warn(`Gemini ${e.kind} error on ${currentModel}; retry ${retryCount}/${transient ? GEMINI_MODEL_RETRIES : 1} after ${waitMs}ms.`);
+          await delay(waitMs);
+          continue;
+        }
+        const canFallback = ['transient', 'rate_limit', 'quota', 'model_unavailable'].includes(e.kind);
+        if (canFallback) {
+          if (modelIndex < models.length - 1) {
+            console.warn(`Gemini model ${currentModel} unavailable (${e.kind}); trying fallback ${models[modelIndex + 1]}.`);
+          }
+          break;
+        }
+        throw e;
+      }
+    }
+  }
+  if (lastError?.kind === 'quota') {
+    throw new Error('Gemini free-tier quota appears to be exhausted across the available models. No paid model was enabled. Please wait for the quota to reset, then try again.');
+  }
+  if (lastError?.kind === 'rate_limit') {
+    throw new Error('Gemini is rate-limiting requests across the available models. The importer retried and tried fallback models; please wait a minute and try again.');
+  }
+  if (lastError?.kind === 'transient' || lastError?.kind === 'model_unavailable') {
+    throw new Error('Gemini is temporarily overloaded or the configured models are unavailable. The importer retried with backoff and tried free-tier fallback models. Please wait a minute and try again.');
+  }
+  throw lastError || new Error('Gemini request failed. Please try again later.');
 }
 
 async function transcribeAudioWithGemini(audio) {
@@ -289,7 +389,7 @@ async function parseWithAI(material) {
     ingredients, steps, confidence: ['high','medium','low'].includes(r.confidence) ? r.confidence : 'low', warnings: [...new Set(warnings)]
   };
 }
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner-recipe-import', aiProvider: 'Google Gemini API', aiConfigured: Boolean(GEMINI_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL }));
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner-recipe-import', aiProvider: 'Google Gemini API', aiConfigured: Boolean(GEMINI_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, fallbackModels: FALLBACK_MODELS, retryPolicy: 'exponential-backoff-and-model-fallback' }));
 app.post('/api/import-recipe', authenticated, async (req, res) => {
   const url = cleanString(req.body?.url, 2000);
   const pastedText = cleanString(req.body?.pastedText, 18000);
