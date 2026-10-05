@@ -16,6 +16,8 @@ const PORT = Number(process.env.PORT || 10000);
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 const IMPORT_API_TOKEN = process.env.IMPORT_API_TOKEN || '';
+// Optional grocery catalogue search provider. Keep this secret only in Render; never expose it to GitHub Pages.
+const APIFY_API_TOKEN = process.env.APIFY_API_TOKEN || '';
 const ALLOWED_ORIGINS = new Set((process.env.ALLOWED_ORIGINS || 'https://kpulawski2.github.io').split(',').map(s => s.trim()).filter(Boolean));
 const AUDIO_MODEL = process.env.GEMINI_AUDIO_MODEL || GEMINI_MODEL;
 const RECIPE_MODEL = process.env.GEMINI_RECIPE_MODEL || GEMINI_MODEL;
@@ -461,6 +463,10 @@ const PRICE_LOOKUP_STORES = {
   'Co-op': { query: ['Co-op', 'Co-operative'], match: ['co-op', 'co op', 'coop', 'co-operative'] }
 };
 const openPricesCache = new Map();
+const LIVE_PRICE_CACHE_MS = 12 * 60 * 60 * 1000;
+const livePriceCache = new Map();
+const RETAILER_SLUGS = { 'Lidl':'lidl', 'Aldi':'aldi', 'Asda':'asda', 'Tesco':'tesco', 'Sainsbury’s':'sainsburys', 'Morrisons':'morrisons', 'Waitrose':'waitrose', 'Ocado':'ocado', 'Iceland':'iceland', 'Co-op':'coop' };
+const YAPPMAN_STORES = new Set(['Aldi','Asda','Tesco','Sainsbury’s']);
 
 function normalizePriceText(value) {
   return String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -690,6 +696,161 @@ async function fetchStorePriceRows(store) {
   openPricesCache.set(store, { at: Date.now(), value });
   return { ...value, cacheHit: false };
 }
+function retailerSlug(value) {
+  const norm = normalizePriceText(value);
+  if (norm.includes('sainsbury')) return 'sainsburys';
+  if (norm.includes('co op') || norm.includes('co operative') || norm === 'coop') return 'coop';
+  if (norm.includes('lidl')) return 'lidl';
+  if (norm.includes('aldi')) return 'aldi';
+  if (norm.includes('asda')) return 'asda';
+  if (norm.includes('tesco')) return 'tesco';
+  if (norm.includes('morrisons')) return 'morrisons';
+  if (norm.includes('waitrose')) return 'waitrose';
+  if (norm.includes('ocado')) return 'ocado';
+  if (norm.includes('iceland')) return 'iceland';
+  return norm.replace(/\s+/g, '');
+}
+function grocerySearchTerm(name) {
+  const raw = cleanString(name, 140);
+  const norm = normalizePriceText(raw);
+  const aliases = [
+    [/\bchicken breast\b/, 'chicken breast fillets'],
+    [/\b5 percent beef mince\b|\b5 beef mince\b/, 'lean beef mince 5% fat'],
+    [/\b0 percent greek yoghurt\b|\bzero percent greek yoghurt\b/, '0% fat Greek style yoghurt'],
+    [/\bhigh protein natural yoghurt\b/, 'high protein yoghurt'],
+    [/\bskyr yoghurt\b|\bskyr\b/, 'Skyr yoghurt'],
+    [/\bpotato\b|\bpotatoes\b/, 'potatoes'],
+    [/\bfrozen mixed vegetables\b/, 'frozen mixed vegetables'],
+    [/\bfrozen mixed peppers\b/, 'frozen mixed peppers'],
+    [/\bchopped tomatoes\b/, 'chopped tomatoes tin'],
+    [/\bwholemeal wrap\b/, 'wholemeal tortilla wraps'],
+    [/\bwholemeal bread\b/, 'wholemeal bread loaf'],
+    [/\boats\b/, 'porridge oats'],
+    [/\beggs\b/, 'free range eggs'],
+    [/\bmilk\b/, 'semi skimmed milk'],
+    [/\brice\b/, 'long grain rice']
+  ];
+  for (const [rx, term] of aliases) if (rx.test(norm)) return term;
+  return raw;
+}
+function parseRetailPackText(packText, productName = '', ingredientName = '') {
+  const pack = String(packText || '').replace(/,/g, '.').trim();
+  const product = String(productName || '').replace(/,/g, '.').trim();
+  const target = `${pack} ${product}`.trim();
+  let m = target.match(/\b(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(kg|kilograms?|g|grams?|ml|millilit(?:re|er)s?|l|lit(?:re|er)s?)\b/i);
+  let quantity, unit;
+  if (m) { quantity = Number(m[1]) * Number(m[2]); unit = m[3]; }
+  if (!(quantity > 0)) {
+    m = target.match(/(?:^|\b)(\d+(?:\.\d+)?)\s*(kg|kilograms?|g|grams?|ml|millilit(?:re|er)s?|l|lit(?:re|er)s?)\b/i);
+    if (m) { quantity = Number(m[1]); unit = m[2]; }
+  }
+  if (quantity > 0 && Number.isFinite(quantity)) {
+    const meta = priceUnitMeta(unit);
+    if (meta) return { size: quantity, unit: meta.unit, dim: meta.dim };
+  }
+  const ingredient = normalizePriceText(ingredientName);
+  if (/\beggs?\b/.test(ingredient) || /\beggs?\b/.test(normalizePriceText(product))) {
+    m = target.match(/\b(\d+)\s*(?:large\s+|medium\s+|free range\s+)?eggs?\b/i);
+    if (!m && /\beggs?\b/i.test(product)) m = target.match(/\b(\d+)\s*(?:pack|packs|ct|count)\b/i);
+    if (m) return { size: Number(m[1]), unit: 'pieces', dim: 'each' };
+  }
+  const itemWord = ingredient.match(/\b(apple|banana|wrap|pitta|bagel|lemon|lime|cucumber|avocado)\b/)?.[1];
+  if (itemWord) {
+    m = target.match(new RegExp(`\\b(\\d+)\\s*(?:pack|packs|pieces|piece|count|ct|${itemWord}s?)\\b`, 'i'));
+    if (m) return { size: Number(m[1]), unit: 'pieces', dim: 'each' };
+  }
+  if (/\bbread\b/.test(ingredient) && /\bslice/.test(normalizePriceText(product))) {
+    m = target.match(/\b(\d+)\s*slices?\b/i);
+    if (m) return { size: Number(m[1]), unit: 'slices', dim: 'slice' };
+  }
+  return null;
+}
+function adaptRetailProduct(raw, selectedStore, sourceType) {
+  const productName = cleanString(raw?.productName || raw?.name || raw?.product_name || raw?.title, 180);
+  const retailer = cleanString(raw?.retailer || selectedStore, 80);
+  const packText = raw?.packSize || raw?.packaging || raw?.quantity || '';
+  const parsedPack = parseRetailPackText(packText, productName, productName);
+  const priceVal = Number(raw?.price);
+  if (!productName || !Number.isFinite(priceVal) || priceVal < 0) return null;
+  const scraped = raw?.scrapedAt || raw?.observedAt || raw?.date || raw?.updatedAt || new Date().toISOString();
+  const date = String(scraped).slice(0, 10);
+  const brand = cleanString(raw?.brand || raw?.brands, 120);
+  const product = {
+    product_name: productName,
+    brands: brand,
+    product_quantity: parsedPack?.size,
+    product_quantity_unit: parsedPack?.unit,
+    code: Array.isArray(raw?.ean) ? raw.ean[0] : (raw?.ean || raw?.productId || raw?.retailerProductId || '')
+  };
+  const chosenPrice = Number.isFinite(Number(raw?.promoPrice)) && Number(raw.promoPrice) >= 0 && Number(raw.promoPrice) < priceVal
+    ? Number(raw.promoPrice) : priceVal;
+  return {
+    id: raw?.id || null,
+    product_code: product.code,
+    product_name: productName,
+    product,
+    price: chosenPrice,
+    price_per: 'UNIT',
+    currency: 'GBP', type: 'PRODUCT', date,
+    location: { osm_name: selectedStore, osm_display_name: `${selectedStore} online grocery listing`, osm_address_country_code: 'gb' },
+    sourceType,
+    sourceName: sourceType === 'live-retailer' ? 'Live retailer product catalogue (Apify)' : 'Open Prices community observation',
+    sourceUrl: cleanString(raw?.url || raw?.productUrl, 1000) || 'https://apify.com/yappman/uk-supermarket-price-scraper',
+    productUrl: cleanString(raw?.url || raw?.productUrl, 1000),
+    packText: cleanString(packText, 80),
+    retailer,
+    promotionText: cleanString(raw?.promotionText || raw?.discount || '', 180),
+    loyaltyPrice: Number.isFinite(Number(raw?.loyaltyPrice)) ? Number(raw.loyaltyPrice) : null,
+    imageUrl: cleanString(raw?.imageUrl || '', 1000),
+    rawProduct: raw
+  };
+}
+async function readApifyActorItems(actorId, input, { timeoutSeconds = 90, maxItems = 180, maxChargeUsd = 0.50 } = {}) {
+  if (!APIFY_API_TOKEN) throw new Error('Live supermarket product search is not configured. Add APIFY_API_TOKEN in Render Environment; without it, only sparse Open Prices community observations are available.')
+  const url = new URL(`https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items`);
+  url.searchParams.set('timeout', String(timeoutSeconds));
+  url.searchParams.set('maxItems', String(maxItems));
+  url.searchParams.set('maxTotalChargeUsd', String(maxChargeUsd));
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${APIFY_API_TOKEN}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify(input),
+    signal: AbortSignal.timeout((timeoutSeconds + 12) * 1000)
+  });
+  let body = null;
+  try { body = await response.json(); } catch {}
+  if (!response.ok) {
+    if (response.status === 402) throw new Error('Apify free usage credits are exhausted or the actor cost limit was reached. The free plan blocks further usage until the next monthly cycle; no paid upgrade is needed.');
+    if (response.status === 401 || response.status === 403) throw new Error('Apify rejected the token or the selected actor is not available to this account. Check APIFY_API_TOKEN in Render.');
+    throw new Error(`Live retailer catalogue returned HTTP ${response.status}${body?.error?.message ? `: ${body.error.message}` : ''}.`);
+  }
+  if (!Array.isArray(body)) throw new Error('The live retailer catalogue did not return a product list.');
+  return body;
+}
+async function fetchLiveRetailerRows(store, items) {
+  const retailer = RETAILER_SLUGS[store];
+  if (!retailer) throw new Error('The selected supermarket is not supported by the live catalogue provider.');
+  const queries = items.map(x => grocerySearchTerm(x.name)).filter(Boolean).slice(0, 80);
+  if (YAPPMAN_STORES.has(store)) {
+    const rows = await readApifyActorItems('yappman~uk-supermarket-price-scraper', {
+      retailers: [retailer], mode: 'search', queries,
+      categoryUrls: [], productUrls: [], maxItems: Math.min(180, Math.max(40, queries.length * 3))
+    }, { timeoutSeconds: 85, maxItems: Math.min(180, Math.max(40, queries.length * 3)), maxChargeUsd: 0.50 });
+    const expectedSlug = retailerSlug(store);
+    return rows.filter(r => retailerSlug(r?.retailer) === expectedSlug).map(r => adaptRetailProduct(r, store, 'live-retailer')).filter(Boolean);
+  }
+  // The multi-store adapter is asked for exactly one retailer per run, with a limited result count.
+  // This avoids paying to compare ten stores when the user selected only one.
+  const rows = await readApifyActorItems('studio-amba~uk-grocery-price-matrix', {
+    searchQueries: queries,
+    retailers: [retailer],
+    maxItemsPerSource: 2,
+    timeoutPerSourceSecs: 24
+  }, { timeoutSeconds: 90, maxItems: Math.min(140, Math.max(40, queries.length * 2)), maxChargeUsd: 0.75 });
+  const expectedSlug = retailerSlug(store);
+  return rows.filter(r => retailerSlug(r?.retailer) === expectedSlug).map(r => adaptRetailProduct(r, store, 'live-retailer')).filter(Boolean);
+}
+
 function buildPriceCandidate(row, item, store) {
   const product = row?.product || { product_name: row?.product_name || '' };
   const productName = cleanString(row?.product_name || product.product_name, 180);
@@ -725,11 +886,18 @@ function buildPriceCandidate(row, item, store) {
     countryCode: cleanString(loc.osm_address_country_code, 8),
     evidenceType: cleanString(row?.proof?.type || '', 30),
     proofAvailable: Boolean(row.proof_id || row.proof?.id),
-    source: 'Open Prices community observation',
-    sourceUrl: row.id ? `https://prices.openfoodfacts.org/prices/${encodeURIComponent(String(row.id))}` : 'https://prices.openfoodfacts.org/',
+    source: row.sourceName || (row.sourceType === 'live-retailer' ? 'Live retailer product catalogue (Apify)' : row.sourceType === 'daily-snapshot' ? 'Free daily UK staple price snapshot (Apify)' : 'Open Prices community observation'),
+    sourceType: row.sourceType || 'community-observation',
+    sourceUrl: row.sourceUrl || (row.id ? `https://prices.openfoodfacts.org/prices/${encodeURIComponent(String(row.id))}` : 'https://prices.openfoodfacts.org/'),
+    productUrl: row.productUrl || row.sourceUrl || '',
+    imageUrl: row.imageUrl || '',
+    packText: row.packText || '',
+    retailerProductId: cleanString(row?.rawProduct?.retailerProductId || row?.rawProduct?.productId || '', 80),
+    promotionText: row.promotionText || '',
+    loyaltyPrice: row.loyaltyPrice ?? null,
     score: Math.round(score * 100) / 100,
-    fresh: ageDays <= 45,
-    recent: ageDays <= 90,
+    fresh: ageDays <= (row.sourceType === 'live-retailer' ? 2 : 45),
+    recent: ageDays <= (row.sourceType === 'live-retailer' ? 7 : 90),
     canApply: direct && packPrice !== null
   };
 }
@@ -742,16 +910,56 @@ app.post('/api/prices/lookup', authenticated, async (req, res) => {
   if (incoming.length > PRICE_LOOKUP_MAX_ITEMS) return res.status(400).json({ error: `Price lookup supports up to ${PRICE_LOOKUP_MAX_ITEMS} ingredients per request.` });
   const items = incoming.map(x => ({
     key: cleanString(x?.key, 140), name: cleanString(x?.name, 140),
+    unknown: Boolean(x?.unknown),
     groups: Array.isArray(x?.groups) ? x.groups.slice(0, 8).map(g => ({ dim: cleanString(g?.dim, 80), remaining: Number(g?.remaining) || 0, label: cleanString(g?.label, 30) })) : []
   })).filter(x => x.key && x.name);
   if (!items.length) return res.status(400).json({ error: 'No valid shopping ingredients were supplied.' });
   try {
-    const feed = await fetchStorePriceRows(store);
+    const cacheKey = `${store}:${items.map(i => `${i.key}:${i.name}`).sort().join('|')}`;
+    const cached = livePriceCache.get(cacheKey);
+    let productRows = [], providerWarning = '', sourceMode = '', cacheHit = false, recordsScanned = 0, locationsScanned = 0, source = '', sourceUrl = '';
+
+    if (cached && Date.now() - cached.at < LIVE_PRICE_CACHE_MS) {
+      ({ rows: productRows, sourceMode, source, sourceUrl, recordsScanned, locationsScanned } = cached.value);
+      cacheHit = true;
+    } else if (APIFY_API_TOKEN) {
+      // Prefer an actual selected-retailer catalogue. Only one retailer is queried per request.
+      productRows = await fetchLiveRetailerRows(store, items);
+      sourceMode = 'live-retailer-catalogue';
+      source = 'Live retailer product search via Apify';
+      sourceUrl = YAPPMAN_STORES.has(store) ? 'https://apify.com/yappman/uk-supermarket-price-scraper' : 'https://apify.com/stores/studio-amba/uk-grocery-price-matrix';
+      recordsScanned = productRows.length;
+      locationsScanned = 0;
+      livePriceCache.set(cacheKey, { at: Date.now(), value: { rows: productRows, sourceMode, source, sourceUrl, recordsScanned, locationsScanned } });
+    } else {
+      // No third-party scraper key: use only price observations explicitly submitted to Open Prices.
+      // This avoids pretending a short-lived snapshot URL or generic starter prices are a live catalogue.
+      const community = await fetchStorePriceRows(store);
+      productRows = community.rows.map(r => ({
+        ...r,
+        sourceType: 'community-observation',
+        sourceName: 'Open Prices community observation',
+        sourceUrl: r.id ? `https://prices.openfoodfacts.org/prices/${encodeURIComponent(String(r.id))}` : 'https://prices.openfoodfacts.org/'
+      }));
+      cacheHit = Boolean(community.cacheHit);
+      sourceMode = 'community-observations';
+      source = 'Open Prices community observations';
+      sourceUrl = 'https://prices.openfoodfacts.org/';
+      recordsScanned = productRows.length;
+      locationsScanned = community.locationsScanned || 0;
+      providerWarning = 'Broad supermarket product search is not configured. Open Prices is community-submitted and may have few or no matches for this retailer. Add APIFY_API_TOKEN in Render to search current product catalogues. Generic starter prices are not used as actual store prices.';
+    }
+
     const results = items.map(item => {
       const bestByProduct = new Map();
-      for (const row of feed.rows) {
-        const country = normalizePriceText(row?.location?.osm_address_country_code || '');
-        if (country && !['gb','uk'].includes(country)) continue;
+      for (const row of productRows) {
+        const rowRetailer = row?.retailer ? retailerSlug(row.retailer) : null;
+        if (rowRetailer && rowRetailer !== retailerSlug(store)) continue;
+        const country = normalizePriceText(row?.location?.osm_address_country_code || 'gb');
+        if (country && !['gb','uk','united kingdom'].includes(country)) continue;
+        // For catalogue rows, the requested single-retailer filter above is authoritative.
+        if (!rowRetailer && !priceStoreMatches(row, store)) continue;
+        if (!row.date || normalizePriceText(row.currency || 'GBP') !== 'gbp') continue;
         const candidate = buildPriceCandidate(row, item, store);
         if (!candidate) continue;
         const identity = productIdentity(candidate);
@@ -761,32 +969,37 @@ app.post('/api/prices/lookup', authenticated, async (req, res) => {
       const candidates = [...bestByProduct.values()].sort((a,b) => b.score-a.score || b.date.localeCompare(a.date)).slice(0, 4);
       const top = candidates[0] || null;
       const runnerUp = candidates[1] || null;
-      const unambiguous = Boolean(top && top.score >= 0.84 && (!runnerUp || top.score - runnerUp.score >= 0.1 || top.score >= 0.96));
-      const autoCandidate = top && top.canApply && top.ageDays <= 45 && unambiguous && top.score >= 0.84 ? top : null;
+      const clearMargin = !runnerUp || top.score - runnerUp.score >= 0.10 || top.score >= 0.96;
+      const strongScore = top?.sourceType === 'live-retailer' ? top.score >= 0.82 : top?.sourceType === 'daily-snapshot' ? top.score >= 0.86 : top?.score >= 0.84;
+      const sufficientlyFresh = top && (top.sourceType === 'live-retailer' ? top.ageDays <= 7 : top.ageDays <= 45);
+      const autoCandidate = top && top.canApply && sufficientlyFresh && clearMargin && strongScore ? top : null;
       return {
-        key: item.key, name: item.name, candidates,
-        autoCandidate,
+        key: item.key, name: item.name, candidates, autoCandidate,
         status: autoCandidate ? 'strong-recent-match' : candidates.length ? 'review-match' : 'no-price-match',
-        note: candidates.length ? '' : `Open Prices has no matching ${store} price observation for this ingredient in the last year.`
+        note: candidates.length ? '' : sourceMode === 'live-retailer-catalogue' ? `No matching ${store} product price was found in the current catalogue results.` : `No matching ${store} product price was found in the available Open Prices community observations.`
       };
     });
     const candidateCount = results.filter(x => x.candidates.length).length;
     const autoCount = results.filter(x => x.autoCandidate).length;
+    const coverageNote = sourceMode === 'live-retailer-catalogue'
+      ? `Live product search checked ${store} listings against ${items.length} shopping ingredients. Prices and availability can vary by postcode, delivery area and loyalty card.`
+      : `Open Prices observations are community-submitted and can be sparse or out of date; absence of a record does not mean a product is unavailable.`;
     return res.json({
-      ok: true, store, source: 'Open Prices / Open Food Facts community price observations',
-      sourceUrl: 'https://prices.openfoodfacts.org/', attribution: 'Open Prices by Open Food Facts; community-reported prices. Observations may be incomplete or out of date.',
-      checkedAt: feed.checkedAt, cacheHit: feed.cacheHit, sourceMode: feed.sourceMode, coverageNote: feed.coverageNote || '',
-      recordsScanned: feed.totalObservedRows, pagesFetched: feed.pagesFetched, locationsScanned: feed.locationsScanned || 0, successfulBranchLookups: feed.successfulBranchLookups || 0, failedBranchLookups: feed.failedBranchLookups || 0,
-      itemCount: results.length, candidateCount, autoCandidateCount: autoCount,
-      results
+      ok: true, store, source, sourceUrl,
+      attribution: sourceMode === 'live-retailer-catalogue'
+        ? 'Product prices retrieved from a third-party retailer product-search provider. Check the product link for current price, availability and promotions; prices are not guaranteed at checkout.'
+        : 'Open Prices by Open Food Facts; community-reported prices. Observations may be incomplete or out of date.',
+      checkedAt: new Date().toISOString(), cacheHit, sourceMode, coverageNote, providerWarning,
+      recordsScanned, locationsScanned, itemCount: results.length, candidateCount, autoCandidateCount: autoCount,
+      livePriceSearchConfigured: Boolean(APIFY_API_TOKEN), results
     });
   } catch (e) {
     const message = cleanString(e?.message, 450) || 'Automatic price lookup failed.';
-    return res.status(502).json({ error: `Could not query the free Open Prices database: ${message}`, source: 'Open Prices' });
+    return res.status(502).json({ error: `Could not complete the selected-store price lookup: ${message}`, source: APIFY_API_TOKEN ? 'Live retailer product search' : 'Open Prices community observations' });
   }
 });
 
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner-recipe-import', aiProvider: 'Google Gemini API', aiConfigured: Boolean(GEMINI_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, fallbackModels: FALLBACK_MODELS, retryPolicy: 'exponential-backoff-and-model-fallback', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, priceDataSource: 'Open Prices / Open Food Facts community observations' }));
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner-recipe-import', aiProvider: 'Google Gemini API', aiConfigured: Boolean(GEMINI_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, fallbackModels: FALLBACK_MODELS, retryPolicy: 'exponential-backoff-and-model-fallback', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, livePriceSearchConfigured: Boolean(APIFY_API_TOKEN), freePriceSnapshotAvailable: false, priceDataSource: APIFY_API_TOKEN ? 'Apify retailer product catalogue with capped result counts; Open Prices community fallback' : 'Open Prices community observations only; broad retailer product search requires APIFY_API_TOKEN' }));
 app.post('/api/import-recipe', authenticated, async (req, res) => {
   const url = cleanString(req.body?.url, 2000);
   const pastedText = cleanString(req.body?.pastedText, 18000);
