@@ -1,4 +1,4 @@
-// Normalise the two retailer-specific Apify schemas into the internal price-candidate schema.
+// Normalise the combined Lidl matrix schema and the Aldi/ASDA grocery scraper schema into one internal price-candidate format.
 // Keep this module dependency-free so its edge cases can be tested with Node's built-in runner.
 
 const clean = (value, max = 800) => typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -52,6 +52,11 @@ function parsePack(packText, name, ingredientName) {
 
 export function matchesApifyStoreRow(raw, selectedStore) {
   if (!raw || typeof raw !== 'object') return false;
+  const expected = retailerSlug(selectedStore);
+  const retailerValue = raw.retailer || raw.retailerName || raw.store || '';
+  const observed = retailerSlug(retailerValue);
+  // When the source explicitly names a retailer, never accept another retailer's result.
+  if (retailerValue && observed !== expected) return false;
   if (selectedStore === 'Lidl') {
     const country = normalizePriceText(raw.countryCode || raw.country || '');
     if (country && !['gb', 'uk', 'united kingdom', 'great britain'].includes(country)) return false;
@@ -62,11 +67,9 @@ export function matchesApifyStoreRow(raw, selectedStore) {
         if (!(hostname === 'lidl.co.uk' || hostname.endsWith('.lidl.co.uk'))) return false;
       } catch { return false; }
     }
-    // Never accept a foreign price into the UK Lidl basket. The actor should return GB metadata or a UK product URL.
+    // Lidl rows must contain UK country metadata or a Lidl UK product URL.
     return Boolean(country === 'gb' || country === 'uk' || country === 'united kingdom' || country === 'great britain' || link);
   }
-  const expected = retailerSlug(selectedStore);
-  const observed = retailerSlug(raw.retailer || raw.retailerName || raw.store || '');
   return Boolean(observed && observed === expected);
 }
 
@@ -81,8 +84,11 @@ export function adaptApifyProduct(raw, selectedStore, sourceType = 'live-retaile
   if (!productName) return null;
   const packText = clean(raw.packSize || raw.packaging || raw.quantity || raw.product_quantity || raw.fullTitle || raw.title || '', 120);
   const parsedPack = parsePack(`${packText} ${raw.fullTitle || ''} ${raw.title || ''}`, productName, productName);
-  const priceRaw = raw.price ?? raw.currentPrice ?? raw.priceValue;
-  const price = typeof priceRaw === 'number' ? priceRaw : Number(String(priceRaw ?? '').replace(/[£\s,]/g, ''));
+  const parseMoney = value => typeof value === 'number' ? value : Number(String(value ?? '').replace(/[£\s,]/g, ''));
+  const shelfPrice = parseMoney(raw.price ?? raw.currentPrice ?? raw.priceValue);
+  const promotionalPrice = parseMoney(raw.promoPrice ?? raw.promo_price ?? raw.currentPromoPrice);
+  const price = Number.isFinite(promotionalPrice) && promotionalPrice > 0 && (!Number.isFinite(shelfPrice) || promotionalPrice < shelfPrice)
+    ? promotionalPrice : shelfPrice;
   if (!Number.isFinite(price) || price <= 0) return null;
   const stamp = clean(raw.scrapedAt || raw.scraped_at || raw.observedAt || raw.date || raw.updatedAt || '', 80);
   const timestamp = Date.parse(stamp);
@@ -97,10 +103,10 @@ export function adaptApifyProduct(raw, selectedStore, sourceType = 'live-retaile
     product_quantity_unit: parsedPack?.unit,
     code: clean(String(productCode || ''), 80)
   };
-  const wasPrice = Number(raw.wasPrice ?? raw.priceBeforeOffer);
+  const wasPrice = Number(raw.wasPrice ?? raw.priceBeforeOffer ?? (Number.isFinite(shelfPrice) && shelfPrice > price ? shelfPrice : NaN));
   const promotionText = clean(raw.promotionText || (Number.isFinite(wasPrice) && wasPrice > price ? `Was £${wasPrice.toFixed(2)}` : ''), 180);
   const sourceUrl = selectedStore === 'Lidl'
-    ? 'https://apify.com/datascrapers/lidl-scraper'
+    ? 'https://apify.com/studio-amba/uk-grocery-price-matrix'
     : 'https://apify.com/yappman/uk-supermarket-price-scraper';
   const productUrl = clean(raw.url || raw.productUrl || raw.product_url, 1000);
   return {
@@ -125,6 +131,52 @@ export function adaptApifyProduct(raw, selectedStore, sourceType = 'live-retaile
     imageUrl: clean(raw.imageUrl || raw.image || '', 1000),
     rawProduct: raw
   };
+}
+
+// Studio Amba's combined matrix actor uses productName/promoPrice and can return rows
+// in a slightly different shape from the Yappman scraper. Normalise those rows into the
+// same schema; for matrix rows without a source timestamp, the lookup time is retained as
+// the time this backend retrieved the live record.
+export function adaptMatrixProduct(raw, selectedStore, retrievedAt = new Date().toISOString()) {
+  if (!raw || typeof raw !== 'object') return null;
+  const rawStore = raw.retailer || raw.store || '';
+  if (!rawStore || retailerSlug(rawStore) !== retailerSlug(selectedStore)) return null;
+  const rawCurrency = raw.currency || raw.currencyCode || 'GBP';
+  const mapped = {
+    ...raw,
+    retailer: rawStore,
+    name: raw.name || raw.productName || raw.product_name || raw.title || '',
+    productName: raw.productName || raw.name || raw.product_name || raw.title || '',
+    packSize: raw.packSize || raw.pack_size || raw.packageSize || raw.quantity || '',
+    price: raw.price,
+    promoPrice: raw.promoPrice ?? raw.promo_price,
+    currency: rawCurrency,
+    url: raw.url || raw.productUrl || raw.product_url || '',
+    imageUrl: raw.imageUrl || raw.image_url || raw.image || '',
+    scrapedAt: raw.scrapedAt || raw.scraped_at || raw.updatedAt || raw.observedAt || retrievedAt
+  };
+  return adaptApifyProduct(mapped, selectedStore, 'live-retailer');
+}
+
+// Select one product automatically. Lexical relevance establishes a shortlist; within
+// that close-match band, the cheapest whole-pack checkout is preferred, then less surplus.
+// This avoids asking the user to choose among multiple similar pack sizes every time.
+export function chooseBestPackCandidate(candidates, { minimumScore = 0.54, relevanceBand = 0.15 } = {}) {
+  const viable = (Array.isArray(candidates) ? candidates : []).filter(c => c && c.canApply &&
+    Number(c.score) >= minimumScore && Number.isFinite(Number(c.checkoutCost)) &&
+    Number(c.checkoutCost) > 0 && Number(c.packsNeeded) >= 1 && c.fresh !== false);
+  if (!viable.length) return null;
+  const maxScore = Math.max(...viable.map(c => Number(c.score)));
+  const shortlist = viable.filter(c => Number(c.score) >= maxScore - relevanceBand);
+  shortlist.sort((a, b) => {
+    const costDelta = Number(a.checkoutCost) - Number(b.checkoutCost);
+    if (Math.abs(costDelta) >= 0.01) return costDelta;
+    const wasteA = Number(a.leftoverBase ?? Infinity) / Math.max(1, Number(a.neededBase ?? 1));
+    const wasteB = Number(b.leftoverBase ?? Infinity) / Math.max(1, Number(b.neededBase ?? 1));
+    if (Math.abs(wasteA - wasteB) > 0.001) return wasteA - wasteB;
+    return Number(b.score) - Number(a.score);
+  });
+  return shortlist[0];
 }
 
 export function splitSearchBatches(queries, size = 20) {

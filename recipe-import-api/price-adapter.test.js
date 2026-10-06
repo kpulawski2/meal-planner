@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { adaptApifyProduct, matchesApifyStoreRow, splitSearchBatches } from './price-adapter.js';
+import { adaptApifyProduct, adaptMatrixProduct, chooseBestPackCandidate, matchesApifyStoreRow, splitSearchBatches } from './price-adapter.js';
 
 const stamp = '2026-10-06T08:00:00.000Z';
 
@@ -80,4 +80,46 @@ test('splits a 52-item search into <=20 unique terms without losing terms', () =
   assert.deepEqual(batches.map(batch => batch.length), [20, 20, 12]);
   assert.equal(new Set(batches.flat()).size, 52);
   assert.deepEqual(batches.flat(), terms.slice(0, 52));
+});
+
+
+test('normalises the UK Grocery Price Matrix Lidl row and prefers a lower promotional price', () => {
+  const retrievedAt = '2026-10-06T10:00:00.000Z';
+  const row = {
+    retailer: 'lidl', productName: 'British Chicken Breast Fillets 650g', brand: 'Birchwood',
+    packSize: '650g', price: 4.69, promoPrice: 4.25, currency: 'GBP',
+    url: 'https://www.lidl.co.uk/p/british-chicken-breast-fillets/p100123',
+    imageUrl: 'https://www.lidl.co.uk/product.jpg'
+  };
+  const result = adaptMatrixProduct(row, 'Lidl', retrievedAt);
+  assert.ok(result);
+  assert.equal(result.retailer, 'Lidl');
+  assert.equal(result.price, 4.25);
+  assert.equal(result.currency, 'GBP');
+  assert.equal(result.product.product_quantity, 650);
+  assert.equal(result.product.product_quantity_unit, 'g');
+  assert.equal(result.date, '2026-10-06');
+  assert.match(result.sourceUrl, /studio-amba/);
+});
+
+test('matrix adapter rejects another retailer and Dutch Lidl URLs', () => {
+  const base = { retailer: 'lidl', productName: 'Chicken Breast 650g', packSize: '650g', price: 4.69, currency: 'GBP', url: 'https://www.lidl.co.uk/p/chicken/p100123' };
+  assert.equal(adaptMatrixProduct({ ...base, retailer: 'aldi' }, 'Lidl', stamp), null);
+  assert.equal(adaptMatrixProduct({ ...base, currency: 'EUR', url: 'https://www.lidl.nl/p/chicken/p100123' }, 'Lidl', stamp), null);
+});
+
+test('chooses one best whole-pack purchase by checkout cost among close ingredient matches', () => {
+  const candidates = [
+    { productName: 'Chicken breast 650g', score: 0.90, canApply: true, fresh: true, packsNeeded: 2, checkoutCost: 9.38, leftoverBase: 100, neededBase: 1200 },
+    { productName: 'Chicken breast 1kg', score: 0.88, canApply: true, fresh: true, packsNeeded: 2, checkoutCost: 8.50, leftoverBase: 800, neededBase: 1200 },
+    { productName: 'Chicken breast 2kg', score: 0.89, canApply: true, fresh: true, packsNeeded: 1, checkoutCost: 12.29, leftoverBase: 800, neededBase: 1200 },
+    { productName: 'Chicken noodles 400g', score: 0.55, canApply: true, fresh: true, packsNeeded: 1, checkoutCost: 1.50, leftoverBase: 0, neededBase: 1200 }
+  ];
+  assert.equal(chooseBestPackCandidate(candidates)?.productName, 'Chicken breast 1kg');
+});
+
+test('does not automatically choose a stale, incompatible, or weak product candidate', () => {
+  assert.equal(chooseBestPackCandidate([{ score: 0.95, canApply: false, fresh: true, checkoutCost: 2, packsNeeded: 1 }]), null);
+  assert.equal(chooseBestPackCandidate([{ score: 0.40, canApply: true, fresh: true, checkoutCost: 2, packsNeeded: 1 }]), null);
+  assert.equal(chooseBestPackCandidate([{ score: 0.95, canApply: true, fresh: false, checkoutCost: 2, packsNeeded: 1 }]), null);
 });

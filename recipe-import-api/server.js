@@ -9,7 +9,7 @@ import dns from 'node:dns/promises';
 import net from 'node:net';
 import crypto from 'node:crypto';
 import multer from 'multer';
-import { adaptApifyProduct, matchesApifyStoreRow, splitSearchBatches } from './price-adapter.js';
+import { adaptApifyProduct, adaptMatrixProduct, chooseBestPackCandidate, matchesApifyStoreRow, splitSearchBatches } from './price-adapter.js';
 
 const execFileAsync = promisify(execFile);
 const app = express();
@@ -469,9 +469,9 @@ const PRICE_JOB_TTL_MS = 20 * 60 * 1000;
 const PRICE_JOB_MAX_COUNT = 50;
 const RETAILER_SLUGS = { 'Lidl':'lidl', 'Aldi':'aldi', 'Asda':'asda' };
 const YAPPMAN_STORES = new Set(['Aldi','Asda']);
-const LIDL_ACTOR = 'datascrapers~lidl-scraper';
+const LIDL_ACTOR = 'studio-amba~uk-grocery-price-matrix';
 const YAPPMAN_ACTOR = 'yappman~uk-supermarket-price-scraper';
-function priceActorUrl(store) { return store === 'Lidl' ? 'https://apify.com/datascrapers/lidl-scraper' : 'https://apify.com/yappman/uk-supermarket-price-scraper'; }
+function priceActorUrl(store) { return store === 'Lidl' ? 'https://apify.com/studio-amba/uk-grocery-price-matrix' : 'https://apify.com/yappman/uk-supermarket-price-scraper'; }
 
 function normalizePriceText(value) {
   return String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -803,6 +803,8 @@ async function fetchLiveRetailerRows(store, items, reportProgress = () => {}, jo
   const retailer = RETAILER_SLUGS[store];
   if (!retailer) throw new Error('Only Lidl UK, Aldi UK and ASDA UK are enabled for automatic product lookup.');
 
+  // Search more terms and allow more candidates per search so ingredients are not lost
+  // behind a small batch-wide output cap. Keep each provider call within its documented limits.
   const queries = [...new Set(items.map(x => grocerySearchTerm(x.name).trim()).filter(Boolean))].slice(0, 80);
   const queryBatches = splitSearchBatches(queries, 20);
   if (!queryBatches.length) throw new Error('No usable ingredient search terms were generated.');
@@ -818,18 +820,28 @@ async function fetchLiveRetailerRows(store, items, reportProgress = () => {}, jo
     try {
       let rows;
       let actorId;
+      const retrievedAt = new Date().toISOString();
       if (store === 'Lidl') {
+        // The old dromb Lidl UK actor exited successfully with zero dataset rows. The
+        // combined Studio Amba matrix explicitly supports Lidl and GB residential proxying.
         actorId = LIDL_ACTOR;
-        const maxItems = Math.min(100, Math.max(20, batch.length * 5));
+        const maxItems = Math.min(240, Math.max(40, batch.length * 10));
         rows = await readApifyActorItems(actorId, {
           searchQueries: batch,
-          countryCode: 'GB',
-          maxItems,
-          fetchProductDetails: false
-        }, { timeoutSeconds: 120, maxItems, maxChargeUsd: 5.00 });
+          retailers: ['lidl'],
+          maxItemsPerSource: 10,
+          timeoutPerSourceSecs: 150,
+          proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: ['RESIDENTIAL'], apifyProxyCountry: 'GB' }
+        }, { timeoutSeconds: 180, maxItems, maxChargeUsd: 5.00 });
+        const accepted = rows
+          .map(row => adaptMatrixProduct(row, store, retrievedAt))
+          .filter(Boolean);
+        allRows.push(...accepted);
+        console.info(`[PriceLookup ${jobId || 'direct'}] ${store} batch ${index + 1}/${queryBatches.length} actor=${actorId}; ${rows.length} raw rows, ${accepted.length} UK ${store} rows accepted in ${Math.round((Date.now() - batchStartedAt) / 1000)}s.`);
+        reportProgress({ stage: 'batch-complete', message: `Finished batch ${index + 1} of ${queryBatches.length}; ${allRows.length} validated ${store} products collected so far.`, currentBatch: index + 1, totalBatches: queryBatches.length });
       } else {
         actorId = YAPPMAN_ACTOR;
-        const maxItems = Math.min(120, Math.max(20, batch.length * 5));
+        const maxItems = Math.min(220, Math.max(40, batch.length * 10));
         rows = await readApifyActorItems(actorId, {
           retailers: [retailer],
           mode: 'search',
@@ -837,16 +849,15 @@ async function fetchLiveRetailerRows(store, items, reportProgress = () => {}, jo
           categoryUrls: [],
           productUrls: [],
           maxItems
-        }, { timeoutSeconds: 90, maxItems, maxChargeUsd: 5.00 });
+        }, { timeoutSeconds: 120, maxItems, maxChargeUsd: 5.00 });
+        const accepted = rows
+          .filter(row => matchesApifyStoreRow(row, store))
+          .map(row => adaptRetailProduct(row, store, 'live-retailer'))
+          .filter(Boolean);
+        allRows.push(...accepted);
+        console.info(`[PriceLookup ${jobId || 'direct'}] ${store} batch ${index + 1}/${queryBatches.length} actor=${actorId}; ${rows.length} raw rows, ${accepted.length} UK ${store} rows accepted in ${Math.round((Date.now() - batchStartedAt) / 1000)}s.`);
+        reportProgress({ stage: 'batch-complete', message: `Finished batch ${index + 1} of ${queryBatches.length}; ${allRows.length} validated ${store} products collected so far.`, currentBatch: index + 1, totalBatches: queryBatches.length });
       }
-
-      const accepted = rows
-        .filter(row => matchesApifyStoreRow(row, store))
-        .map(row => adaptRetailProduct(row, store, 'live-retailer'))
-        .filter(Boolean);
-      allRows.push(...accepted);
-      console.info(`[PriceLookup ${jobId || 'direct'}] ${store} batch ${index + 1}/${queryBatches.length} actor=${actorId}; ${rows.length} raw rows, ${accepted.length} UK ${store} rows accepted in ${Math.round((Date.now() - batchStartedAt) / 1000)}s.`);
-      reportProgress({ stage: 'batch-complete', message: `Finished batch ${index + 1} of ${queryBatches.length}; ${allRows.length} validated ${store} products collected so far.`, currentBatch: index + 1, totalBatches: queryBatches.length });
     } catch (error) {
       const detail = cleanString(error?.message || 'Unknown catalogue error', 220);
       console.error(`[PriceLookup ${jobId || 'direct'}] ${store} batch ${index + 1}/${queryBatches.length} failed after ${Math.round((Date.now() - batchStartedAt) / 1000)}s: ${detail}`);
@@ -855,17 +866,35 @@ async function fetchLiveRetailerRows(store, items, reportProgress = () => {}, jo
     }
   }
 
-  if (!allRows.length && batchErrors.length) {
+  // De-duplicate results from repeated terms and pages without discarding different pack sizes.
+  const uniqueRows = new Map();
+  for (const row of allRows) {
+    const code = String(row.product_code || row.id || '').trim();
+    const identity = code || `${normalizePriceText(row.retailer)}|${normalizePriceText(row.product_name)}|${row.product?.product_quantity || ''}|${row.product?.product_quantity_unit || ''}`;
+    const existing = uniqueRows.get(identity);
+    if (!existing || String(row.date || '') > String(existing.date || '')) uniqueRows.set(identity, row);
+  }
+  const resultRows = [...uniqueRows.values()];
+  if (!resultRows.length && batchErrors.length) {
     throw new Error(`All ${queryBatches.length} product-search batch(es) failed. ${batchErrors.slice(0, 2).join(' | ')}`);
   }
   const lookupWarning = batchErrors.length
     ? `Some product searches could not be completed (${batchErrors.length} of ${queryBatches.length} batches failed). Price coverage is partial. ${batchErrors.slice(0, 2).join(' | ')}`
-    : !allRows.length
+    : !resultRows.length
       ? `The ${store} actor completed but returned no valid GBP product rows. Check the actor's UK coverage and run output before trying again.`
       : '';
-  Object.defineProperty(allRows, 'lookupWarning', { value: lookupWarning, enumerable: false, configurable: true });
-  Object.defineProperty(allRows, 'queryBatchCount', { value: queryBatches.length, enumerable: false, configurable: true });
-  return allRows;
+  Object.defineProperty(resultRows, 'lookupWarning', { value: lookupWarning, enumerable: false, configurable: true });
+  Object.defineProperty(resultRows, 'queryBatchCount', { value: queryBatches.length, enumerable: false, configurable: true });
+  return resultRows;
+}
+
+function packBaseQuantity(pack) {
+  if (!pack || !(Number(pack.size) > 0)) return null;
+  const unit = normalizePriceText(pack.unit);
+  if (pack.dim === 'mass') return Number(pack.size) * (['kg','kilogram','kilograms','kilo'].includes(unit) ? 1000 : 1);
+  if (pack.dim === 'volume') return Number(pack.size) * (['l','litre','litres','liter','liters'].includes(unit) ? 1000 : 1);
+  if (pack.dim === 'each' || pack.dim === 'slice') return Number(pack.size);
+  return null;
 }
 
 function buildPriceCandidate(row, item, store) {
@@ -874,16 +903,22 @@ function buildPriceCandidate(row, item, store) {
   const score = priceMatchScore(item.name, productName);
   if (score < 0.38) return null;
   const price = Number(row.price);
-  if (!Number.isFinite(price) || price < 0 || !row.date) return null;
+  if (!Number.isFinite(price) || price <= 0 || !row.date) return null;
   const observationDate = String(row.date).slice(0, 10);
   const ageDays = Math.max(0, Math.floor((Date.now() - new Date(`${observationDate}T00:00:00Z`).getTime()) / 86400000));
   if (!Number.isFinite(ageDays) || ageDays > 366) return null;
   const pack = parseProductPack(product);
   const unitPrice = cleanString(row.price_per || 'UNIT', 40).toUpperCase();
   const packPrice = computeObservedPackPrice(price, unitPrice, pack);
-  const compatibleGroup = pack ? (item.groups || []).find(g => g.dim === pack.dim) : null;
+  const compatibleGroup = pack ? (item.groups || []).find(g => g.dim === pack.dim && Number(g.remaining) > 0) : null;
   const loc = row.location || {};
-  const direct = packPrice !== null && packPrice >= 0 && Boolean(pack) && Boolean(compatibleGroup);
+  const direct = packPrice !== null && packPrice > 0 && Boolean(pack) && Boolean(compatibleGroup);
+  const packBase = packBaseQuantity(pack);
+  const neededBase = compatibleGroup ? Number(compatibleGroup.remaining) : null;
+  const packsNeeded = direct && packBase > 0 && neededBase > 0 ? Math.max(1, Math.ceil((neededBase - 1e-8) / packBase)) : null;
+  const totalPackBase = packsNeeded !== null ? packsNeeded * packBase : null;
+  const leftoverBase = totalPackBase !== null ? Math.max(0, totalPackBase - neededBase) : null;
+  const checkoutCost = packsNeeded !== null ? Math.round(packsNeeded * packPrice * 100) / 100 : null;
   return {
     recordId: Number(row.id) || null,
     productCode: cleanString(row.product_code || product.code, 40),
@@ -894,6 +929,13 @@ function buildPriceCandidate(row, item, store) {
     packPrice: direct ? Math.round(packPrice * 100) / 100 : null,
     packSize: pack?.size ?? null,
     packUnit: pack?.unit ?? null,
+    packBase,
+    neededBase,
+    neededUnit: compatibleGroup?.label ?? null,
+    packsNeeded,
+    totalPackBase,
+    leftoverBase,
+    checkoutCost,
     dimension: pack?.dim ?? null,
     compatibleDim: compatibleGroup?.dim ?? null,
     compatible: direct,
@@ -915,9 +957,10 @@ function buildPriceCandidate(row, item, store) {
     score: Math.round(score * 100) / 100,
     fresh: ageDays <= (row.sourceType === 'live-retailer' ? 2 : 45),
     recent: ageDays <= (row.sourceType === 'live-retailer' ? 7 : 90),
-    canApply: direct && packPrice !== null
+    canApply: direct && packPrice !== null && packsNeeded !== null && checkoutCost !== null
   };
 }
+
 function productIdentity(candidate) { return candidate.productCode || normalizePriceText(candidate.productName); }
 function prunePriceLookupJobs() {
   const cutoff = Date.now() - PRICE_JOB_TTL_MS;
@@ -982,21 +1025,24 @@ async function performPriceLookup(store, items, reportProgress = () => {}, jobId
       if (!row.date || normalizePriceText(row.currency || 'GBP') !== 'gbp') continue;
       const candidate = buildPriceCandidate(row, item, store);
       if (!candidate) continue;
-      const identity = productIdentity(candidate);
+      const identity = productIdentity(candidate) + `|${candidate.packSize || ''}|${candidate.packUnit || ''}`;
       const existing = bestByProduct.get(identity);
       if (!existing || candidate.score > existing.score || (candidate.score === existing.score && candidate.date > existing.date)) bestByProduct.set(identity, candidate);
     }
-    const candidates = [...bestByProduct.values()].sort((a,b) => b.score-a.score || b.date.localeCompare(a.date)).slice(0, 4);
-    const top = candidates[0] || null;
-    const runnerUp = candidates[1] || null;
-    const clearMargin = !runnerUp || top.score - runnerUp.score >= 0.10 || top.score >= 0.96;
-    const strongScore = top?.sourceType === 'live-retailer' ? top.score >= 0.82 : top?.sourceType === 'daily-snapshot' ? top.score >= 0.86 : top?.score >= 0.84;
+    const allCandidates = [...bestByProduct.values()].sort((a,b) => b.score-a.score || String(b.date).localeCompare(String(a.date)));
+    // One suggestion per ingredient, not a stack of product cards. Within similar
+    // product-name matches, choose the lowest checkout cost for complete packs, then least waste.
+    const best = chooseBestPackCandidate(allCandidates, { minimumScore: 0.54, relevanceBand: 0.15 });
+    const fallbackSuggestion = best || allCandidates.find(c => c.canApply && c.score >= 0.45) || null;
+    const top = fallbackSuggestion;
+    const strongScore = top?.score >= 0.60;
     const sufficientlyFresh = top && (top.sourceType === 'live-retailer' ? top.ageDays <= 7 : top.ageDays <= 45);
-    const autoCandidate = top && top.canApply && sufficientlyFresh && clearMargin && strongScore ? top : null;
+    const autoCandidate = top && top.canApply && sufficientlyFresh && strongScore ? top : null;
+    const candidates = top ? [top] : [];
     return {
       key: item.key, name: item.name, candidates, autoCandidate,
-      status: autoCandidate ? 'strong-recent-match' : candidates.length ? 'review-match' : 'no-price-match',
-      note: candidates.length ? '' : sourceMode === 'live-retailer-catalogue' ? `No matching ${store} product price was found in the current catalogue results.` : `No matching ${store} product price was found in the available Open Prices community observations.`
+      status: autoCandidate ? 'best-match-auto-saved' : candidates.length ? 'best-match-review' : 'no-price-match',
+      note: candidates.length ? '' : sourceMode === 'live-retailer-catalogue' ? `No compatible ${store} product/pack match was found in the current catalogue results.` : `No compatible ${store} product/pack match was found in the available Open Prices community observations.`
     };
   });
   const candidateCount = results.filter(x => x.candidates.length).length;
