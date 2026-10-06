@@ -87,6 +87,35 @@ function authenticated(req, res, next) {
   }
   next();
 }
+
+// Price search is a same-origin feature in this combined Render deployment. Unlike
+// recipe/video import, it should work straight from Shopping without asking the user
+// to paste a private server token into browser storage. Require a browser same-origin
+// signal when no valid token is present and still rate-limit expensive lookup starts.
+function sameOriginBrowserRequest(req) {
+  const expectedOrigin = `${req.protocol}://${req.get('host')}`;
+  const origin = req.get('origin');
+  if (origin) return origin === expectedOrigin;
+  if (req.get('sec-fetch-site') === 'same-origin') return true;
+  try { return new URL(req.get('referer')).origin === expectedOrigin; } catch { return false; }
+}
+function priceLookupAuthenticated(req, res, next) {
+  const suppliedToken = req.get('x-import-token');
+  const hasValidToken = Boolean(IMPORT_API_TOKEN) && safeEqual(suppliedToken, IMPORT_API_TOKEN);
+  if (!hasValidToken && !sameOriginBrowserRequest(req)) {
+    return res.status(401).json({ error: 'Open the Meal Planner and start price lookup from its Shopping page.' });
+  }
+  const isPriceJobPoll = req.method === 'GET' && /^\/api\/prices\/lookup\/[^/]+$/.test(req.path);
+  if (!isPriceJobPoll) {
+    const key = req.ip || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    const previous = hits.get(key) || [];
+    const recent = previous.filter(t => now - t < RATE_WINDOW_MS);
+    if (recent.length >= RATE_LIMIT) return res.status(429).json({ error: 'Too many requests from this connection. Try again in a few minutes.' });
+    recent.push(now); hits.set(key, recent);
+  }
+  next();
+}
 function cleanString(v, max = 8000) { return typeof v === 'string' ? v.trim().slice(0, max) : ''; }
 function isTikTok(host) { return /(^|\.)tiktok\.com$/i.test(host); }
 function isPrivateIPv4(ip) {
@@ -730,7 +759,9 @@ async function runPriceLookupJob(jobId, store, items) {
   }
 }
 
-app.post('/api/prices/lookup', authenticated, async (req, res) => {
+app.get('/api/connection-check', authenticated, (_req, res) => res.json({ ok: true, authenticated: true }));
+
+app.post('/api/prices/lookup', priceLookupAuthenticated, async (req, res) => {
   const store = cleanString(req.body?.store, 50);
   if (!PRICE_LOOKUP_STORES[store]) return res.status(400).json({ error: 'Select one of the supported UK supermarkets.' });
   const incoming = Array.isArray(req.body?.items) ? req.body.items : [];
@@ -751,7 +782,7 @@ app.post('/api/prices/lookup', authenticated, async (req, res) => {
   setImmediate(() => { void runPriceLookupJob(jobId, store, items); });
 });
 
-app.get('/api/prices/lookup/:jobId', authenticated, (req, res) => {
+app.get('/api/prices/lookup/:jobId', priceLookupAuthenticated, (req, res) => {
   prunePriceLookupJobs();
   const job = priceLookupJobs.get(cleanString(req.params?.jobId, 80));
   if (!job) return res.status(404).json({ error: 'This price lookup job has expired or is no longer available. Please start a new lookup.' });
