@@ -14,5 +14,7 @@ services:
         value: qwen/qwen3.8-27b
       - key: GROQ_TRANSCRIPTION_MODEL
         value: whisper-large-v3-turbo
+      - key: GROQ_PRICE_SEARCH_MODEL
+        value: openai/gpt-oss-20b
       - key: ALLOWED_ORIGINS
         value: https://kpulawski2.github.io
