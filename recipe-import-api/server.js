@@ -463,6 +463,13 @@ const PRICE_LOOKUP_STORES = {
 const openPricesCache = new Map();
 const LIVE_PRICE_CACHE_MS = 12 * 60 * 60 * 1000;
 const livePriceCache = new Map();
+// Free public daily staple dataset from the UK Supermarket Price Scraper (Apify).
+// Covers Aldi + Asda (among other stores) for a curated basket of 20 common staples.
+// It is the first layer; the live catalogue scraper is used only for shopping items not covered.
+const FREE_DAILY_STAPLE_DATASET_URL = 'https://api.apify.com/v2/datasets/ynAT9NPps2EdjMOJa/items?format=json&limit=5000&desc=true';
+const FREE_DAILY_STAPLE_SOURCE_URL = 'https://apify.com/yappman/uk-supermarket-price-scraper';
+const DAILY_SNAPSHOT_CACHE_MS = 4 * 60 * 60 * 1000;
+let dailyStapleSnapshotCache = { at: 0, rows: [], error: '' };
 // Price jobs run in the background so a multi-batch retailer search doesn't exceed the browser's HTTP timeout.
 const priceLookupJobs = new Map();
 const PRICE_JOB_TTL_MS = 20 * 60 * 1000;
@@ -774,6 +781,64 @@ function adaptRetailProduct(raw, selectedStore, sourceType = 'live-retailer') {
   return adaptApifyProduct(raw, selectedStore, sourceType);
 }
 
+async function fetchDailyStapleSnapshot(store, reportProgress = () => {}, jobId = '') {
+  if (!['Aldi', 'Asda'].includes(store)) return { rows: [], cacheHit: false, available: false, warning: 'The free daily staple snapshot does not include Lidl.' };
+  if (dailyStapleSnapshotCache.rows.length && Date.now() - dailyStapleSnapshotCache.at < DAILY_SNAPSHOT_CACHE_MS) {
+    const rows = dailyStapleSnapshotCache.rows.filter(row => retailerSlug(row.retailer) === retailerSlug(store));
+    return { rows, cacheHit: true, available: true, checkedAt: new Date(dailyStapleSnapshotCache.at).toISOString(), warning: dailyStapleSnapshotCache.error };
+  }
+  reportProgress({ stage: 'daily-catalogue', message: `Loading the free daily UK staple catalogue for ${store}.`, currentBatch: 0, totalBatches: 0 });
+  const response = await fetch(FREE_DAILY_STAPLE_DATASET_URL, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(18000) });
+  if (!response.ok) throw new Error(`Free daily staple dataset returned HTTP ${response.status}.`);
+  const payload = await response.json();
+  if (!Array.isArray(payload)) throw new Error('The free daily staple dataset did not return a product list.');
+  // The source appends a new snapshot each day. Sort newest first then keep the latest
+  // row for each product/store, never using a foreign retailer's row for this store.
+  const sorted = [...payload].filter(row => row && typeof row === 'object')
+    .sort((a, b) => String(b.scrapedAt || '').localeCompare(String(a.scrapedAt || '')));
+  const latest = new Map();
+  for (const raw of sorted) {
+    const storeSlug = retailerSlug(raw.retailer || '');
+    if (!['aldi', 'asda'].includes(storeSlug)) continue;
+    const date = Date.parse(raw.scrapedAt || '');
+    if (!Number.isFinite(date)) continue;
+    const ageDays = Math.max(0, (Date.now() - date) / 86400000);
+    if (ageDays > 10) continue;
+    const identity = `${storeSlug}|${String(raw.retailerProductId || raw.ean?.[0] || raw.matchKey || raw.name || '').trim().toLowerCase()}`;
+    if (!identity || latest.has(identity)) continue;
+    const matchedStore = storeSlug === 'aldi' ? 'Aldi' : 'Asda';
+    const adapted = adaptApifyProduct({
+      ...raw,
+      retailer: raw.retailer,
+      name: raw.name,
+      productName: raw.name,
+      productUrl: raw.url,
+      packSize: raw.packSize,
+      currency: raw.currency || 'GBP',
+      scrapedAt: raw.scrapedAt,
+      countryCode: 'GB'
+    }, matchedStore, 'daily-snapshot');
+    if (!adapted) continue;
+    adapted.sourceName = 'UK Supermarket Price Scraper — free daily staple dataset';
+    adapted.sourceUrl = FREE_DAILY_STAPLE_SOURCE_URL;
+    adapted.retailer = matchedStore;
+    adapted.location = { osm_name: `${matchedStore} UK online listing`, osm_display_name: `${matchedStore} UK online listing`, osm_address_country_code: 'gb' };
+    latest.set(identity, adapted);
+  }
+  const rows = [...latest.values()];
+  dailyStapleSnapshotCache = { at: Date.now(), rows, error: '' };
+  console.info(`[PriceLookup ${jobId || 'direct'}] Free daily staple snapshot loaded: ${payload.length} source rows, ${rows.length} fresh unique Aldi/Asda products.`);
+  return { rows: rows.filter(row => retailerSlug(row.retailer) === retailerSlug(store)), cacheHit: false, available: true, checkedAt: new Date().toISOString(), warning: '' };
+}
+
+function snapshotCoversItem(rows, item, store) {
+  return rows.some(row => {
+    if (retailerSlug(row.retailer) !== retailerSlug(store)) return false;
+    const candidate = buildPriceCandidate(row, item, store);
+    return Boolean(candidate && candidate.canApply && candidate.score >= 0.48 && candidate.ageDays <= 7);
+  });
+}
+
 // The selected Apify actors reject maxTotalChargeUsd caps below USD 5.00.
 // This is a maximum allowed run-cost cap, not a promise that each run costs USD 5.
 // Keep the Apify account on its Free plan to stop requests when monthly credits run out.
@@ -955,8 +1020,8 @@ function buildPriceCandidate(row, item, store) {
     promotionText: row.promotionText || '',
     loyaltyPrice: row.loyaltyPrice ?? null,
     score: Math.round(score * 100) / 100,
-    fresh: ageDays <= (row.sourceType === 'live-retailer' ? 2 : 45),
-    recent: ageDays <= (row.sourceType === 'live-retailer' ? 7 : 90),
+    fresh: ageDays <= (row.sourceType === 'live-retailer' ? 2 : row.sourceType === 'daily-snapshot' ? 3 : 45),
+    recent: ageDays <= (row.sourceType === 'live-retailer' ? 7 : row.sourceType === 'daily-snapshot' ? 7 : 90),
     canApply: direct && packPrice !== null && packsNeeded !== null && checkoutCost !== null
   };
 }
@@ -984,33 +1049,87 @@ async function performPriceLookup(store, items, reportProgress = () => {}, jobId
   if (cached && Date.now() - cached.at < LIVE_PRICE_CACHE_MS) {
     ({ rows: productRows, sourceMode, source, sourceUrl, recordsScanned, locationsScanned, providerWarning = '' } = cached.value);
     cacheHit = true;
-    reportProgress({ stage: 'matching', message: 'Using cached product results and matching them to your shopping list.', currentBatch: 0, totalBatches: 0 });
-  } else if (APIFY_API_TOKEN) {
-    reportProgress({ stage: 'starting-search', message: `Starting retailer product search for ${items.length} ingredient groups.`, currentBatch: 0, totalBatches: Math.ceil(Math.min(items.length, 80) / 20) });
-    productRows = await fetchLiveRetailerRows(store, items, reportProgress, jobId);
-    providerWarning = productRows.lookupWarning || '';
-    sourceMode = 'live-retailer-catalogue';
-    source = 'Live retailer product search via Apify';
-    sourceUrl = priceActorUrl(store);
-    recordsScanned = productRows.length;
-    locationsScanned = 0;
-    livePriceCache.set(cacheKey, { at: Date.now(), value: { rows: productRows, sourceMode, source, sourceUrl, recordsScanned, locationsScanned, providerWarning } });
+    reportProgress({ stage: 'matching', message: 'Using cached product records and matching them to your shopping list.', currentBatch: 0, totalBatches: 0 });
   } else {
-    reportProgress({ stage: 'community-search', message: 'Checking the free community price observations.', currentBatch: 0, totalBatches: 0 });
-    const community = await fetchStorePriceRows(store);
-    productRows = community.rows.map(r => ({
-      ...r,
-      sourceType: 'community-observation',
-      sourceName: 'Open Prices community observation',
-      sourceUrl: r.id ? `https://prices.openfoodfacts.org/prices/${encodeURIComponent(String(r.id))}` : 'https://prices.openfoodfacts.org/'
-    }));
-    cacheHit = Boolean(community.cacheHit);
-    sourceMode = 'community-observations';
-    source = 'Open Prices community observations';
-    sourceUrl = 'https://prices.openfoodfacts.org/';
-    recordsScanned = productRows.length;
-    locationsScanned = community.locationsScanned || 0;
-    providerWarning = 'Broad supermarket product search is not configured. Open Prices is community-submitted and may have few or no matches for this retailer. Add APIFY_API_TOKEN in Render to search current product catalogues. Generic starter prices are not used as actual store prices.';
+    const sourceParts = [], warnings = [];
+    let snapshotRows = [], liveRows = [], communityRows = [];
+
+    // Comparator-style first layer: use a stable, free daily product/price dataset for
+    // the Aldi/Asda staples it covers. This avoids a fresh scraper run for every common item.
+    if (['Aldi', 'Asda'].includes(store)) {
+      try {
+        const snap = await fetchDailyStapleSnapshot(store, reportProgress, jobId);
+        snapshotRows = snap.rows || [];
+        if (snapshotRows.length) {
+          sourceParts.push('free-daily-staples');
+          source = 'UK Supermarket Price Scraper — free daily staple dataset';
+          sourceUrl = FREE_DAILY_STAPLE_SOURCE_URL;
+          recordsScanned += snapshotRows.length;
+          if (snap.cacheHit) cacheHit = true;
+        }
+      } catch (error) {
+        const message = cleanString(error?.message || 'Daily snapshot could not be loaded', 220);
+        warnings.push(`Free daily dataset unavailable: ${message}`);
+        console.warn(`[PriceLookup ${jobId || 'direct'}] Daily staple snapshot failed for ${store}: ${message}`);
+      }
+    }
+
+    // Search only ingredients the fixed daily catalogue cannot adequately cover.
+    // This is the same coverage-first approach used by shopping-list comparators.
+    const uncovered = snapshotRows.length
+      ? items.filter(item => !snapshotCoversItem(snapshotRows, item, store))
+      : items;
+    if (uncovered.length && APIFY_API_TOKEN) {
+      reportProgress({ stage: 'live-fallback', message: `Searching the live ${store} catalogue for ${uncovered.length} ingredients not covered by the daily dataset.`, currentBatch: 0, totalBatches: Math.ceil(Math.min(uncovered.length, 80) / 20) });
+      try {
+        liveRows = await fetchLiveRetailerRows(store, uncovered, reportProgress, jobId);
+        if (liveRows.length) {
+          sourceParts.push('live-catalogue-fallback');
+          recordsScanned += liveRows.length;
+          if (!source) { source = 'Live retailer product search via Apify'; sourceUrl = priceActorUrl(store); }
+        }
+        if (liveRows.lookupWarning) warnings.push(liveRows.lookupWarning);
+      } catch (error) {
+        const message = cleanString(error?.message || 'Live product search failed', 220);
+        warnings.push(`Live catalogue fallback failed: ${message}`);
+        console.warn(`[PriceLookup ${jobId || 'direct'}] Live fallback failed for ${store}: ${message}`);
+      }
+    } else if (uncovered.length && !APIFY_API_TOKEN) {
+      warnings.push(`${uncovered.length} ingredients are outside the free daily staple dataset. Add APIFY_API_TOKEN to search a broader catalogue for those items.`);
+    }
+
+    productRows = [...snapshotRows, ...liveRows];
+    if (productRows.length) {
+      sourceMode = sourceParts.length > 1 ? 'daily-snapshot-and-live-fallback' : sourceParts[0] === 'free-daily-staples' ? 'daily-staple-snapshot' : 'live-retailer-catalogue';
+      if (sourceParts.length > 1) { source = 'Free daily staple dataset + live catalogue fallback'; sourceUrl = FREE_DAILY_STAPLE_SOURCE_URL; }
+      locationsScanned = 0;
+      providerWarning = warnings.join(' ');
+    } else {
+      reportProgress({ stage: 'community-search', message: `No catalogue records found; checking community observations for ${store}.`, currentBatch: 0, totalBatches: 0 });
+      try {
+        const community = await fetchStorePriceRows(store);
+        communityRows = community.rows.map(r => ({
+          ...r,
+          sourceType: 'community-observation',
+          sourceName: 'Open Prices community observation',
+          sourceUrl: r.id ? `https://prices.openfoodfacts.org/prices/${encodeURIComponent(String(r.id))}` : 'https://prices.openfoodfacts.org/'
+        }));
+        cacheHit = cacheHit || Boolean(community.cacheHit);
+        sourceMode = 'community-observations';
+        source = 'Open Prices community observations';
+        sourceUrl = 'https://prices.openfoodfacts.org/';
+        productRows = communityRows;
+        recordsScanned = productRows.length;
+        locationsScanned = community.locationsScanned || 0;
+        if (warnings.length) providerWarning = warnings.join(' ');
+        else providerWarning = 'No catalogue rows were available for this retailer. Open Prices is community-submitted and may be sparse or out of date.';
+      } catch (error) {
+        if (warnings.length) throw new Error(warnings.join(' '));
+        throw error;
+      }
+    }
+
+    livePriceCache.set(cacheKey, { at: Date.now(), value: { rows: productRows, sourceMode, source, sourceUrl, recordsScanned, locationsScanned, providerWarning } });
   }
 
   reportProgress({ stage: 'matching', message: `Matching ${productRows.length} returned price records against ${items.length} ingredients.`, currentBatch: 0, totalBatches: 0 });
@@ -1036,24 +1155,26 @@ async function performPriceLookup(store, items, reportProgress = () => {}, jobId
     const fallbackSuggestion = best || allCandidates.find(c => c.canApply && c.score >= 0.45) || null;
     const top = fallbackSuggestion;
     const strongScore = top?.score >= 0.60;
-    const sufficientlyFresh = top && (top.sourceType === 'live-retailer' ? top.ageDays <= 7 : top.ageDays <= 45);
+    const sufficientlyFresh = top && (top.sourceType === 'live-retailer' ? top.ageDays <= 7 : top.sourceType === 'daily-snapshot' ? top.ageDays <= 3 : top.ageDays <= 45);
     const autoCandidate = top && top.canApply && sufficientlyFresh && strongScore ? top : null;
     const candidates = top ? [top] : [];
     return {
       key: item.key, name: item.name, candidates, autoCandidate,
       status: autoCandidate ? 'best-match-auto-saved' : candidates.length ? 'best-match-review' : 'no-price-match',
-      note: candidates.length ? '' : sourceMode === 'live-retailer-catalogue' ? `No compatible ${store} product/pack match was found in the current catalogue results.` : `No compatible ${store} product/pack match was found in the available Open Prices community observations.`
+      note: candidates.length ? '' : ['live-retailer-catalogue', 'daily-snapshot-and-live-fallback'].includes(sourceMode) ? `No compatible ${store} product/pack match was found in the current product catalogue results.` : sourceMode === 'daily-staple-snapshot' ? `No compatible product/pack match was found in the free daily staple snapshot. It covers only a curated list of common products; broader catalogue access is needed for other ingredients.` : `No compatible ${store} product/pack match was found in the available Open Prices community observations.`
     };
   });
   const candidateCount = results.filter(x => x.candidates.length).length;
   const autoCount = results.filter(x => x.autoCandidate).length;
-  const coverageNote = sourceMode === 'live-retailer-catalogue'
-    ? `Live product search checked ${store} listings against ${items.length} shopping ingredients. Prices and availability can vary by postcode, delivery area and loyalty card.`
+  const coverageNote = ['live-retailer-catalogue', 'daily-snapshot-and-live-fallback'].includes(sourceMode)
+    ? `Product catalogue records were matched against ${items.length} shopping ingredients. Daily snapshot coverage is limited to common staples for Aldi/Asda; live fallback fills gaps when configured. Prices and availability may vary.`
+    : sourceMode === 'daily-staple-snapshot'
+      ? `Used the free daily staple dataset for ${store}. It covers a curated list of common grocery staples, not the full product range.`
     : 'Open Prices observations are community-submitted and can be sparse or out of date; absence of a record does not mean a product is unavailable.';
   return {
     ok: true, store, source, sourceUrl,
-    attribution: sourceMode === 'live-retailer-catalogue'
-      ? 'Product prices retrieved from a third-party retailer product-search provider. Check the product link for current price, availability and promotions; prices are not guaranteed at checkout.'
+    attribution: ['live-retailer-catalogue', 'daily-snapshot-and-live-fallback', 'daily-staple-snapshot'].includes(sourceMode)
+      ? 'Product prices retrieved from the UK Supermarket Price Scraper (Apify) public daily dataset and/or retailer product-search records. Check the product link and timestamp; prices are not guaranteed at checkout.'
       : 'Open Prices by Open Food Facts; community-reported prices. Observations may be incomplete or out of date.',
     checkedAt: new Date().toISOString(), cacheHit, sourceMode, coverageNote, providerWarning,
     recordsScanned, locationsScanned, itemCount: results.length, candidateCount, autoCandidateCount: autoCount,
@@ -1118,7 +1239,7 @@ app.get('/api/prices/lookup/:jobId', authenticated, (req, res) => {
   return res.json(response);
 });
 
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner-recipe-import', aiProvider: 'Google Gemini API', aiConfigured: Boolean(GEMINI_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, fallbackModels: FALLBACK_MODELS, retryPolicy: 'exponential-backoff-and-model-fallback', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, livePriceSearchConfigured: Boolean(APIFY_API_TOKEN), livePriceStores: ['Lidl UK (datascrapers/lidl-scraper, countryCode GB)', 'Aldi UK (yappman/uk-supermarket-price-scraper)', 'ASDA UK (yappman/uk-supermarket-price-scraper)'], freePriceSnapshotAvailable: false, priceDataSource: APIFY_API_TOKEN ? 'Lidl UK and Aldi/ASDA UK product catalogues via Apify; Open Prices community fallback' : 'Open Prices community observations only; broad retailer product search requires APIFY_API_TOKEN' }));
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner-recipe-import', aiProvider: 'Google Gemini API', aiConfigured: Boolean(GEMINI_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, fallbackModels: FALLBACK_MODELS, retryPolicy: 'exponential-backoff-and-model-fallback', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, livePriceSearchConfigured: Boolean(APIFY_API_TOKEN), livePriceStores: ['Lidl UK (Studio Amba UK Grocery Price Matrix)', 'Aldi UK (Yappman UK Supermarket Price Scraper)', 'ASDA UK (Yappman UK Supermarket Price Scraper)'], freePriceSnapshotAvailable: true, freePriceSnapshotStores: ['Aldi', 'Asda'], priceDataSource: APIFY_API_TOKEN ? 'Free daily Aldi/Asda staple dataset first; live catalogue fallback for uncovered items; Lidl live catalogue and Open Prices fallback' : 'Free daily Aldi/Asda staple dataset where covered; Open Prices community observations for uncovered items and Lidl' }));
 app.post('/api/import-recipe', authenticated, async (req, res) => {
   const url = cleanString(req.body?.url, 2000);
   const pastedText = cleanString(req.body?.pastedText, 18000);

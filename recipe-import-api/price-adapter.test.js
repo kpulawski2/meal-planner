@@ -83,6 +83,26 @@ test('splits a 52-item search into <=20 unique terms without losing terms', () =
 });
 
 
+
+test('normalises public daily staple snapshot rows and keeps retailer boundaries', () => {
+  const row = {
+    retailer: 'aldi', retailerProductId: 'aldi-chicken-1', ean: [],
+    matchKey: 'aldi everyday essentials chicken breast fillets 1kg',
+    name: 'Everyday Essentials Chicken Breast Fillets 1kg', brand: 'Everyday Essentials',
+    packSize: '1kg', price: 4.25, currency: 'GBP',
+    url: 'https://www.aldi.co.uk/everyday-essentials-chicken-breast-fillets/p/000000000000123456',
+    scrapedAt: stamp, countryCode: 'GB'
+  };
+  const result = adaptApifyProduct(row, 'Aldi', 'daily-snapshot');
+  assert.ok(result);
+  assert.equal(result.sourceType, 'daily-snapshot');
+  assert.equal(result.retailer, 'Aldi');
+  assert.equal(result.price, 4.25);
+  assert.equal(result.product.product_quantity, 1);
+  assert.equal(result.product.product_quantity_unit, 'kg');
+  assert.equal(adaptApifyProduct({ ...row, retailer: 'asda' }, 'Aldi', 'daily-snapshot'), null);
+});
+
 test('normalises the UK Grocery Price Matrix Lidl row and prefers a lower promotional price', () => {
   const retrievedAt = '2026-10-06T10:00:00.000Z';
   const row = {
