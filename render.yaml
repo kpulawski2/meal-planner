@@ -10,7 +10,11 @@ services:
         sync: false
       - key: IMPORT_API_TOKEN
         sync: false
+      - key: APIFY_API_TOKEN
+        sync: false
       - key: GEMINI_MODEL
         value: gemini-3.8-flash
+      - key: GEMINI_FALLBACK_MODELS
+        value: gemini-3.5-flash,gemini-3.5-flash-lite
       - key: ALLOWED_ORIGINS
         value: https://kpulawski2.github.io

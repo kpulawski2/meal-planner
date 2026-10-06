@@ -1,53 +1,77 @@
-# Meal Planner — Gemini AI Recipe Importer
+# Meal Planner — complete project update
 
-This repository version adds a private backend for importing recipes into the Meal Planner. The backend uses Google's Gemini API rather than OpenAI, so you can use the Gemini API Free Tier while staying within Google's current model and request limits.
+This bundle combines the current meal-planner frontend and the companion Render backend in the correct repository layout.
 
-## What it can do
+## Included
 
-- For TikTok links, attempts to retrieve post title/caption via TikTok metadata, download an accessible video with `yt-dlp`, transcribe audible speech using Gemini audio input, and analyse sampled frames for on-screen ingredient lists/instructions.
-- For public recipe websites, reads accessible page text and Schema.org `Recipe` data where available.
-- Converts source material into a structured recipe record, while flagging unknown quantities/nutrition rather than inventing details.
-- Uses `GEMINI_API_KEY` only on the backend. The key is not embedded in `index.html`.
+- `index.html`: frontend with recipes, multi-option swaps, nutrition, shopping list, pack planning, and background supermarket price lookup.
+- `manifest.webmanifest`: PWA manifest for the existing GitHub Pages URL.
+- `render.yaml`: Render Blueprint configuration for Gemini plus optional Apify retailer searches.
+- `recipe-import-api/server.js`: Gemini recipe importer, video import, background lookup jobs, and price endpoints.
+- `recipe-import-api/price-adapter.js`: product normalisation, retailer validation, pack parsing, and query batching.
+- `recipe-import-api/price-adapter.test.js`: tests for the price adapter.
+- `recipe-import-api/Dockerfile`: includes both `server.js` and `price-adapter.js` in the deployed image.
+- `recipe-import-api/package.json`: backend scripts and dependencies.
+- `recipe-import-api/.dockerignore`: excludes local secrets and generated files.
+- `recipe-import-api/.env.example`: environment-variable names only; it contains no real secrets.
 
-TikTok access is not guaranteed; private, restricted, regional, or temporarily unsupported posts may not be downloadable. You can paste the caption/transcript instead.
+## Safest way to apply the update in one commit
 
-## Deploy to Render
+GitHub's website does not extract a ZIP into the repository for you. Use GitHub Desktop so you can apply the complete folder tree and push one commit.
 
-1. Push the repository files to GitHub: `index.html`, `manifest.webmanifest`, `render.yaml`, and the `recipe-import-api/` folder.
-2. Create a Gemini key at [Google AI Studio](https://aistudio.google.com/apikey). Use the Gemini API Free Tier and do **not** attach a paid billing account if you want to avoid paid API usage. Free models have rate limits and availability can change.
-3. In [Render](https://dashboard.render.com/), select **New → Blueprint**, connect this repository, and apply the detected `render.yaml` blueprint.
-4. Supply the requested `GEMINI_API_KEY` and `IMPORT_API_TOKEN` secrets. The token should be a long random value; generate one with PowerShell or another secure random generator. Do not commit either secret to GitHub.
-5. Deploy and wait until the service is live. The service address will look like `https://YOUR-SERVICE.onrender.com`.
-6. Visit `https://YOUR-SERVICE.onrender.com/health`. Confirm `ok`, `aiConfigured`, and `tokenConfigured` are all `true`; `aiProvider` should say `Google Gemini API`.
-7. Open your Meal Planner at `https://kpulawski2.github.io/meal-planner/`. Under **Recipes → Add a recipe → AI importer connection**, enter the Render base URL (no `/health`, `/api`, or trailing slash), enter the exact same `IMPORT_API_TOKEN`, click **Test connection**, then **Save connection on this device**.
+1. Install/open GitHub Desktop and clone `https://github.com/kpulawski2/meal-planner` if it is not already cloned locally.
+2. Download and extract this ZIP. The extracted folder contains the repository files at its root.
+3. Copy the extracted contents into your local cloned `meal-planner` folder, replacing files when asked. Keep the folder structure exactly as shown below.
+4. If the repository has a stray **root-level** `server.js` (outside `recipe-import-api/`), delete it. The backend server belongs only at `recipe-import-api/server.js`.
+5. In GitHub Desktop, review the changed/deleted files. Commit with a message such as `Integrate UK supermarket product lookup` and push to `main`.
 
-## Environment variables
+Expected layout:
 
-- `GEMINI_API_KEY` — secret key from Google AI Studio.
-- `IMPORT_API_TOKEN` — shared secret between this personal app and backend.
-- `GEMINI_MODEL` — defaults to `gemini-3.8-flash`.
-- `GEMINI_RECIPE_MODEL` / `GEMINI_AUDIO_MODEL` — optional overrides; otherwise use `GEMINI_MODEL`.
-- `ALLOWED_ORIGINS` — defaults to `https://kpulawski2.github.io`.
-- `PORT` — Render supplies this; default is `10000`.
+```text
+meal-planner/
+  index.html
+  manifest.webmanifest
+  render.yaml
+  README.md
+  recipe-import-api/
+    .dockerignore
+    Dockerfile
+    .env.example
+    package.json
+    server.js
+    price-adapter.js
+    price-adapter.test.js
+```
 
-## Keeping usage free
+## Keep these secrets private
 
-- The code defaults to a Gemini model that is listed with free-tier access in Google's current API pricing; access, rate limits, model names and free-tier availability may change.
-- Keep the Google AI Studio project on its Free Tier and don't add/attach paid billing if you want no paid API usage. Requests may fail when free quotas are exhausted; try later.
-- Google's terms say data submitted under the unpaid service tier may be used to improve its products. Do not send passwords, sensitive personal data, or unrelated private material.
-- Render's free service may sleep when idle and can take time to wake up. Free hosting limits can change; this deployment does not guarantee zero hosting costs if you upgrade or enable paid features.
-- The backend limits import requests, requires the token, validates external URLs, and only permits the configured web origin by default. This is a personal prototype, not a public multi-user service.
+Do not put API tokens in `index.html`, `render.yaml`, GitHub, screenshots, or chat.
 
-## Troubleshooting
+In Render → `meal-planner-recipe-import` → Environment, keep the existing values for:
 
-- `aiConfigured: false`: set `GEMINI_API_KEY` in Render Environment and redeploy.
-- `tokenConfigured: false`: set `IMPORT_API_TOKEN` in Render Environment and redeploy.
-- HTTP 401 from import: the token saved in the app does not match Render's `IMPORT_API_TOKEN`.
-- HTTP 429: Gemini free-tier rate limit reached; wait and retry later.
-- API-key/model error: confirm the key was created in Google AI Studio, the model is available to your account, and you have not exhausted the current quota.
-- TikTok failure: paste the post caption/transcript or import a recipe webpage. Video access is not guaranteed.
-- CORS error: use the full HTTPS Render base URL; update `ALLOWED_ORIGINS` if the frontend domain changes.
+- `GEMINI_API_KEY`
+- `IMPORT_API_TOKEN`
+- `APIFY_API_TOKEN` (optional; required for broad live catalogue search)
+- `ALLOWED_ORIGINS=https://kpulawski2.github.io`
 
-## Privacy note
+The `render.yaml` contains `sync: false` placeholders for secrets, not values. Do not enter your actual tokens into this file. If Render asks for a secret during a Blueprint sync, supply it directly in Render's protected environment form.
 
-For recipe extraction, source page text, the supplied caption/transcript, sampled video frames and/or audio are sent from this backend to Google's Gemini API. Free-tier data-use terms differ from paid-tier terms. See Google's [Gemini API pricing and data-use notes](https://ai.google.dev/gemini-api/docs/pricing) before using it.
+## Deploy
+
+1. After pushing the commit, wait for GitHub Pages to build and deploy the frontend.
+2. Wait for Render to build and deploy the backend. Its Docker build must run from `recipe-import-api/` and copy `server.js` plus `price-adapter.js`.
+3. Test `https://meal-planner-recipe-import.onrender.com/health`. Expect `ok: true`, `aiConfigured: true`, and `tokenConfigured: true`. `livePriceSearchConfigured` is true only when `APIFY_API_TOKEN` is configured.
+4. Open `https://kpulawski2.github.io/meal-planner/` in Edge, select a store, then run a small price lookup first.
+
+## Tests
+
+From `recipe-import-api/`, run:
+
+```sh
+npm test
+npm run check
+```
+
+## Pricing accuracy
+
+The app normalises returned products and filters by selected retailer and UK-specific records. Price coverage still depends on the selected Apify actor and its output; scrape results are not guarantees of local shelf availability, promotions, or checkout prices. Missing prices should remain missing rather than being invented. Confirm the first live results before relying on basket totals.
