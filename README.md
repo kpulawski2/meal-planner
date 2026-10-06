@@ -1,77 +1,48 @@
-# Meal Planner — complete project update
+# Meal Planner — comparator-style shopping upgrade
 
-This bundle combines the current meal-planner frontend and the companion Render backend in the correct repository layout.
+This update changes the shopping-price lookup to work more like a shopping-list comparator: use a small, public daily product/price snapshot first where it covers common staples, fill remaining gaps with configured retailer catalogue searches, automatically select one best-fit product per ingredient, and show source/coverage information rather than treating missing prices as free.
 
-## Included
+## What is included
 
-- `index.html`: frontend with recipes, multi-option swaps, nutrition, shopping list, pack planning, and background supermarket price lookup.
-- `manifest.webmanifest`: PWA manifest for the existing GitHub Pages URL.
-- `render.yaml`: Render Blueprint configuration for Gemini plus optional Apify retailer searches.
-- `recipe-import-api/server.js`: Gemini recipe importer, video import, background lookup jobs, and price endpoints.
-- `recipe-import-api/price-adapter.js`: product normalisation, retailer validation, pack parsing, and query batching.
-- `recipe-import-api/price-adapter.test.js`: tests for the price adapter.
-- `recipe-import-api/Dockerfile`: includes both `server.js` and `price-adapter.js` in the deployed image.
-- `recipe-import-api/package.json`: backend scripts and dependencies.
-- `recipe-import-api/.dockerignore`: excludes local secrets and generated files.
-- `recipe-import-api/.env.example`: environment-variable names only; it contains no real secrets.
+- `index.html`: current meal-planner frontend, including one-best-product selection, retailer-by-retailer lookup and comparison cards.
+- `recipe-import-api/server.js`: background price lookup, public daily snapshot-first approach for Aldi/ASDA, retailer scraper fallback when `APIFY_API_TOKEN` is configured, and Open Prices community fallback.
+- `recipe-import-api/price-adapter.js`: product schema normalisation, UK retailer checks, pack-size parsing and best-pack match selection.
+- `recipe-import-api/price-adapter.test.js`: regression tests for retailers, UK Lidl rows, daily snapshot data, pack matching and large-query batching.
+- `recipe-import-api/Dockerfile`: copies both `server.js` and `price-adapter.js` into the backend container.
+- Existing Render, PWA, and Node project configuration.
 
-## Safest way to apply the update in one commit
+## Data source and coverage
 
-GitHub's website does not extract a ZIP into the repository for you. Use GitHub Desktop so you can apply the complete folder tree and push one commit.
+The first lookup source for Aldi and ASDA is the public daily dataset for the UK Supermarket Price Scraper (Apify), maintained by `yappman/uk-supermarket-price-scraper`:
 
-1. Install/open GitHub Desktop and clone `https://github.com/kpulawski2/meal-planner` if it is not already cloned locally.
-2. Download and extract this ZIP. The extracted folder contains the repository files at its root.
-3. Copy the extracted contents into your local cloned `meal-planner` folder, replacing files when asked. Keep the folder structure exactly as shown below.
-4. If the repository has a stray **root-level** `server.js` (outside `recipe-import-api/`), delete it. The backend server belongs only at `recipe-import-api/server.js`.
-5. In GitHub Desktop, review the changed/deleted files. Commit with a message such as `Integrate UK supermarket product lookup` and push to `main`.
+- Actor page: https://apify.com/yappman/uk-supermarket-price-scraper
+- Public JSON dataset: https://api.apify.com/v2/datasets/ynAT9NPps2EdjMOJa/items?format=json
+- Attribution requested by publisher: `UK Supermarket Price Scraper (Apify), yappman/uk-supermarket-price-scraper`
 
-Expected layout:
+The free daily dataset contains a curated basket of common staples, not the full retailer catalogue, and does not cover Lidl. For items outside the daily snapshot, the backend uses the existing Apify live catalogue adapters if `APIFY_API_TOKEN` is set. Lidl still uses the configured separate catalogue adapter. Open Prices community observations remain a final fallback, but can be sparse. Price and stock information can vary by location, promotion, and time; always check the product URL/date before relying on a basket estimate.
 
-```text
-meal-planner/
-  index.html
-  manifest.webmanifest
-  render.yaml
-  README.md
-  recipe-import-api/
-    .dockerignore
-    Dockerfile
-    .env.example
-    package.json
-    server.js
-    price-adapter.js
-    price-adapter.test.js
-```
+Do not describe the public daily dataset as a full or guaranteed live retailer API. The app's messages should continue to distinguish the daily snapshot, live catalogue, community observations and missing matches.
 
-## Keep these secrets private
+## Deploy through the browser
 
-Do not put API tokens in `index.html`, `render.yaml`, GitHub, screenshots, or chat.
+1. Extract this ZIP locally on Windows.
+2. In the GitHub repository root, replace `index.html`, `manifest.webmanifest`, `render.yaml`, and `README.md` if you want the updated project documentation/config copied in. The PWA manifest and Render file are unchanged configuration; you normally only need `index.html` at the root.
+3. Open the existing `recipe-import-api` folder in GitHub. Replace `server.js`, `price-adapter.js`, `price-adapter.test.js`, `Dockerfile`, `package.json`, `.dockerignore`, `.env.example` from the matching folder in this ZIP.
+4. Commit to `main`. GitHub Pages will deploy the frontend; Render should build the backend after the commit.
+5. In Render, keep existing `GEMINI_API_KEY`, `IMPORT_API_TOKEN`, `ALLOWED_ORIGINS`, and `APIFY_API_TOKEN` values. Never put secrets in GitHub or the frontend.
+6. After deployment, open `https://meal-planner-recipe-import.onrender.com/health`, then run a short 3–5 ingredient lookup before comparing the full basket.
 
-In Render → `meal-planner-recipe-import` → Environment, keep the existing values for:
+GitHub's browser uploader does not unpack ZIP files. Keep the inner paths above: in particular, `server.js`, `price-adapter.js`, and `Dockerfile` belong inside `recipe-import-api/` (not an extra nested directory).
 
-- `GEMINI_API_KEY`
-- `IMPORT_API_TOKEN`
-- `APIFY_API_TOKEN` (optional; required for broad live catalogue search)
-- `ALLOWED_ORIGINS=https://kpulawski2.github.io`
-
-The `render.yaml` contains `sync: false` placeholders for secrets, not values. Do not enter your actual tokens into this file. If Render asks for a secret during a Blueprint sync, supply it directly in Render's protected environment form.
-
-## Deploy
-
-1. After pushing the commit, wait for GitHub Pages to build and deploy the frontend.
-2. Wait for Render to build and deploy the backend. Its Docker build must run from `recipe-import-api/` and copy `server.js` plus `price-adapter.js`.
-3. Test `https://meal-planner-recipe-import.onrender.com/health`. Expect `ok: true`, `aiConfigured: true`, and `tokenConfigured: true`. `livePriceSearchConfigured` is true only when `APIFY_API_TOKEN` is configured.
-4. Open `https://kpulawski2.github.io/meal-planner/` in Edge, select a store, then run a small price lookup first.
-
-## Tests
+## Checks
 
 From `recipe-import-api/`, run:
 
-```sh
-npm test
+```bash
 npm run check
+npm test
 ```
 
-## Pricing accuracy
+## Notes
 
-The app normalises returned products and filters by selected retailer and UK-specific records. Price coverage still depends on the selected Apify actor and its output; scrape results are not guarantees of local shelf availability, promotions, or checkout prices. Missing prices should remain missing rather than being invented. Confirm the first live results before relying on basket totals.
+The free daily snapshot does not need an Apify token. Broader live searches do need `APIFY_API_TOKEN` in Render and may consume Apify usage credits; a per-run cost ceiling is not a guarantee of zero cost. Keep the Apify account on the plan you intend to use and do not enable paid billing if you want to avoid charges.
