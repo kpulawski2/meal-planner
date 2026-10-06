@@ -9,6 +9,7 @@ import dns from 'node:dns/promises';
 import net from 'node:net';
 import crypto from 'node:crypto';
 import multer from 'multer';
+import { adaptApifyProduct, matchesApifyStoreRow, splitSearchBatches } from './price-adapter.js';
 
 const execFileAsync = promisify(execFile);
 const app = express();
@@ -457,14 +458,7 @@ const PRICE_LOOKUP_MAX_ITEMS = 80;
 const PRICE_LOOKUP_STORES = {
   'Lidl': { query: ['Lidl'], match: ['lidl'] },
   'Aldi': { query: ['Aldi'], match: ['aldi'] },
-  'Asda': { query: ['Asda'], match: ['asda'] },
-  'Tesco': { query: ['Tesco'], match: ['tesco'] },
-  'Sainsbury’s': { query: ['Sainsbury'], match: ['sainsbury'] },
-  'Morrisons': { query: ['Morrisons'], match: ['morrisons'] },
-  'Waitrose': { query: ['Waitrose'], match: ['waitrose'] },
-  'Ocado': { query: ['Ocado'], match: ['ocado'] },
-  'Iceland': { query: ['Iceland'], match: ['iceland'] },
-  'Co-op': { query: ['Co-op', 'Co-operative'], match: ['co-op', 'co op', 'coop', 'co-operative'] }
+  'Asda': { query: ['Asda'], match: ['asda'] }
 };
 const openPricesCache = new Map();
 const LIVE_PRICE_CACHE_MS = 12 * 60 * 60 * 1000;
@@ -473,8 +467,11 @@ const livePriceCache = new Map();
 const priceLookupJobs = new Map();
 const PRICE_JOB_TTL_MS = 20 * 60 * 1000;
 const PRICE_JOB_MAX_COUNT = 50;
-const RETAILER_SLUGS = { 'Lidl':'lidl', 'Aldi':'aldi', 'Asda':'asda', 'Tesco':'tesco', 'Sainsbury’s':'sainsburys', 'Morrisons':'morrisons', 'Waitrose':'waitrose', 'Ocado':'ocado', 'Iceland':'iceland', 'Co-op':'coop' };
-const YAPPMAN_STORES = new Set(['Aldi','Asda','Tesco','Sainsbury’s']);
+const RETAILER_SLUGS = { 'Lidl':'lidl', 'Aldi':'aldi', 'Asda':'asda' };
+const YAPPMAN_STORES = new Set(['Aldi','Asda']);
+const LIDL_ACTOR = 'datascrapers~lidl-scraper';
+const YAPPMAN_ACTOR = 'yappman~uk-supermarket-price-scraper';
+function priceActorUrl(store) { return store === 'Lidl' ? 'https://apify.com/datascrapers/lidl-scraper' : 'https://apify.com/yappman/uk-supermarket-price-scraper'; }
 
 function normalizePriceText(value) {
   return String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
@@ -773,46 +770,10 @@ function parseRetailPackText(packText, productName = '', ingredientName = '') {
   }
   return null;
 }
-function adaptRetailProduct(raw, selectedStore, sourceType) {
-  const productName = cleanString(raw?.productName || raw?.name || raw?.product_name || raw?.title, 180);
-  const retailer = cleanString(raw?.retailer || selectedStore, 80);
-  const packText = raw?.packSize || raw?.packaging || raw?.quantity || '';
-  const parsedPack = parseRetailPackText(packText, productName, productName);
-  const priceVal = Number(raw?.price);
-  if (!productName || !Number.isFinite(priceVal) || priceVal < 0) return null;
-  const scraped = raw?.scrapedAt || raw?.observedAt || raw?.date || raw?.updatedAt || new Date().toISOString();
-  const date = String(scraped).slice(0, 10);
-  const brand = cleanString(raw?.brand || raw?.brands, 120);
-  const product = {
-    product_name: productName,
-    brands: brand,
-    product_quantity: parsedPack?.size,
-    product_quantity_unit: parsedPack?.unit,
-    code: Array.isArray(raw?.ean) ? raw.ean[0] : (raw?.ean || raw?.productId || raw?.retailerProductId || '')
-  };
-  const chosenPrice = Number.isFinite(Number(raw?.promoPrice)) && Number(raw.promoPrice) >= 0 && Number(raw.promoPrice) < priceVal
-    ? Number(raw.promoPrice) : priceVal;
-  return {
-    id: raw?.id || null,
-    product_code: product.code,
-    product_name: productName,
-    product,
-    price: chosenPrice,
-    price_per: 'UNIT',
-    currency: 'GBP', type: 'PRODUCT', date,
-    location: { osm_name: selectedStore, osm_display_name: `${selectedStore} online grocery listing`, osm_address_country_code: 'gb' },
-    sourceType,
-    sourceName: sourceType === 'live-retailer' ? 'Live retailer product catalogue (Apify)' : 'Open Prices community observation',
-    sourceUrl: cleanString(raw?.url || raw?.productUrl, 1000) || 'https://apify.com/yappman/uk-supermarket-price-scraper',
-    productUrl: cleanString(raw?.url || raw?.productUrl, 1000),
-    packText: cleanString(packText, 80),
-    retailer,
-    promotionText: cleanString(raw?.promotionText || raw?.discount || '', 180),
-    loyaltyPrice: Number.isFinite(Number(raw?.loyaltyPrice)) ? Number(raw.loyaltyPrice) : null,
-    imageUrl: cleanString(raw?.imageUrl || '', 1000),
-    rawProduct: raw
-  };
+function adaptRetailProduct(raw, selectedStore, sourceType = 'live-retailer') {
+  return adaptApifyProduct(raw, selectedStore, sourceType);
 }
+
 // The selected Apify actors reject maxTotalChargeUsd caps below USD 5.00.
 // This is a maximum allowed run-cost cap, not a promise that each run costs USD 5.
 // Keep the Apify account on its Free plan to stop requests when monthly credits run out.
@@ -840,69 +801,69 @@ async function readApifyActorItems(actorId, input, { timeoutSeconds = 90, maxIte
 }
 async function fetchLiveRetailerRows(store, items, reportProgress = () => {}, jobId = '') {
   const retailer = RETAILER_SLUGS[store];
-  if (!retailer) throw new Error('The selected supermarket is not supported by the live catalogue provider.');
+  if (!retailer) throw new Error('Only Lidl UK, Aldi UK and ASDA UK are enabled for automatic product lookup.');
 
-  // The Studio Amba actor accepts at most 20 searchQueries per run. Keep all actors
-  // within that limit so retailer lookups with a large shopping list are split safely.
   const queries = [...new Set(items.map(x => grocerySearchTerm(x.name).trim()).filter(Boolean))].slice(0, 80);
-  const queryBatches = [];
-  for (let i = 0; i < queries.length; i += 20) queryBatches.push(queries.slice(i, i + 20));
+  const queryBatches = splitSearchBatches(queries, 20);
   if (!queryBatches.length) throw new Error('No usable ingredient search terms were generated.');
 
-  const expectedSlug = retailerSlug(store);
   const allRows = [];
   const batchErrors = [];
-
-  // Run batches sequentially: this avoids launching several paid-cap actor runs at once
-  // and stays within the provider's per-run input limit. Each run still uses the configured
-  // maxTotalChargeUsd cap; on the Apify Free plan, requests stop when monthly credit is used.
   for (let index = 0; index < queryBatches.length; index++) {
     const batch = queryBatches[index];
-    const batchProgress = { stage: 'searching', message: `Searching ${store} product catalogue — batch ${index + 1} of ${queryBatches.length}.`, currentBatch: index + 1, totalBatches: queryBatches.length };
+    const batchProgress = { stage: 'searching', message: `Searching ${store} UK product catalogue — batch ${index + 1} of ${queryBatches.length}.`, currentBatch: index + 1, totalBatches: queryBatches.length };
     reportProgress(batchProgress);
     console.info(`[PriceLookup ${jobId || 'direct'}] ${batchProgress.message} (${batch.length} search terms)`);
     const batchStartedAt = Date.now();
     try {
       let rows;
-      if (YAPPMAN_STORES.has(store)) {
-        const maxItems = Math.min(180, Math.max(40, batch.length * 3));
-        rows = await readApifyActorItems('yappman~uk-supermarket-price-scraper', {
-          retailers: [retailer], mode: 'search', queries: batch,
-          categoryUrls: [], productUrls: [], maxItems
-        }, { timeoutSeconds: 85, maxItems, maxChargeUsd: 5.00 });
-      } else {
-        const maxItems = Math.min(140, Math.max(40, batch.length * 2));
-        rows = await readApifyActorItems('studio-amba~uk-grocery-price-matrix', {
+      let actorId;
+      if (store === 'Lidl') {
+        actorId = LIDL_ACTOR;
+        const maxItems = Math.min(100, Math.max(20, batch.length * 5));
+        rows = await readApifyActorItems(actorId, {
           searchQueries: batch,
+          countryCode: 'GB',
+          maxItems,
+          fetchProductDetails: false
+        }, { timeoutSeconds: 120, maxItems, maxChargeUsd: 5.00 });
+      } else {
+        actorId = YAPPMAN_ACTOR;
+        const maxItems = Math.min(120, Math.max(20, batch.length * 5));
+        rows = await readApifyActorItems(actorId, {
           retailers: [retailer],
-          maxItemsPerSource: 2,
-          timeoutPerSourceSecs: 30
+          mode: 'search',
+          queries: batch,
+          categoryUrls: [],
+          productUrls: [],
+          maxItems
         }, { timeoutSeconds: 90, maxItems, maxChargeUsd: 5.00 });
       }
-      const retailerRows = rows.filter(r => retailerSlug(r?.retailer) === expectedSlug);
-      allRows.push(...retailerRows);
-      console.info(`[PriceLookup ${jobId || 'direct'}] Batch ${index + 1}/${queryBatches.length} finished in ${Math.round((Date.now() - batchStartedAt) / 1000)}s; ${retailerRows.length} selected-store rows accepted.`);
-      reportProgress({ stage: 'batch-complete', message: `Finished batch ${index + 1} of ${queryBatches.length}; ${allRows.length} product rows collected so far.`, currentBatch: index + 1, totalBatches: queryBatches.length });
+
+      const accepted = rows
+        .filter(row => matchesApifyStoreRow(row, store))
+        .map(row => adaptRetailProduct(row, store, 'live-retailer'))
+        .filter(Boolean);
+      allRows.push(...accepted);
+      console.info(`[PriceLookup ${jobId || 'direct'}] ${store} batch ${index + 1}/${queryBatches.length} actor=${actorId}; ${rows.length} raw rows, ${accepted.length} UK ${store} rows accepted in ${Math.round((Date.now() - batchStartedAt) / 1000)}s.`);
+      reportProgress({ stage: 'batch-complete', message: `Finished batch ${index + 1} of ${queryBatches.length}; ${allRows.length} validated ${store} products collected so far.`, currentBatch: index + 1, totalBatches: queryBatches.length });
     } catch (error) {
       const detail = cleanString(error?.message || 'Unknown catalogue error', 220);
-      console.error(`[PriceLookup ${jobId || 'direct'}] Batch ${index + 1}/${queryBatches.length} failed after ${Math.round((Date.now() - batchStartedAt) / 1000)}s: ${detail}`);
+      console.error(`[PriceLookup ${jobId || 'direct'}] ${store} batch ${index + 1}/${queryBatches.length} failed after ${Math.round((Date.now() - batchStartedAt) / 1000)}s: ${detail}`);
       batchErrors.push(`batch ${index + 1}/${queryBatches.length}: ${detail}`);
-      reportProgress({ stage: 'batch-failed', message: `Batch ${index + 1} of ${queryBatches.length} failed; continuing with any other results.`, currentBatch: index + 1, totalBatches: queryBatches.length });
+      reportProgress({ stage: 'batch-failed', message: `Batch ${index + 1} of ${queryBatches.length} failed; continuing with any successful results.`, currentBatch: index + 1, totalBatches: queryBatches.length });
     }
   }
 
   if (!allRows.length && batchErrors.length) {
     throw new Error(`All ${queryBatches.length} product-search batch(es) failed. ${batchErrors.slice(0, 2).join(' | ')}`);
   }
-  // Attach non-enumerable lookup metadata to the array; callers can report partial results
-  // without turning a partially successful lookup into a misleading full failure.
-  Object.defineProperty(allRows, 'lookupWarning', {
-    value: batchErrors.length
-      ? `Some product searches could not be completed (${batchErrors.length} of ${queryBatches.length} batches failed). Price coverage is partial. ${batchErrors.slice(0, 2).join(' | ')}`
-      : '',
-    enumerable: false,
-    configurable: true
-  });
+  const lookupWarning = batchErrors.length
+    ? `Some product searches could not be completed (${batchErrors.length} of ${queryBatches.length} batches failed). Price coverage is partial. ${batchErrors.slice(0, 2).join(' | ')}`
+    : !allRows.length
+      ? `The ${store} actor completed but returned no valid GBP product rows. Check the actor's UK coverage and run output before trying again.`
+      : '';
+  Object.defineProperty(allRows, 'lookupWarning', { value: lookupWarning, enumerable: false, configurable: true });
   Object.defineProperty(allRows, 'queryBatchCount', { value: queryBatches.length, enumerable: false, configurable: true });
   return allRows;
 }
@@ -987,7 +948,7 @@ async function performPriceLookup(store, items, reportProgress = () => {}, jobId
     providerWarning = productRows.lookupWarning || '';
     sourceMode = 'live-retailer-catalogue';
     source = 'Live retailer product search via Apify';
-    sourceUrl = YAPPMAN_STORES.has(store) ? 'https://apify.com/yappman/uk-supermarket-price-scraper' : 'https://apify.com/stores/studio-amba/uk-grocery-price-matrix';
+    sourceUrl = priceActorUrl(store);
     recordsScanned = productRows.length;
     locationsScanned = 0;
     livePriceCache.set(cacheKey, { at: Date.now(), value: { rows: productRows, sourceMode, source, sourceUrl, recordsScanned, locationsScanned, providerWarning } });
@@ -1111,7 +1072,7 @@ app.get('/api/prices/lookup/:jobId', authenticated, (req, res) => {
   return res.json(response);
 });
 
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner-recipe-import', aiProvider: 'Google Gemini API', aiConfigured: Boolean(GEMINI_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, fallbackModels: FALLBACK_MODELS, retryPolicy: 'exponential-backoff-and-model-fallback', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, livePriceSearchConfigured: Boolean(APIFY_API_TOKEN), freePriceSnapshotAvailable: false, priceDataSource: APIFY_API_TOKEN ? 'Apify retailer product catalogue with capped result counts; Open Prices community fallback' : 'Open Prices community observations only; broad retailer product search requires APIFY_API_TOKEN' }));
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner-recipe-import', aiProvider: 'Google Gemini API', aiConfigured: Boolean(GEMINI_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, fallbackModels: FALLBACK_MODELS, retryPolicy: 'exponential-backoff-and-model-fallback', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, livePriceSearchConfigured: Boolean(APIFY_API_TOKEN), livePriceStores: ['Lidl UK (datascrapers/lidl-scraper, countryCode GB)', 'Aldi UK (yappman/uk-supermarket-price-scraper)', 'ASDA UK (yappman/uk-supermarket-price-scraper)'], freePriceSnapshotAvailable: false, priceDataSource: APIFY_API_TOKEN ? 'Lidl UK and Aldi/ASDA UK product catalogues via Apify; Open Prices community fallback' : 'Open Prices community observations only; broad retailer product search requires APIFY_API_TOKEN' }));
 app.post('/api/import-recipe', authenticated, async (req, res) => {
   const url = cleanString(req.body?.url, 2000);
   const pastedText = cleanString(req.body?.pastedText, 18000);
