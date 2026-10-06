@@ -1,51 +1,35 @@
-# Meal Planner — comparator-style shopping upgrade
+# Meal Planner — supermarket price lookup
 
-The pricing layer now separates a supermarket-specific median unit-price benchmark from the actual whole-pack checkout cost. It still uses the existing data feeds as inputs: a public daily snapshot for common Aldi/ASDA staples, configured retailer catalogue searches for uncovered items, and Open Prices community observations as a fallback. The benchmark is an interim improvement to price estimation, not a completed switch to Allsupers or another licensed catalogue API.
+This project uses **Groq free-tier AI models** for recipe extraction and audio transcription, **free Open Prices community observations** for automatic price lookup, and a manual Allsupers price-verification workflow. There is no Apify integration and no paid grocery-price API requirement. Groq usage is subject to the current free-tier rate limits on your account; the application does not automatically upgrade to paid usage.
 
-## What is included
+## AI recipe extraction
 
-- `index.html`: current meal-planner frontend, including one-best-product selection, retailer-by-retailer lookup and comparison cards.
-- `recipe-import-api/server.js`: background price lookup, public daily snapshot-first approach for Aldi/ASDA, retailer scraper fallback when `APIFY_API_TOKEN` is configured, and Open Prices community fallback.
-- `recipe-import-api/price-adapter.js`: product schema normalisation, UK retailer checks, pack-size parsing, best-pack selection, and median unit-price benchmark calculation from recent, close-match packs.
-- `recipe-import-api/price-adapter.test.js`: regression tests for retailers, UK Lidl rows, daily snapshot data, pack matching, median calculations, dimensional separation and large-query batching.
-- `recipe-import-api/Dockerfile`: copies both `server.js` and `price-adapter.js` into the backend container.
-- Existing Render, PWA, and Node project configuration.
+- **Recipe parsing and video-frame reading:** Groq `qwen/qwen3.8-27b` through the Chat Completions API. It is configured for JSON output and receives no more than three sampled frames per request.
+- **Video speech transcription:** Groq `whisper-large-v3-turbo` through the audio transcriptions API.
+- **Free limits:** both are configured as free-tier-first models, but availability and quotas depend on the current Groq account and can change. The app reports rate-limit/quota errors and does not automatically switch providers.
+- Keep `GROQ_API_KEY` and `IMPORT_API_TOKEN` in Render environment variables only. Do not add secrets to `index.html` or commit them.
 
-## Pricing model
+## Price sources
 
-For each ingredient and selected supermarket, the backend:
+- **Open Prices by Open Food Facts** (`https://prices.openfoodfacts.org/api/v1`) is used for automatic community price lookup. Its observations may be sparse, missing, or out of date, so the app records observation dates and does not interpret a missing record as an unavailable product.
+- **Allsupers** (`https://www.allsupers.co.uk/`) is available as a manual verification route in the Shopping tab. Open Allsupers from an ingredient's pack editor, confirm the exact supermarket, product and pack size, then enter the verified pack price. The app saves the source label and date, plus an optional product link.
+- The app does **not** automatically scrape Allsupers. Its current Terms of Use prohibit automated scraping and systematic extraction/re-use of the database without prior written consent: `https://www.allsupers.co.uk/terms`. Allsupers says datasets and partnerships are available by licence; if they approve an API/feed, it can be integrated as an authorised source later.
+- Lidl is not included in the retailer choices.
 
-1. Normalises candidate pack sizes to grams, millilitres, items or slices.
-2. Keeps only close name matches with usable pack prices and recent observations (up to 45 days for the benchmark).
-3. Calculates comparable unit prices (£/kg, £/L, £/item or £/slice) and returns the median, range, sample size and newest date.
-4. Continues to select a separate best-fit product for the real shopping list, calculating the number of whole packs, checkout spend and estimated leftover quantity.
+## Accuracy safeguards
 
-The median is a planning benchmark, not a purchasable pack or a guarantee that the product is in stock. The UI labels it as an estimate and keeps whole-pack checkout cost separate. No benchmark is shown when there are no sufficiently recent, confident pack matches.
+The backend checks UK retailer/location metadata, GBP currency, observation dates, product-name relevance and pack-size compatibility. Median unit-price benchmarks are calculated only from sufficiently close, recent and unit-comparable observations. The benchmark is a planning statistic, not a purchasable pack price. Whole-pack checkout cost remains separate. Unmatched products remain unmatched rather than receiving invented prices.
 
-## Data source and coverage
+Manual prices are tagged with their selected source (`Allsupers manually verified`, `Retailer website manually verified`, `In-store shelf manually checked` or `Manually entered price`) and the entry date. When available, save the precise product/source URL too.
 
-The first lookup source for Aldi and ASDA is the public daily dataset for the UK Supermarket Price Scraper (Apify), maintained by `yappman/uk-supermarket-price-scraper`:
+## Configure the backend
 
-- Actor page: https://apify.com/yappman/uk-supermarket-price-scraper
-- Public JSON dataset: https://api.apify.com/v2/datasets/ynAT9NPps2EdjMOJa/items?format=json
-- Attribution requested by publisher: `UK Supermarket Price Scraper (Apify), yappman/uk-supermarket-price-scraper`
+1. Create a Groq API key at `https://console.groq.com/keys`. In Render, configure `GROQ_API_KEY`, `IMPORT_API_TOKEN`, and `ALLOWED_ORIGINS`. The Render blueprint defaults to `GROQ_RECIPE_MODEL=qwen/qwen3.8-27b` and `GROQ_TRANSCRIPTION_MODEL=whisper-large-v3-turbo`. No grocery-price API key is required.
+2. Deploy the service. Check `/health`; the `priceDataSource` field should report free Open Prices observations with manual Allsupers verification.
+3. In the app, configure the recipe-import backend as usual, open Shopping, and run the free price lookup. For missing matches, use **Check Allsupers** or **Compare on Allsupers** and manually save the exact price in the pack editor.
+4. Never put backend API keys in `index.html` or GitHub Pages.
 
-The free daily dataset contains a curated basket of common staples, not the full retailer catalogue, and does not cover Lidl. For items outside the daily snapshot, the backend uses the existing Apify live catalogue adapters if `APIFY_API_TOKEN` is set. Lidl still uses the configured separate catalogue adapter. Open Prices community observations remain a final fallback, but can be sparse. Price and stock information can vary by location, promotion, and time; always check the product URL/date before relying on a basket estimate.
-
-Do not describe the public daily dataset as a full or guaranteed live retailer API. The app's messages should continue to distinguish the daily snapshot, live catalogue, community observations and missing matches. Allsupers/MealMatcher access has not been wired in because a supported public API or authorised data feed has not been established; do not scrape their pages or reverse engineer private endpoints. The provider can be replaced once approved access and its schema are available.
-
-## Deploy through the browser
-
-1. Extract this ZIP locally on Windows.
-2. In the GitHub repository root, replace `index.html`, `manifest.webmanifest`, `render.yaml`, and `README.md` if you want the updated project documentation/config copied in. The PWA manifest and Render file are unchanged configuration; you normally only need `index.html` at the root.
-3. Open the existing `recipe-import-api` folder in GitHub. Replace `server.js`, `price-adapter.js`, `price-adapter.test.js`, `Dockerfile`, `package.json`, `.dockerignore`, `.env.example` from the matching folder in this ZIP.
-4. Commit to `main`. GitHub Pages will deploy the frontend; Render should build the backend after the commit.
-5. In Render, keep existing `GEMINI_API_KEY`, `IMPORT_API_TOKEN`, `ALLOWED_ORIGINS`, and `APIFY_API_TOKEN` values. Never put secrets in GitHub or the frontend.
-6. After deployment, open `https://meal-planner-recipe-import.onrender.com/health`, then run a short 3–5 ingredient lookup before comparing the full basket.
-
-GitHub's browser uploader does not unpack ZIP files. Keep the inner paths above: in particular, `server.js`, `price-adapter.js`, and `Dockerfile` belong inside `recipe-import-api/` (not an extra nested directory).
-
-## Checks
+## Tests
 
 From `recipe-import-api/`, run:
 
@@ -54,6 +38,10 @@ npm run check
 npm test
 ```
 
-## Notes
+## Limitations
 
-The free daily snapshot does not need an Apify token. Broader live searches do need `APIFY_API_TOKEN` in Render and may consume Apify usage credits; a per-run cost ceiling is not a guarantee of zero cost. Keep the Apify account on the plan you intend to use and do not enable paid billing if you want to avoid charges.
+Open Prices relies on community submissions, so coverage varies by retailer and product. Allsupers prices are not synchronised into the app automatically; a current price is only marked as Allsupers-verified when the user checks the site and saves the price. Regional availability, promotions and loyalty prices may differ at checkout.
+
+## Deployment layout
+
+Keep `index.html`, `manifest.webmanifest`, `render.yaml`, and `README.md` at the project root. Keep backend files inside `recipe-import-api/`. GitHub Pages hosts the frontend; Render hosts the backend.
