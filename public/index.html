@@ -520,16 +520,17 @@ const PRICE_LOOKUP_MAX_WAIT_MS=12*60*1000;
 const priceLookupSleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function lookupSelectedStorePrices(storeOverride=null,internalCall=false){
  if(openPriceLookupBusy&&!internalCall)return;
- const store=storeOverride||selectedShoppingStore(),api=(localStorage.getItem('mealPlannerImportApiUrl')||'').trim().replace(/\/+$/,''),token=(localStorage.getItem('mealPlannerImportApiToken')||'').trim();
- if(!api||!token){toast('Connect the existing recipe-import backend in Recipes → Add a recipe first');return}
- if(!/^https:\/\//i.test(api)&&api!==location.origin){toast('Use the same app address or an HTTPS backend URL');return}
+ // This deployment serves the UI and API from the same Render origin. Price lookup
+ // must not depend on the recipe-import token form; the server allows same-origin
+ // browser lookup requests with rate limiting. The optional token is still sent if saved.
+ const store=storeOverride||selectedShoppingStore(),api=location.origin,token=(localStorage.getItem('mealPlannerImportApiToken')||'').trim();
  const items=lookupInputItems();if(!items.length){toast('Generate a meal plan first to build the shopping list');return}
  const ownsBusyLock=!internalCall;
  if(ownsBusyLock)openPriceLookupBusy=true;
  state.openPriceLookups=state.openPriceLookups||{};state.openPriceLookups[store]={loading:true,expanded:true,startedAt:new Date().toISOString(),progress:{message:`Starting product-price search for ${store}…`,currentBatch:0,totalBatches:0},results:[]};renderShop();
  const startedAt=Date.now();
  try{
-  const headers={'Content-Type':'application/json','X-Import-Token':token};
+  const headers={'Content-Type':'application/json'};if(token)headers['X-Import-Token']=token;
   const response=await fetch(api+'/api/prices/lookup',{method:'POST',headers,body:JSON.stringify({store,items}),signal:AbortSignal.timeout(25000)});
   let data={};try{data=await response.json()}catch(_){ }
   if(!response.ok)throw new Error(data.error||`Price lookup failed (${response.status}).`);
@@ -541,7 +542,8 @@ async function lookupSelectedStorePrices(storeOverride=null,internalCall=false){
     await priceLookupSleep(Math.max(1500,Math.min(4000,Number(data.pollAfterMs)||2500)));
     let pollResponse,job;
     try{
-     pollResponse=await fetch(api+'/api/prices/lookup/'+encodeURIComponent(jobId),{method:'GET',headers:{'X-Import-Token':token},signal:AbortSignal.timeout(15000)});
+     const pollHeaders={};if(token)pollHeaders['X-Import-Token']=token;
+     pollResponse=await fetch(api+'/api/prices/lookup/'+encodeURIComponent(jobId),{method:'GET',headers:pollHeaders,signal:AbortSignal.timeout(15000)});
      try{job=await pollResponse.json()}catch(_){job={}}
      if(!pollResponse.ok){if(pollResponse.status===404)throw new Error(job.error||'The price lookup job expired. Please start the lookup again.');throw new Error(job.error||`Could not check lookup progress (${pollResponse.status}).`)}
     }catch(pollError){
@@ -586,8 +588,7 @@ async function lookupSelectedStorePrices(storeOverride=null,internalCall=false){
 }
 async function compareAllSupermarkets(){
  if(openPriceLookupBusy)return;
- const api=(localStorage.getItem('mealPlannerImportApiUrl')||'').trim().replace(/\/+$/,''),token=(localStorage.getItem('mealPlannerImportApiToken')||'').trim();
- if(!api||!token){toast('Connect the existing recipe-import backend in Recipes → Add a recipe first');return}
+ // Keep basket comparisons on the combined app/backend origin; no separate URL/token setup needed.
  const items=lookupInputItems();if(!items.length){toast('Generate a meal plan first to build the shopping list');return}
  const original=selectedShoppingStore();openPriceLookupBusy=true;
  const stores=[...new Set((state.profile.supermarkets||[]).filter(st=>RETAILER_NAMES.includes(st)))];if(!stores.length)stores.push(original);
@@ -798,7 +799,7 @@ function openAddRecipe(){
  <div class="field"><label>TikTok / recipe webpage URL</label><input id="newSource" type="url" placeholder="https://www.tiktok.com/@creator/video/…"></div>
  <div class="field"><label>Or upload a saved video (MP4, MOV, WebM, MKV; max 50 MB)</label><input id="newVideoFile" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-matroska,.mp4,.mov,.webm,.mkv,.m4v,.3gp"><p class="sub">If TikTok blocks the server from downloading a link, save the video where available and upload it here. The importer analyses audio and sampled frames. The clip’s audio is transcribed with Groq Whisper and up to three sampled frames are sent to Groq vision for extraction; don’t upload private videos.</p></div>
  <div class="field"><label>Caption, on-screen text or transcript (optional)</label><textarea id="newNotes" rows="4" placeholder="Paste the caption or transcript here if available. You can combine this with a link or uploaded video."></textarea></div>
- <details class="card" style="margin:12px 0"><summary style="font-weight:700;cursor:pointer">AI importer connection (set up once)</summary><p class="sub">The backend keeps the AI key off GitHub Pages. This app includes the API when hosted as one service. Leave the URL as this app’s address and enter the IMPORT_API_TOKEN from your host settings.</p><div class="field"><label>Importer API URL</label><input id="importApiUrl" type="url" value="${escape(savedApi)}" placeholder="https://your-service.onrender.com"></div><div class="field"><label>API access token</label><input id="importApiToken" type="password" value="${escape(savedToken)}" placeholder="The IMPORT_API_TOKEN from your backend setup"></div><div class="actions"><button class="btn secondary small" onclick="saveImporterConfig()">Save connection on this device</button><button class="btn secondary small" onclick="testImporterConnection()">Test connection</button></div><p class="sub">For the easiest setup, host the frontend and API together. Your Groq key stays on the server; the access token is saved only on this device.</p></details>
+ <details class="card" style="margin:12px 0"><summary style="font-weight:700;cursor:pointer">AI importer connection (set up once)</summary><p class="sub">Shopping price lookup works automatically when this app and backend share this Render address. This token connection is only needed for AI recipe/video importing. Leave the URL as this app’s address and enter the IMPORT_API_TOKEN from your host settings.</p><div class="field"><label>Importer API URL</label><input id="importApiUrl" type="url" value="${escape(savedApi)}" placeholder="https://your-service.onrender.com"></div><div class="field"><label>API access token</label><input id="importApiToken" type="password" value="${escape(savedToken)}" placeholder="The IMPORT_API_TOKEN from your backend setup"></div><div class="actions"><button class="btn secondary small" onclick="saveImporterConfig()">Save connection on this device</button><button class="btn secondary small" onclick="testImporterConnection()">Test connection</button></div><p class="sub">For the easiest setup, host the frontend and API together. Your Groq key stays on the server; the access token is saved only on this device.</p></details>
  <div class="actions"><button id="aiImportBtn" class="btn" onclick="importRecipeWithAI()">Extract recipe with AI</button><button class="btn secondary" onclick="lookupTikTok()">Try title only</button></div><div id="importStatus" class="notice" style="display:none;white-space:pre-wrap"></div>
  <hr style="border:0;border-top:1px solid var(--line);margin:18px 0"><h3>Review extracted recipe</h3><div class="field"><label>Recipe name *</label><input id="newName" placeholder="e.g. High-protein chicken orzo"></div><div class="grid"><div class="field"><label>Meal type</label><select id="newCat"><option>Breakfast</option><option>Lunch</option><option selected>Dinner</option><option>Snack</option><option>Fruit</option></select></div><div class="field"><label>Icon</label><select id="newIcon"><option>🍽️</option><option>🥣</option><option>🍳</option><option>🥗</option><option>🍝</option><option>🍛</option><option>🌯</option><option>🍗</option><option>🍜</option><option>🥔</option></select></div></div>
  <div class="grid"><div class="field"><label>Calories / serving</label><input id="newKcal" type="number" min="0" placeholder="Unknown if not provided"></div><div class="field"><label>Protein g / serving</label><input id="newProtein" type="number" min="0" placeholder="Unknown if not provided"></div><div class="field"><label>Estimated cost £ / serving</label><input id="newCost" type="number" min="0" step="0.05" placeholder="Optional estimate"></div><div class="field"><label>Servings in recipe</label><input id="newServings" type="number" min="1" value="1"></div><div class="field" style="grid-column:1/-1"><label>Nutrition confidence</label><select id="newNutritionStatus"><option value="estimated">Estimated / AI extracted — needs checking</option><option value="verified">Verified by me from a label or reliable source</option></select></div></div>
@@ -806,24 +807,28 @@ function openAddRecipe(){
  document.getElementById('modal').style.display='flex';
 }
 function saveImporterConfig(){
- const url=(document.getElementById('importApiUrl')?.value||'').trim().replace(/\/+$/,'');
+ const url=((document.getElementById('importApiUrl')?.value||'').trim()||location.origin).replace(/\/+$/,'');
  const token=(document.getElementById('importApiToken')?.value||'').trim();
  if(url&&!/^https:\/\//i.test(url)&&url!==location.origin){toast('Use HTTPS for a remote API, or this app’s own address for same-origin access');return}
+ if(!token){toast('Paste the IMPORT_API_TOKEN from Render before saving this connection.');return}
  localStorage.setItem('mealPlannerImportApiUrl',url);localStorage.setItem('mealPlannerImportApiToken',token);
  toast('Importer connection saved on this device');
 }
 async function testImporterConnection(){
- const api=(document.getElementById('importApiUrl')?.value||localStorage.getItem('mealPlannerImportApiUrl')||'').trim().replace(/\/+$/,'');
- if(!api){setImportStatus('Enter your deployed API URL first.',true);return}
+ const api=((document.getElementById('importApiUrl')?.value||localStorage.getItem('mealPlannerImportApiUrl')||'').trim()||location.origin).replace(/\/+$/,'');
+ const token=(document.getElementById('importApiToken')?.value||localStorage.getItem('mealPlannerImportApiToken')||'').trim();
  if(!/^https:\/\//i.test(api)&&api!==location.origin){setImportStatus('Use the same app address or an HTTPS backend URL.',true);return}
- const btns=[...document.querySelectorAll('#sheet button')];
+ if(!token){setImportStatus('The server may be configured, but this browser has no access token to send. Paste IMPORT_API_TOKEN from Render here, then click Save connection on this device.',true);return}
  try{
-  setImportStatus('Testing the importer service…');
+  setImportStatus('Checking the backend and this device’s access token…');
   const res=await fetch(api+'/health',{signal:AbortSignal.timeout(12000)});let data={};try{data=await res.json()}catch(_){}
   if(!res.ok||!data.ok)throw new Error(data.error||`Health check failed (${res.status}).`);
-  const notes=[];notes.push(data.aiConfigured?'AI key configured':'AI key missing on backend');notes.push(data.tokenConfigured?'access token configured':'access token missing on backend');
-  setImportStatus(`API is reachable. ${notes.join('; ')}.\nNext, save the matching importer token and try a recipe link.` ,!data.aiConfigured||!data.tokenConfigured);
- }catch(e){setImportStatus(`${e.message||'Could not reach the API.'} Check the service URL, deployment status and ALLOWED_ORIGINS setting.`,true)}
+  if(!data.aiConfigured)throw new Error('GROQ_API_KEY is missing from the running backend environment.');
+  if(!data.tokenConfigured)throw new Error('IMPORT_API_TOKEN is missing from the running backend environment.');
+  const authResponse=await fetch(api+'/api/connection-check',{headers:{'X-Import-Token':token},signal:AbortSignal.timeout(12000)});let authData={};try{authData=await authResponse.json()}catch(_){}
+  if(!authResponse.ok)throw new Error(authData.error||`Access-token check failed (${authResponse.status}).`);
+  setImportStatus('Connection successful: the backend is reachable, Groq is configured, and this browser’s access token is valid. Click Save connection on this device if you have not already.',false);
+ }catch(e){setImportStatus(`${e.message||'Could not reach the API.'} Check the URL and token; do not change the Render secrets if the /health response already shows them as configured.`,true)}
 }
 function setImportStatus(message,isError=false){const e=document.getElementById('importStatus');if(!e)return;e.style.display='block';e.style.borderColor=isError?'#d99':'var(--line)';e.textContent=message;}
 async function importRecipeWithAI(){
