@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { adaptApifyProduct, adaptMatrixProduct, chooseBestPackCandidate, matchesApifyStoreRow, splitSearchBatches } from './price-adapter.js';
+import { adaptApifyProduct, adaptMatrixProduct, chooseBestPackCandidate, matchesApifyStoreRow, splitSearchBatches, summarizePriceBenchmark } from './price-adapter.js';
 
 const stamp = '2026-10-06T08:00:00.000Z';
 
@@ -142,4 +142,36 @@ test('does not automatically choose a stale, incompatible, or weak product candi
   assert.equal(chooseBestPackCandidate([{ score: 0.95, canApply: false, fresh: true, checkoutCost: 2, packsNeeded: 1 }]), null);
   assert.equal(chooseBestPackCandidate([{ score: 0.40, canApply: true, fresh: true, checkoutCost: 2, packsNeeded: 1 }]), null);
   assert.equal(chooseBestPackCandidate([{ score: 0.95, canApply: true, fresh: false, checkoutCost: 2, packsNeeded: 1 }]), null);
+});
+
+
+test('calculates a median unit-price benchmark separately from whole-pack checkout cost', () => {
+  const result = summarizePriceBenchmark([
+    { productCode: 'a', productName: 'Chicken breast 500g', score: 0.91, ageDays: 1, packPrice: 3, packBase: 500, dimension: 'mass', date: '2026-10-05' },
+    { productCode: 'b', productName: 'Chicken breast 1kg', score: 0.88, ageDays: 2, packPrice: 5, packBase: 1000, dimension: 'mass', date: '2026-10-04' },
+    { productCode: 'c', productName: 'Chicken breast 650g', score: 0.90, ageDays: 1, packPrice: 3.9, packBase: 650, dimension: 'mass', date: '2026-10-05' },
+    { productCode: 'weak', productName: 'Chicken flavoured noodles', score: 0.50, ageDays: 1, packPrice: 1, packBase: 400, dimension: 'mass', date: '2026-10-05' },
+    { productCode: 'stale', productName: 'Chicken breast 1kg old', score: 0.90, ageDays: 90, packPrice: 1, packBase: 1000, dimension: 'mass', date: '2026-07-01' },
+  ]);
+  assert.equal(result.sampleSize, 3);
+  assert.equal(result.unitLabel, 'kg');
+  assert.equal(result.medianUnitPrice, 6);
+  assert.equal(result.minUnitPrice, 5);
+  assert.equal(result.maxUnitPrice, 6);
+  assert.equal(result.newestDate, '2026-10-05');
+});
+
+test('does not mix mass and volume candidates into one benchmark', () => {
+  const result = summarizePriceBenchmark([
+    { productCode: 'a', productName: 'Oats 1kg', score: 0.9, ageDays: 1, packPrice: 2, packBase: 1000, dimension: 'mass', date: '2026-10-05' },
+    { productCode: 'b', productName: 'Oats 500g', score: 0.9, ageDays: 1, packPrice: 1.2, packBase: 500, dimension: 'mass', date: '2026-10-05' },
+    { productCode: 'c', productName: 'Drink 1L', score: 0.9, ageDays: 1, packPrice: 1, packBase: 1000, dimension: 'volume', date: '2026-10-05' },
+  ]);
+  assert.equal(result.dimension, 'mass');
+  assert.equal(result.sampleSize, 2);
+  assert.equal(result.medianUnitPrice, 2.2);
+});
+
+test('returns no benchmark when there are no recent confident pack matches', () => {
+  assert.equal(summarizePriceBenchmark([{ score: 0.95, ageDays: 100, packPrice: 2, packBase: 1000, dimension: 'mass' }]), null);
 });

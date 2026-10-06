@@ -9,7 +9,7 @@ import dns from 'node:dns/promises';
 import net from 'node:net';
 import crypto from 'node:crypto';
 import multer from 'multer';
-import { adaptApifyProduct, adaptMatrixProduct, chooseBestPackCandidate, matchesApifyStoreRow, splitSearchBatches } from './price-adapter.js';
+import { adaptApifyProduct, adaptMatrixProduct, chooseBestPackCandidate, matchesApifyStoreRow, splitSearchBatches, summarizePriceBenchmark } from './price-adapter.js';
 
 const execFileAsync = promisify(execFile);
 const app = express();
@@ -1151,6 +1151,7 @@ async function performPriceLookup(store, items, reportProgress = () => {}, jobId
     const allCandidates = [...bestByProduct.values()].sort((a,b) => b.score-a.score || String(b.date).localeCompare(String(a.date)));
     // One suggestion per ingredient, not a stack of product cards. Within similar
     // product-name matches, choose the lowest checkout cost for complete packs, then least waste.
+    const benchmark = summarizePriceBenchmark(allCandidates, { minimumScore: 0.54, relevanceBand: 0.15, maxAgeDays: 45 });
     const best = chooseBestPackCandidate(allCandidates, { minimumScore: 0.54, relevanceBand: 0.15 });
     const fallbackSuggestion = best || allCandidates.find(c => c.canApply && c.score >= 0.45) || null;
     const top = fallbackSuggestion;
@@ -1159,7 +1160,7 @@ async function performPriceLookup(store, items, reportProgress = () => {}, jobId
     const autoCandidate = top && top.canApply && sufficientlyFresh && strongScore ? top : null;
     const candidates = top ? [top] : [];
     return {
-      key: item.key, name: item.name, candidates, autoCandidate,
+      key: item.key, name: item.name, candidates, autoCandidate, benchmark,
       status: autoCandidate ? 'best-match-auto-saved' : candidates.length ? 'best-match-review' : 'no-price-match',
       note: candidates.length ? '' : ['live-retailer-catalogue', 'daily-snapshot-and-live-fallback'].includes(sourceMode) ? `No compatible ${store} product/pack match was found in the current product catalogue results.` : sourceMode === 'daily-staple-snapshot' ? `No compatible product/pack match was found in the free daily staple snapshot. It covers only a curated list of common products; broader catalogue access is needed for other ingredients.` : `No compatible ${store} product/pack match was found in the available Open Prices community observations.`
     };
