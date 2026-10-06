@@ -1,15 +1,26 @@
 # Meal Planner — comparator-style shopping upgrade
 
-This update changes the shopping-price lookup to work more like a shopping-list comparator: use a small, public daily product/price snapshot first where it covers common staples, fill remaining gaps with configured retailer catalogue searches, automatically select one best-fit product per ingredient, and show source/coverage information rather than treating missing prices as free.
+The pricing layer now separates a supermarket-specific median unit-price benchmark from the actual whole-pack checkout cost. It still uses the existing data feeds as inputs: a public daily snapshot for common Aldi/ASDA staples, configured retailer catalogue searches for uncovered items, and Open Prices community observations as a fallback. The benchmark is an interim improvement to price estimation, not a completed switch to Allsupers or another licensed catalogue API.
 
 ## What is included
 
 - `index.html`: current meal-planner frontend, including one-best-product selection, retailer-by-retailer lookup and comparison cards.
 - `recipe-import-api/server.js`: background price lookup, public daily snapshot-first approach for Aldi/ASDA, retailer scraper fallback when `APIFY_API_TOKEN` is configured, and Open Prices community fallback.
-- `recipe-import-api/price-adapter.js`: product schema normalisation, UK retailer checks, pack-size parsing and best-pack match selection.
-- `recipe-import-api/price-adapter.test.js`: regression tests for retailers, UK Lidl rows, daily snapshot data, pack matching and large-query batching.
+- `recipe-import-api/price-adapter.js`: product schema normalisation, UK retailer checks, pack-size parsing, best-pack selection, and median unit-price benchmark calculation from recent, close-match packs.
+- `recipe-import-api/price-adapter.test.js`: regression tests for retailers, UK Lidl rows, daily snapshot data, pack matching, median calculations, dimensional separation and large-query batching.
 - `recipe-import-api/Dockerfile`: copies both `server.js` and `price-adapter.js` into the backend container.
 - Existing Render, PWA, and Node project configuration.
+
+## Pricing model
+
+For each ingredient and selected supermarket, the backend:
+
+1. Normalises candidate pack sizes to grams, millilitres, items or slices.
+2. Keeps only close name matches with usable pack prices and recent observations (up to 45 days for the benchmark).
+3. Calculates comparable unit prices (£/kg, £/L, £/item or £/slice) and returns the median, range, sample size and newest date.
+4. Continues to select a separate best-fit product for the real shopping list, calculating the number of whole packs, checkout spend and estimated leftover quantity.
+
+The median is a planning benchmark, not a purchasable pack or a guarantee that the product is in stock. The UI labels it as an estimate and keeps whole-pack checkout cost separate. No benchmark is shown when there are no sufficiently recent, confident pack matches.
 
 ## Data source and coverage
 
@@ -21,7 +32,7 @@ The first lookup source for Aldi and ASDA is the public daily dataset for the UK
 
 The free daily dataset contains a curated basket of common staples, not the full retailer catalogue, and does not cover Lidl. For items outside the daily snapshot, the backend uses the existing Apify live catalogue adapters if `APIFY_API_TOKEN` is set. Lidl still uses the configured separate catalogue adapter. Open Prices community observations remain a final fallback, but can be sparse. Price and stock information can vary by location, promotion, and time; always check the product URL/date before relying on a basket estimate.
 
-Do not describe the public daily dataset as a full or guaranteed live retailer API. The app's messages should continue to distinguish the daily snapshot, live catalogue, community observations and missing matches.
+Do not describe the public daily dataset as a full or guaranteed live retailer API. The app's messages should continue to distinguish the daily snapshot, live catalogue, community observations and missing matches. Allsupers/MealMatcher access has not been wired in because a supported public API or authorised data feed has not been established; do not scrape their pages or reverse engineer private endpoints. The provider can be replaced once approved access and its schema are available.
 
 ## Deploy through the browser
 
