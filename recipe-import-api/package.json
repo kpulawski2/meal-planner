@@ -1,12 +1,12 @@
 {
   "name": "meal-planner-recipe-import-api",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check price-adapter.js && node --check price-adapter.test.js",
-    "test": "node --test price-adapter.test.js"
+    "check": "node --check server.js && node --check price-adapter.js && node --check groq-adapter.js && node --check price-adapter.test.js && node --check groq-adapter.test.js",
+    "test": "node --test price-adapter.test.js groq-adapter.test.js"
   },
   "dependencies": {
     "cheerio": "^1.0.0",

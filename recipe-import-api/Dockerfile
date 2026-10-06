@@ -5,8 +5,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 python3
 WORKDIR /app
 COPY package.json ./
 RUN npm install --omit=dev
-# server.js imports ./price-adapter.js, so both files must be inside the image.
-COPY server.js price-adapter.js ./
+# server.js imports both adapters, so all backend modules must be inside the image.
+COPY server.js price-adapter.js groq-adapter.js ./
 ENV NODE_ENV=production
 EXPOSE 10000
 CMD ["npm","start"]
