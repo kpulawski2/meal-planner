@@ -10,7 +10,8 @@ import net from 'node:net';
 import crypto from 'node:crypto';
 import multer from 'multer';
 import { chooseBestPackCandidate, summarizePriceBenchmark } from './price-adapter.js';
-import { GroqApiError, groqChatCompletion, groqTranscribe, evenlySampleFrames } from './groq-adapter.js';
+import { GroqApiError, groqChatCompletion, groqBrowserSearch, groqTranscribe, evenlySampleFrames } from './groq-adapter.js';
+import { PRICE_LOOKUP_STORES, buildPriceSearchPrompt, parsePriceSearchResponse, splitBatches } from './price-search-adapter.js';
 
 const execFileAsync = promisify(execFile);
 const app = express();
@@ -18,6 +19,7 @@ const PORT = Number(process.env.PORT || 10000);
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 const GROQ_RECIPE_MODEL = process.env.GROQ_RECIPE_MODEL || 'qwen/qwen3.8-27b';
 const GROQ_TRANSCRIPTION_MODEL = process.env.GROQ_TRANSCRIPTION_MODEL || 'whisper-large-v3-turbo';
+const GROQ_PRICE_SEARCH_MODEL = process.env.GROQ_PRICE_SEARCH_MODEL || 'openai/gpt-oss-20b';
 const IMPORT_API_TOKEN = process.env.IMPORT_API_TOKEN || '';
 const ALLOWED_ORIGINS = new Set((process.env.ALLOWED_ORIGINS || 'https://kpulawski2.github.io').split(',').map(s => s.trim()).filter(Boolean));
 const AUDIO_MODEL = GROQ_TRANSCRIPTION_MODEL;
@@ -358,21 +360,9 @@ async function parseWithAI(material) {
     ingredients, steps, confidence: ['high','medium','low'].includes(r.confidence) ? r.confidence : 'low', warnings: [...new Set(warnings)]
   };
 }
-const OPEN_PRICES_BASE = 'https://prices.openfoodfacts.org/api/v1';
-const PRICE_LOOKUP_CACHE_MS = 10 * 60 * 1000;
-const PRICE_LOOKUP_PAGE_SIZE = 100;
-const PRICE_LOOKUP_LOCATION_PAGE_LIMIT = 3;
-const PRICE_LOOKUP_FALLBACK_LOCATION_PAGE_LIMIT = 4;
 const PRICE_LOOKUP_MAX_ITEMS = 80;
-const PRICE_LOOKUP_STORES = {
-  'Aldi': { query: ['Aldi'], match: ['aldi'] }, 'Asda': { query: ['Asda'], match: ['asda'] },
-  'Tesco': { query: ['Tesco'], match: ['tesco'] }, "Sainsbury's": { query: ["Sainsbury's"], match: ['sainsbury'] },
-  'Morrisons': { query: ['Morrisons'], match: ['morrisons'] }, 'Iceland': { query: ['Iceland'], match: ['iceland'] },
-  'Ocado': { query: ['Ocado'], match: ['ocado'] }, 'Waitrose': { query: ['Waitrose'], match: ['waitrose'] },
-  'Co-op': { query: ['Co-op'], match: ['co op', 'coop'] }
-};
-const openPricesCache = new Map();
-const PRICE_RESULT_CACHE_MS = 12 * 60 * 60 * 1000;
+const PRICE_SEARCH_BATCH_SIZE = 5;
+const PRICE_RESULT_CACHE_MS = 3 * 60 * 60 * 1000;
 const priceLookupCache = new Map();
 // Price jobs run in the background so the browser can poll for results without timing out.
 const priceLookupJobs = new Map();
@@ -382,20 +372,6 @@ const PRICE_JOB_MAX_COUNT = 50;
 function normalizePriceText(value) {
   return String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
     .replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
-}
-function priceStoreMatches(row, store) {
-  const config = PRICE_LOOKUP_STORES[store];
-  if (!config) return false;
-  const loc = row?.location || {};
-  const country = normalizePriceText(loc.osm_address_country_code || '');
-  if (country && !['gb', 'uk'].includes(country)) return false;
-  // Match on store/location metadata only. Product brands and owner comments are
-  // not proof of which retailer sold the item.
-  const text = normalizePriceText([
-    loc.osm_brand, loc.osm_name, loc.osm_display_name, loc.osm_tag_value,
-    loc.website_url
-  ].filter(Boolean).join(' '));
-  return config.match.some(alias => text.includes(normalizePriceText(alias)));
 }
 function priceTokens(value) {
   const aliases = normalizePriceText(value)
@@ -466,159 +442,6 @@ function computeObservedPackPrice(price, pricePer, pack) {
     if (['ml','perml'].includes(rate)) return val * qtyBase;
   }
   return null;
-}
-async function readOpenPricesPage(params, resource = 'prices') {
-  const allowed = new Set(['prices', 'locations']);
-  if (!allowed.has(resource)) throw new Error('Unsupported Open Prices resource.');
-  const url = new URL(`${OPEN_PRICES_BASE}/${resource}`);
-  for (const [key, value] of Object.entries(params)) if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value));
-  const response = await fetch(url, {
-    headers: { 'Accept': 'application/json', 'User-Agent': 'MealPlannerPersonal/1.0 (+https://kpulawski2.github.io/meal-planner/)' },
-    signal: AbortSignal.timeout(12000)
-  });
-  if (!response.ok) throw new Error(`Open Prices returned HTTP ${response.status}.`);
-  const data = await response.json();
-  return { items: Array.isArray(data?.items) ? data.items : [], pages: Number(data?.pages) || 1, total: Number(data?.total) || 0 };
-}
-async function fetchStorePriceRows(store) {
-  const cached = openPricesCache.get(store);
-  if (cached && Date.now() - cached.at < PRICE_LOOKUP_CACHE_MS) return { ...cached.value, cacheHit: true };
-  const config = PRICE_LOOKUP_STORES[store];
-  if (!config) throw new Error('Select a supported UK supermarket.');
-  const since = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const locationsById = new Map();
-  let pagesFetched = 0;
-
-  // Find actual UK branches for the selected supermarket first. Open Prices
-  // stores observations against location IDs; querying prices without these IDs
-  // risks accidentally mixing another retailer's prices into the basket.
-  for (const alias of config.query) {
-    try {
-      for (let page = 1; page <= PRICE_LOOKUP_LOCATION_PAGE_LIMIT; page++) {
-        const result = await readOpenPricesPage({
-          osm_address_country__like: 'United Kingdom',
-          osm_name__like: alias,
-          size: PRICE_LOOKUP_PAGE_SIZE, page, order_by: '-price_count'
-        }, 'locations');
-        pagesFetched++;
-        for (const loc of result.items) {
-          const country = normalizePriceText(loc?.osm_address_country_code || '');
-          if (country && !['gb', 'uk'].includes(country)) continue;
-          if (!priceStoreMatches({ location: loc }, store)) continue;
-          if (!(Number(loc.price_count) > 0)) continue;
-          locationsById.set(String(loc.id), loc);
-        }
-        if (locationsById.size >= 20 || page >= result.pages || result.items.length < PRICE_LOOKUP_PAGE_SIZE) break;
-      }
-    } catch (error) {
-      // A secondary alias or location search may not be supported by every
-      // index version; continue to the next search/fallback instead of failing.
-      console.warn(`[Open Prices] location search for ${store} (${alias}) failed:`, error.message);
-    }
-    if (locationsById.size >= 20) break;
-  }
-
-  // If name-indexed lookup missed stores whose OSM name is generic, inspect a
-  // bounded number of UK locations and match via brand/name metadata.
-  if (!locationsById.size) {
-    try {
-      for (let page = 1; page <= PRICE_LOOKUP_FALLBACK_LOCATION_PAGE_LIMIT; page++) {
-        const result = await readOpenPricesPage({
-          osm_address_country__like: 'United Kingdom',
-          size: PRICE_LOOKUP_PAGE_SIZE, page, order_by: '-price_count'
-        }, 'locations');
-        pagesFetched++;
-        for (const loc of result.items) {
-          const country = normalizePriceText(loc?.osm_address_country_code || '');
-          if (country && !['gb', 'uk'].includes(country)) continue;
-          if (!priceStoreMatches({ location: loc }, store)) continue;
-          if (!(Number(loc.price_count) > 0)) continue;
-          locationsById.set(String(loc.id), loc);
-        }
-        if (page >= result.pages || result.items.length < PRICE_LOOKUP_PAGE_SIZE || locationsById.size >= 20) break;
-      }
-    } catch (error) {
-      console.warn(`[Open Prices] broad UK location search for ${store} failed:`, error.message);
-    }
-  }
-
-  const locations = [...locationsById.values()]
-    .sort((a, b) => Number(b.price_count || 0) - Number(a.price_count || 0))
-    .slice(0, 12);
-  if (!locations.length) {
-    const value = {
-      rows: [], checkedAt: new Date().toISOString(), pagesFetched,
-      totalObservedRows: 0, sourceMode: 'no-matching-UK-store-locations',
-      coverageNote: `Open Prices did not return any UK ${store} locations with recorded price data. This is a gap in community-dataset coverage, not proof that the retailer has no prices.`,
-      oldestCutoff: since, locationsScanned: 0
-    };
-    openPricesCache.set(store, { at: Date.now(), value });
-    return { ...value, cacheHit: false };
-  }
-
-  // Query each selected retailer branch by its documented location_id filter.
-  // Keep the number of concurrent public API requests bounded and avoid pulling
-  // the global dataset then treating unrelated rows as if they were this store.
-  const locBatches = locations.map(loc => async () => {
-    const rows = [];
-    for (let page = 1; page <= 2; page++) {
-      const result = await readOpenPricesPage({
-        currency: 'GBP', date__gte: since, location_id: loc.id,
-        size: 100, page, order_by: '-date', type: 'PRODUCT', duplicate_of__isnull: true
-      }, 'prices');
-      pagesFetched++;
-      rows.push(...result.items.map(row => ({ ...row, location: row.location || loc })));
-      if (page >= result.pages || result.items.length < 100) break;
-    }
-    return rows;
-  });
-  const allRows = [];
-  let successfulBranchLookups = 0, failedBranchLookups = 0;
-  const concurrency = 4;
-  for (let offset = 0; offset < locBatches.length; offset += concurrency) {
-    const chunk = locBatches.slice(offset, offset + concurrency);
-    const settled = await Promise.allSettled(chunk.map(fn => fn()));
-    for (const result of settled) {
-      if (result.status === 'fulfilled') { successfulBranchLookups++; allRows.push(...result.value); }
-      else { failedBranchLookups++; console.warn(`[Open Prices] branch price lookup failed for ${store}:`, result.reason?.message || result.reason); }
-    }
-  }
-
-  if (successfulBranchLookups === 0 && failedBranchLookups > 0) {
-    throw new Error(`UK ${store} locations were found, but Open Prices failed to return their price records. Please try again shortly.`);
-  }
-  const seen = new Set();
-  const retailerRows = allRows.filter(row => {
-    const country = normalizePriceText(row?.location?.osm_address_country_code || '');
-    if (country && !['gb', 'uk'].includes(country)) return false;
-    if (!priceStoreMatches(row, store)) return false;
-    // Only GBP observations with a date and a product price are useful here.
-    if (normalizePriceText(row.currency) !== 'gbp' || String(row.type || '').toUpperCase() !== 'PRODUCT' || !row.date) return false;
-    const id = String(row.id || `${row.location?.id}:${row.product_code}:${row.date}:${row.price}`);
-    if (seen.has(id)) return false;
-    seen.add(id); return true;
-  });
-  const value = {
-    rows: retailerRows, checkedAt: new Date().toISOString(), pagesFetched,
-    totalObservedRows: retailerRows.length, sourceMode: 'matched-UK-store-location-ids',
-    coverageNote: failedBranchLookups ? `Checked ${successfulBranchLookups} of ${locations.length} matched UK ${store} locations; ${failedBranchLookups} price lookups failed, so coverage may be incomplete.` : `Looked up prices attached to ${locations.length} UK ${store} location records.`,
-    oldestCutoff: since, locationsScanned: locations.length, successfulBranchLookups, failedBranchLookups
-  };
-  openPricesCache.set(store, { at: Date.now(), value });
-  return { ...value, cacheHit: false };
-}
-function retailerSlug(value) {
-  const norm = normalizePriceText(value);
-  if (norm.includes('sainsbury')) return 'sainsburys';
-  if (norm.includes('co op') || norm.includes('co operative') || norm === 'coop') return 'coop';
-  if (norm.includes('aldi')) return 'aldi';
-  if (norm.includes('asda')) return 'asda';
-  if (norm.includes('tesco')) return 'tesco';
-  if (norm.includes('morrisons')) return 'morrisons';
-  if (norm.includes('waitrose')) return 'waitrose';
-  if (norm.includes('ocado')) return 'ocado';
-  if (norm.includes('iceland')) return 'iceland';
-  return norm.replace(/\s+/g, '');
 }
 function parseRetailPackText(packText, productName = '', ingredientName = '') {
   const pack = String(packText || '').replace(/,/g, '.').trim();
@@ -709,18 +532,21 @@ function buildPriceCandidate(row, item, store) {
     countryCode: cleanString(loc.osm_address_country_code, 8),
     evidenceType: cleanString(row?.proof?.type || '', 30),
     proofAvailable: Boolean(row.proof_id || row.proof?.id),
-    source: row.sourceName || 'Open Prices community observation',
-    sourceType: row.sourceType || 'community-observation',
-    sourceUrl: row.sourceUrl || (row.id ? `https://prices.openfoodfacts.org/prices/${encodeURIComponent(String(row.id))}` : 'https://prices.openfoodfacts.org/'),
+    source: row.sourceName || 'Groq AI web search — official retailer listing',
+    sourceType: row.sourceType || 'groq-web-search',
+    sourceUrl: row.sourceUrl || row.productUrl || '',
     productUrl: row.productUrl || row.sourceUrl || '',
     imageUrl: row.imageUrl || '',
     packText: row.packText || '',
+    priceEvidence: cleanString(row.priceEvidence || '', 500),
+    aiConfidence: Number(row.aiConfidence) || 0,
+    officialSourceVerified: Boolean(row.officialSourceVerified),
     retailerProductId: cleanString(row?.rawProduct?.retailerProductId || row?.rawProduct?.productId || '', 80),
     promotionText: row.promotionText || '',
     loyaltyPrice: row.loyaltyPrice ?? null,
     score: Math.round(score * 100) / 100,
-    fresh: ageDays <= (row.sourceType === 'daily-snapshot' ? 3 : 45),
-    recent: ageDays <= (row.sourceType === 'daily-snapshot' ? 7 : 90),
+    fresh: ageDays <= 1,
+    recent: ageDays <= 1,
     canApply: direct && packPrice !== null && packsNeeded !== null && checkoutCost !== null
   };
 }
@@ -740,76 +566,136 @@ function prunePriceLookupJobs() {
   }
 }
 
-async function performPriceLookup(store, items, reportProgress = () => {}, jobId = '') {
-  const cacheKey = `${store}:${items.map(i => `${i.key}:${i.name}`).sort().join('|')}`;
-  const cached = priceLookupCache.get(cacheKey);
-  let productRows = [], providerWarning = '', cacheHit = false, recordsScanned = 0, locationsScanned = 0;
+function buildGroqPriceRow(product, store) {
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    id: null,
+    product_code: product.productId || '',
+    product_name: product.productName,
+    product_quantity: product.packSize,
+    product_quantity_unit: product.packUnit,
+    product: {
+      product_name: product.productName,
+      product_quantity: product.packSize,
+      product_quantity_unit: product.packUnit,
+      brands: product.brand || '',
+      code: product.productId || ''
+    },
+    price: product.price,
+    price_per: 'UNIT',
+    currency: 'GBP',
+    date: today,
+    location: { osm_display_name: store, osm_address_country_code: 'gb' },
+    sourceName: 'Groq AI browser search — official retailer listing',
+    sourceType: 'groq-web-search',
+    sourceUrl: product.sourceUrl,
+    productUrl: product.productUrl,
+    priceEvidence: product.priceEvidence,
+    aiConfidence: product.confidence,
+    officialSourceVerified: true,
+    promotionText: product.promotionText || '',
+    rawProduct: { retailerProductId: product.productId || '' },
+    packText: `${product.packSize} ${product.packUnit}`
+  };
+}
 
+async function searchPriceBatch(store, items) {
+  const prompt = buildPriceSearchPrompt(store, items, new Date().toISOString().slice(0, 10));
+  const response = await groqBrowserSearch({
+    apiKey: GROQ_API_KEY,
+    model: GROQ_PRICE_SEARCH_MODEL,
+    system: prompt.system,
+    userText: prompt.userText,
+    maxCompletionTokens: 6000,
+    timeoutMs: 150000
+  });
+  return parsePriceSearchResponse(response.text, store, items);
+}
+
+async function performPriceLookup(store, items, reportProgress = () => {}, jobId = '') {
+  if (!GROQ_API_KEY) throw new Error('Backend is missing GROQ_API_KEY. Add your free Groq API key in Render before using AI supermarket price lookup.');
+  const cacheKey = `${store}:${items.map(i => `${i.key}:${i.name}:${JSON.stringify(i.groups || [])}`).sort().join('|')}`;
+  const cached = priceLookupCache.get(cacheKey);
   if (cached && Date.now() - cached.at < PRICE_RESULT_CACHE_MS) {
-    ({ rows: productRows, recordsScanned, locationsScanned, providerWarning = '' } = cached.value);
-    cacheHit = true;
-    reportProgress({ stage: 'matching', message: 'Matching cached Open Prices community observations against your shopping list.', currentBatch: 0, totalBatches: 0 });
-  } else {
-    reportProgress({ stage: 'community-search', message: `Checking free Open Prices community observations for ${store}.`, currentBatch: 0, totalBatches: 0 });
-    const community = await fetchStorePriceRows(store);
-    productRows = community.rows.map(row => ({
-      ...row,
-      sourceType: 'community-observation',
-      sourceName: 'Open Prices community observation',
-      sourceUrl: row.id ? `https://prices.openfoodfacts.org/prices/${encodeURIComponent(String(row.id))}` : 'https://prices.openfoodfacts.org/'
-    }));
-    cacheHit = Boolean(community.cacheHit);
-    recordsScanned = productRows.length;
-    locationsScanned = community.locationsScanned || 0;
-    if (!productRows.length) providerWarning = `Open Prices currently has no usable observations for ${store}; this does not mean the products are unavailable. Use Allsupers to manually verify a price and save it in the pack editor.`;
-    else providerWarning = 'Open Prices is community-submitted and may be sparse or out of date. Allsupers can be opened for manual cross-checking; its database is not automatically scraped.';
-    priceLookupCache.set(cacheKey, { at: Date.now(), value: { rows: productRows, recordsScanned, locationsScanned, providerWarning } });
+    reportProgress({ stage: 'cache', message: `Reusing recent Groq retailer price search for ${store} to reduce web searches.`, currentBatch: 0, totalBatches: 0 });
+    return { ...cached.value, cacheHit: true };
   }
 
-  reportProgress({ stage: 'matching', message: `Matching ${productRows.length} community price records against ${items.length} ingredients.`, currentBatch: 0, totalBatches: 0 });
-  const results = items.map(item => {
-    const bestByProduct = new Map();
-    for (const row of productRows) {
-      const rowRetailer = row?.retailer ? retailerSlug(row.retailer) : null;
-      if (rowRetailer && rowRetailer !== retailerSlug(store)) continue;
-      const country = normalizePriceText(row?.location?.osm_address_country_code || 'gb');
-      if (country && !['gb','uk','united kingdom'].includes(country)) continue;
-      if (!rowRetailer && !priceStoreMatches(row, store)) continue;
-      if (!row.date || normalizePriceText(row.currency || 'GBP') !== 'gbp') continue;
-      const candidate = buildPriceCandidate(row, item, store);
-      if (!candidate) continue;
-      const identity = productIdentity(candidate) + `|${candidate.packSize || ''}|${candidate.packUnit || ''}`;
-      const existing = bestByProduct.get(identity);
-      if (!existing || candidate.score > existing.score || (candidate.score === existing.score && candidate.date > existing.date)) bestByProduct.set(identity, candidate);
+  const batches = splitBatches(items, PRICE_SEARCH_BATCH_SIZE);
+  const productsByKey = new Map(items.map(item => [item.key, []]));
+  let recordsScanned = 0, rejectedRecords = 0;
+  for (let index = 0; index < batches.length; index++) {
+    const batch = batches[index];
+    reportProgress({
+      stage: 'browser-search',
+      message: `Searching official ${store} product listings with Groq AI (${batch.map(x => x.name).join(', ')}).`,
+      currentBatch: index + 1,
+      totalBatches: batches.length
+    });
+    const found = await searchPriceBatch(store, batch);
+    recordsScanned += found.recordsScanned;
+    rejectedRecords += found.rejected;
+    for (const item of batch) {
+      const products = found.items.get(item.key) || [];
+      productsByKey.set(item.key, [...(productsByKey.get(item.key) || []), ...products]);
     }
-    const allCandidates = [...bestByProduct.values()].sort((a,b) => b.score-a.score || String(b.date).localeCompare(String(a.date)));
-    const benchmark = summarizePriceBenchmark(allCandidates, { minimumScore: 0.54, relevanceBand: 0.15, maxAgeDays: 45 });
+    // Stay gentle on the free-tier account while browser-search calls are in flight.
+    if (index < batches.length - 1) await delay(900);
+  }
+
+  reportProgress({ stage: 'matching', message: `Checking official retailer links, visible price evidence and pack-size compatibility for ${items.length} ingredients.`, currentBatch: batches.length, totalBatches: batches.length });
+  const checkedAt = new Date().toISOString();
+  const results = items.map(item => {
+    const seen = new Set();
+    const allCandidates = (productsByKey.get(item.key) || []).map(product => {
+      const identity = `${normalizePriceText(product.productName)}|${product.price}|${product.packSize}|${product.packUnit}`;
+      if (seen.has(identity)) return null;
+      seen.add(identity);
+      return buildPriceCandidate(buildGroqPriceRow(product, store), item, store);
+    }).filter(candidate => candidate && candidate.score >= 0.45)
+      .sort((a, b) => b.score - a.score || Number(b.aiConfidence) - Number(a.aiConfidence));
+
+    const benchmark = summarizePriceBenchmark(allCandidates, { minimumScore: 0.54, relevanceBand: 0.2, maxAgeDays: 1 });
     const best = chooseBestPackCandidate(allCandidates, { minimumScore: 0.54, relevanceBand: 0.15 });
-    const fallbackSuggestion = best || allCandidates.find(c => c.canApply && c.score >= 0.45) || null;
-    const top = fallbackSuggestion;
-    const strongScore = top?.score >= 0.60;
-    const sufficientlyFresh = top && top.ageDays <= 45;
-    const autoCandidate = top && top.canApply && sufficientlyFresh && strongScore ? top : null;
-    const candidates = top ? [top] : [];
+    const top = best || allCandidates.find(candidate => candidate.canApply && candidate.score >= 0.45) || allCandidates[0] || null;
+    // Only auto-save exceptionally strong matches with an official product URL and an exact price in the quoted evidence.
+    const autoCandidate = top && top.canApply && top.score >= 0.72 && top.aiConfidence >= 0.9 &&
+      top.officialSourceVerified && top.priceEvidence ? top : null;
     return {
-      key: item.key, name: item.name, candidates, autoCandidate, benchmark,
-      status: autoCandidate ? 'best-match-auto-saved' : candidates.length ? 'best-match-review' : 'no-price-match',
-      note: candidates.length ? '' : `No compatible ${store} product/pack match was found in the available Open Prices community observations. Open Allsupers to cross-check the item manually and save the verified price.`
+      key: item.key,
+      name: item.name,
+      candidates: top ? [top] : [],
+      autoCandidate,
+      benchmark,
+      status: autoCandidate ? 'best-match-auto-saved' : top ? 'best-match-review' : 'no-price-match',
+      note: top ? (autoCandidate ? '' : 'AI found a likely product from the retailer site. Review the product page and price evidence before accepting it.') :
+        `No price could be verified from an official ${store} product page. No price has been invented; try the retailer search link or check again later.`
     };
   });
-  const candidateCount = results.filter(x => x.candidates.length).length;
-  const autoCount = results.filter(x => x.autoCandidate).length;
-  return {
-    ok: true, store,
-    source: 'Open Prices community observations',
-    sourceUrl: 'https://prices.openfoodfacts.org/',
-    attribution: 'Open Prices by Open Food Facts; community-reported prices. Observations may be incomplete or out of date.',
-    checkedAt: new Date().toISOString(), cacheHit, sourceMode: 'community-observations',
-    coverageNote: 'Open Prices observations are community-submitted and can be sparse or out of date. Allsupers is provided as a manual verification link because its terms prohibit automated scraping without prior written consent.',
-    providerWarning,
-    recordsScanned, locationsScanned, itemCount: results.length, candidateCount, autoCandidateCount: autoCount,
-    livePriceSearchConfigured: false, allsupersManualLookup: true, results
+  const candidateCount = results.filter(result => result.candidates.length).length;
+  const autoCount = results.filter(result => result.autoCandidate).length;
+  const result = {
+    ok: true,
+    store,
+    source: 'Groq AI browser search of official retailer product listings',
+    sourceUrl: 'https://console.groq.com/docs/tool-use/built-in-tools/browser-search',
+    attribution: 'Prices are AI-extracted from linked public retailer product pages; confirm price, pack size, promotion and local availability before purchase.',
+    checkedAt,
+    cacheHit: false,
+    sourceMode: 'groq-browser-search-official-retailer-sites',
+    coverageNote: `Searched official ${store} product listings in batches. Only results with official retailer URLs, a GBP pack price, pack size and evidence containing that price were retained. A listing may still be outdated or vary by region, so open the source before relying on it.`,
+    providerWarning: rejectedRecords ? `${rejectedRecords} search result(s) were rejected because the price, pack size, price evidence or official retailer link could not be validated.` : '',
+    recordsScanned,
+    locationsScanned: 0,
+    itemCount: results.length,
+    candidateCount,
+    autoCandidateCount: autoCount,
+    livePriceSearchConfigured: true,
+    allsupersManualLookup: true,
+    results
   };
+  priceLookupCache.set(cacheKey, { at: Date.now(), value: result });
+  return result;
 }
 
 async function runPriceLookupJob(jobId, store, items) {
@@ -817,16 +703,16 @@ async function runPriceLookupJob(jobId, store, items) {
   if (!job) return;
   const startedAt = Date.now();
   try {
-    console.info(`[PriceLookup ${jobId}] Accepted request: store=${store}; ingredients=${items.length}; source=Open Prices community observations.`);
+    console.info(`[PriceLookup ${jobId}] Accepted request: store=${store}; ingredients=${items.length}; source=Groq official-retailer browser search.`);
     job.status = 'running';
-    job.progress = { stage: 'starting', message: `Starting free community price lookup for ${store}.`, currentBatch: 0, totalBatches: 0 };
+    job.progress = { stage: 'starting', message: `Starting Groq browser search for official ${store} product prices.`, currentBatch: 0, totalBatches: 0 };
     const result = await performPriceLookup(store, items, progress => {
       job.progress = { ...progress, updatedAt: new Date().toISOString() };
     }, jobId);
     job.status = 'completed';
     job.result = result;
     job.finishedAt = Date.now();
-    job.progress = { stage: 'complete', message: `Completed: ${result.candidateCount} ingredient matches from ${result.recordsScanned} returned product/price rows.`, currentBatch: 0, totalBatches: 0, updatedAt: new Date().toISOString() };
+    job.progress = { stage: 'complete', message: `Completed: ${result.candidateCount} ingredient matches from ${result.recordsScanned} search result products.`, currentBatch: 0, totalBatches: 0, updatedAt: new Date().toISOString() };
     console.info(`[PriceLookup ${jobId}] Completed in ${Math.round((Date.now() - startedAt) / 1000)}s; store=${store}; rows=${result.recordsScanned}; candidates=${result.candidateCount}; autoCandidates=${result.autoCandidateCount}.`);
   } catch (e) {
     const message = cleanString(e?.message, 450) || 'Automatic price lookup failed.';
@@ -852,7 +738,7 @@ app.post('/api/prices/lookup', authenticated, async (req, res) => {
   if (!items.length) return res.status(400).json({ error: 'No valid shopping ingredients were supplied.' });
   prunePriceLookupJobs();
   const jobId = crypto.randomUUID();
-  const job = { id: jobId, store, status: 'queued', progress: { stage: 'queued', message: `Free community price lookup queued for ${store}.`, currentBatch: 0, totalBatches: 0 }, createdAt: Date.now(), result: null, error: null };
+  const job = { id: jobId, store, status: 'queued', progress: { stage: 'queued', message: `Groq AI browser price search queued for ${store}.`, currentBatch: 0, totalBatches: 0 }, createdAt: Date.now(), result: null, error: null };
   priceLookupJobs.set(jobId, job);
   // Price searches run in a background job so the UI can poll their progress.
   res.status(202).json({ ok: true, async: true, jobId, status: job.status, progress: job.progress, pollAfterMs: 2000 });
@@ -869,7 +755,7 @@ app.get('/api/prices/lookup/:jobId', authenticated, (req, res) => {
   return res.json(response);
 });
 
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner-recipe-import', aiProvider: 'Groq API (free-tier models)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, livePriceSearchConfigured: false, livePriceStores: [], priceDataSource: 'Free Open Prices community observations with manual Allsupers verification', allsupersManualLookup: true }));
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner-recipe-import', aiProvider: 'Groq API (free-tier models)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, livePriceSearchConfigured: Boolean(GROQ_API_KEY), livePriceStores: Object.keys(PRICE_LOOKUP_STORES), priceSearchModel: GROQ_PRICE_SEARCH_MODEL, priceDataSource: 'Groq browser search of official retailer product pages; unverified results rejected', allsupersManualLookup: true }));
 
 app.post('/api/import-recipe', authenticated, async (req, res) => {
   const url = cleanString(req.body?.url, 2000);

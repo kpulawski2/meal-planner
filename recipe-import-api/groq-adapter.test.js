@@ -5,6 +5,7 @@ import {
   buildGroqUserContent,
   evenlySampleFrames,
   groqChatCompletion,
+  groqBrowserSearch,
   groqTranscribe
 } from './groq-adapter.js';
 
@@ -40,6 +41,24 @@ test('chat completion reports quota errors clearly and does not treat them as su
     groqChatCompletion({ apiKey: 'test-key', model: 'qwen/qwen3.8-27b', userText: 'test', fetchImpl: async () => makeResponse({ error: { message: 'Daily request limit reached' } }, 429) }),
     error => error instanceof GroqApiError && error.kind === 'quota' && /free-tier quota/i.test(error.message)
   );
+});
+
+
+test('browser-search completion requests the current GPT-OSS browser-search tool', async () => {
+  let captured;
+  const result = await groqBrowserSearch({
+    apiKey: 'test-key', model: 'openai/gpt-oss-20b', system: 'Use browser search.', userText: 'Find current price.',
+    fetchImpl: async (url, init) => {
+      captured = { url, init, body: JSON.parse(init.body) };
+      return makeResponse({ choices: [{ message: { content: '{"items":[]}' } }] });
+    }
+  });
+  assert.equal(result.text, '{"items":[]}');
+  assert.equal(captured.url, 'https://api.groq.com/openai/v1/chat/completions');
+  assert.equal(captured.body.model, 'openai/gpt-oss-20b');
+  assert.deepEqual(captured.body.tools, [{ type: 'browser_search' }]);
+  assert.equal(captured.body.tool_choice, 'required');
+  assert.equal('response_format' in captured.body, false);
 });
 
 test('audio transcription uses Groq Whisper multipart endpoint', async () => {

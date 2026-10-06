@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check price-adapter.js && node --check groq-adapter.js && node --check price-adapter.test.js && node --check groq-adapter.test.js",
-    "test": "node --test price-adapter.test.js groq-adapter.test.js"
+    "check": "node --check server.js && node --check price-adapter.js && node --check price-search-adapter.js && node --check groq-adapter.js && node --check price-adapter.test.js && node --check price-search-adapter.test.js && node --check groq-adapter.test.js",
+    "test": "node --test price-adapter.test.js price-search-adapter.test.js groq-adapter.test.js"
   },
   "dependencies": {
     "cheerio": "^1.0.0",

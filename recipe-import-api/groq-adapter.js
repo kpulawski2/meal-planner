@@ -111,6 +111,60 @@ export async function groqChatCompletion({
   return text;
 }
 
+/**
+ * Uses Groq's built-in browser_search tool with a browser-search-capable GPT-OSS model.
+ * Browser search is not compatible with response_format JSON mode, so callers should
+ * request JSON in the prompt and validate the returned text before trusting it.
+ */
+export async function groqBrowserSearch({
+  apiKey,
+  model = 'openai/gpt-oss-20b',
+  system,
+  userText,
+  maxCompletionTokens = 6000,
+  timeoutMs = 150000,
+  fetchImpl = fetch
+}) {
+  if (!apiKey) throw new GroqApiError('Backend is missing GROQ_API_KEY. Add it to the hosting service environment variables.', { kind: 'configuration', model });
+
+  let response;
+  try {
+    response = await fetchImpl(CHAT_COMPLETIONS_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        messages: [
+          ...(system ? [{ role: 'system', content: String(system) }] : []),
+          { role: 'user', content: String(userText || '') }
+        ],
+        temperature: 1,
+        top_p: 1,
+        max_completion_tokens: maxCompletionTokens,
+        stream: false,
+        reasoning_effort: 'low',
+        tool_choice: 'required',
+        tools: [{ type: 'browser_search' }]
+      }),
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+  } catch (error) {
+    const timedOut = error?.name === 'TimeoutError' || error?.name === 'AbortError';
+    throw new GroqApiError(timedOut ? `Groq browser search timed out on ${model}.` : `Network error while contacting Groq browser search on ${model}.`, { kind: 'transient', model });
+  }
+
+  if (!response.ok) {
+    const detail = await readError(response);
+    throw classifyError(response.status, detail, parseRetryAfter(response), model);
+  }
+  const data = await response.json().catch(() => ({}));
+  const message = data?.choices?.[0]?.message;
+  const content = message?.content;
+  const text = typeof content === 'string' ? content.trim() : Array.isArray(content) ? content.map(part => part?.text || '').join('\n').trim() : '';
+  if (!text) throw new GroqApiError('Groq browser search returned no result text. Retry the price lookup later.', { kind: 'empty_response', model });
+  return { text, executedTools: Array.isArray(message?.executed_tools) ? message.executed_tools : [], model };
+}
+
 export async function groqTranscribe({
   apiKey,
   model = 'whisper-large-v3-turbo',
