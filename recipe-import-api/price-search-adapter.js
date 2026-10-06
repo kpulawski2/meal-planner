@@ -29,8 +29,79 @@ export function isOfficialRetailerUrl(store, value) {
   }
 }
 
+function canStartJsonValue(char) {
+  return char === '{' || char === '[' || char === '"' || char === '-' ||
+    (char >= '0' && char <= '9') || char === 't' || char === 'f' || char === 'n';
+}
+
+// Browser-search models occasionally omit a comma between two objects in an
+// array, or emit a trailing comma. Repair only those unambiguous punctuation
+// mistakes outside strings; never rewrite product names, prices, URLs or text.
+function repairCommonJsonPunctuation(source) {
+  let output = '';
+  const stack = [];
+  let inString = false;
+  let escaped = false;
+
+  const nextSignificantChar = (from) => {
+    let index = from;
+    while (index < source.length && /\s/.test(source[index])) index++;
+    return source[index] || '';
+  };
+  const needsArrayComma = (from) => stack[stack.length - 1] === '[' && canStartJsonValue(nextSignificantChar(from));
+
+  for (let i = 0; i < source.length; i++) {
+    const char = source[i];
+
+    if (inString) {
+      output += char;
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === '"') {
+        inString = false;
+        // A string can itself be an array element. If another value starts
+        // immediately after it, the model likely omitted the separating comma.
+        if (needsArrayComma(i + 1)) output += ',';
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      output += char;
+      continue;
+    }
+
+    if (char === ',') {
+      const next = nextSignificantChar(i + 1);
+      if (next === ']' || next === '}') continue; // trailing comma
+      output += char;
+      continue;
+    }
+
+    if (char === '{' || char === '[') {
+      stack.push(char);
+      output += char;
+      continue;
+    }
+
+    if (char === '}' || char === ']') {
+      const expectedOpen = char === '}' ? '{' : '[';
+      if (stack[stack.length - 1] === expectedOpen) stack.pop();
+      output += char;
+      // After an array element closes, a following value start needs a comma.
+      // Do not insert commas between object properties or after the root object.
+      if (needsArrayComma(i + 1)) output += ',';
+      continue;
+    }
+
+    output += char;
+  }
+  return output;
+}
+
 function extractFirstJsonObject(text) {
-  const source = String(text || '').replace(/```(?:json)?/gi, '');
+  const source = String(text || '').replace(/^\uFEFF/, '').replace(/```(?:json)?/gi, '');
   const start = source.indexOf('{');
   if (start < 0) throw new Error('Groq price search did not return JSON. Please retry the lookup.');
   let depth = 0, quoted = false, escaped = false;
@@ -46,7 +117,19 @@ function extractFirstJsonObject(text) {
     else if (char === '{') depth++;
     else if (char === '}') {
       depth--;
-      if (depth === 0) return JSON.parse(source.slice(start, i + 1));
+      if (depth === 0) {
+        const raw = source.slice(start, i + 1);
+        try {
+          return JSON.parse(raw);
+        } catch (originalError) {
+          const repaired = repairCommonJsonPunctuation(raw);
+          if (repaired !== raw) {
+            try { return JSON.parse(repaired); } catch { /* report the original parser error below */ }
+          }
+          // Don't surface arbitrary model output or price text in an error.
+          throw new Error(`Groq price search returned malformed JSON (${String(originalError?.message || 'invalid structure').slice(0, 120)}). Please retry the lookup.`);
+        }
+      }
     }
   }
   throw new Error('Groq price search returned incomplete JSON. Please retry the lookup.');
