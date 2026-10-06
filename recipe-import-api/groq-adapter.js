@@ -16,9 +16,19 @@ export function parseRetryAfter(response) {
   const value = response.headers.get('retry-after');
   if (!value) return null;
   const seconds = Number(value);
-  if (Number.isFinite(seconds)) return Math.max(0, Math.min(seconds * 1000, 8000));
+  if (Number.isFinite(seconds)) return Math.max(0, Math.min(seconds * 1000, 60_000));
   const date = Date.parse(value);
-  return Number.isFinite(date) ? Math.max(0, Math.min(date - Date.now(), 8000)) : null;
+  return Number.isFinite(date) ? Math.max(0, Math.min(date - Date.now(), 60_000)) : null;
+}
+
+export function parseRetryDelayFromMessage(message) {
+  const text = String(message || '');
+  const match = text.match(/(?:try again|retry)(?:\s+in|\s+after)\s+(\d+(?:\.\d+)?)\s*(ms|msec|milliseconds?|s|sec|seconds?)\b/i);
+  if (!match) return null;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  const isMilliseconds = /^m/i.test(match[2]);
+  return Math.max(0, Math.min(isMilliseconds ? amount : amount * 1000, 60_000));
 }
 
 export function evenlySampleFrames(frames, maximum = 3) {
@@ -47,8 +57,14 @@ function classifyError(status, detail, retryAfterMs, model) {
     return new GroqApiError(`Groq model ${model} was not found or is unavailable. Check the configured model ID. ${detail}`.trim(), { status, kind: 'model_unavailable', retryAfterMs, model });
   }
   if (status === 429) {
-    const daily = /daily|per day|quota|limit.*day|exhaust/i.test(detail);
-    return new GroqApiError(`Groq ${daily ? 'free-tier quota appears exhausted' : 'rate limit reached'} for ${model}. ${detail}`.trim(), { status, kind: daily ? 'quota' : 'rate_limit', retryAfterMs, model });
+    // TPM/RPM errors often include marketing text such as "upgrade today" later
+    // in the same body. Detect per-minute limits first so "today" isn't mistaken
+    // for a daily quota error.
+    const perMinute = /\b(?:tokens?\s+per\s+minute|\bTPM\b|requests?\s+per\s+minute|\bRPM\b|per-minute)\b/i.test(detail);
+    const daily = !perMinute && /\b(?:daily|per day|daily limit|quota exceeded|quota is exhausted|monthly|per month|exhausted)\b/i.test(detail);
+    const messageRetryMs = parseRetryDelayFromMessage(detail);
+    const resolvedRetryAfterMs = Math.max(retryAfterMs || 0, messageRetryMs || 0) || null;
+    return new GroqApiError(`Groq ${daily ? 'free-tier daily quota appears exhausted' : 'rate limit reached'} for ${model}. ${detail}`.trim(), { status, kind: daily ? 'quota' : 'rate_limit', retryAfterMs: resolvedRetryAfterMs, model });
   }
   if ([408, 500, 502, 503, 504].includes(status)) {
     return new GroqApiError(`Groq is temporarily unavailable (HTTP ${status}) on ${model}. ${detail}`.trim(), { status, kind: 'transient', retryAfterMs, model });

@@ -398,7 +398,18 @@ async function parseWithAI(material) {
 const PRICE_LOOKUP_MAX_ITEMS = 80;
 const PRICE_SEARCH_BATCH_SIZE = 5;
 const PRICE_RESULT_CACHE_MS = 3 * 60 * 60 * 1000;
+// Groq's free TPM budget is small. Pace all price searches in this process,
+// including separate stores/jobs, and retry a rate-limited batch instead of
+// failing the entire shopping list.
+const PRICE_SEARCH_MIN_INTERVAL_MS = Math.max(10_000, Math.min(30_000, Number(process.env.GROQ_PRICE_SEARCH_INTERVAL_MS || 16_000)));
+const PRICE_SEARCH_MAX_RATE_RETRIES = 2;
+const PRICE_SEARCH_RETRY_FALLBACK_MS = 15_000;
+const PRICE_BATCH_CACHE_MS = 3 * 60 * 60 * 1000;
+const PRICE_BATCH_CACHE_MAX_ENTRIES = 240;
 const priceLookupCache = new Map();
+const priceLookupBatchCache = new Map();
+let priceSearchQueue = Promise.resolve();
+let lastPriceSearchStartedAt = 0;
 // Price jobs run in the background so the browser can poll for results without timing out.
 const priceLookupJobs = new Map();
 const PRICE_JOB_TTL_MS = 20 * 60 * 1000;
@@ -634,17 +645,67 @@ function buildGroqPriceRow(product, store) {
   };
 }
 
-async function searchPriceBatch(store, items) {
+async function searchPriceBatch(store, items, reportProgress = () => {}, batchNumber = 0, totalBatches = 0) {
+  const cacheKey = `${store}:${items.map(i => `${i.key}:${i.name}:${JSON.stringify(i.groups || [])}`).sort().join('|')}`;
+  const cached = priceLookupBatchCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < PRICE_BATCH_CACHE_MS) {
+    reportProgress({ stage: 'cache', message: `Reusing recent verified ${store} search results for this batch to conserve Groq free-tier tokens.`, currentBatch: batchNumber, totalBatches });
+    return { ...cached.value, cacheHit: true };
+  }
+  if (cached) priceLookupBatchCache.delete(cacheKey);
+
   const prompt = buildPriceSearchPrompt(store, items, new Date().toISOString().slice(0, 10));
-  const response = await groqBrowserSearch({
+  const request = {
     apiKey: GROQ_API_KEY,
     model: GROQ_PRICE_SEARCH_MODEL,
     system: prompt.system,
     userText: prompt.userText,
-    maxCompletionTokens: 6000,
+    // We request one verified product per ingredient rather than three.
+    maxCompletionTokens: 2600,
     timeoutMs: 150000
-  });
-  return parsePriceSearchResponse(response.text, store, items);
+  };
+
+  for (let attempt = 0; ; attempt++) {
+    try {
+      // A promise queue serializes lookups across stores as well as within a
+      // single shopping list, and keeps calls at least 16 seconds apart.
+      const operation = priceSearchQueue.then(async () => {
+        const waitMs = Math.max(0, lastPriceSearchStartedAt + PRICE_SEARCH_MIN_INTERVAL_MS - Date.now());
+        if (waitMs > 0) {
+          reportProgress({
+            stage: 'rate-limit-wait',
+            message: `Spacing out Groq searches to stay within the free-tier token limit (about ${Math.ceil(waitMs / 1000)} seconds)…`,
+            currentBatch: batchNumber,
+            totalBatches
+          });
+          await delay(waitMs);
+        }
+        lastPriceSearchStartedAt = Date.now();
+        return groqBrowserSearch(request);
+      });
+      priceSearchQueue = operation.then(() => undefined, () => undefined);
+      const response = await operation;
+      const found = parsePriceSearchResponse(response.text, store, items);
+      priceLookupBatchCache.set(cacheKey, { at: Date.now(), value: found });
+      if (priceLookupBatchCache.size > PRICE_BATCH_CACHE_MAX_ENTRIES) {
+        const oldest = [...priceLookupBatchCache.entries()].sort((a, b) => a[1].at - b[1].at);
+        for (const [key] of oldest.slice(0, priceLookupBatchCache.size - PRICE_BATCH_CACHE_MAX_ENTRIES)) priceLookupBatchCache.delete(key);
+      }
+      return found;
+    } catch (error) {
+      if (error?.kind !== 'rate_limit' || attempt >= PRICE_SEARCH_MAX_RATE_RETRIES) throw error;
+      const requestedWaitMs = Number(error?.retryAfterMs) || 0;
+      const waitMs = Math.min(60_000, Math.max(PRICE_SEARCH_RETRY_FALLBACK_MS, requestedWaitMs + 250));
+      console.warn(`Groq price-search rate limit for ${store}; retry ${attempt + 1}/${PRICE_SEARCH_MAX_RATE_RETRIES} after ${Math.ceil(waitMs / 1000)}s.`);
+      reportProgress({
+        stage: 'rate-limit-wait',
+        message: `Groq's free-tier token limit was reached. Waiting ${Math.ceil(waitMs / 1000)} seconds before retrying ${store} price search…`,
+        currentBatch: batchNumber,
+        totalBatches
+      });
+      await delay(waitMs);
+    }
+  }
 }
 
 async function performPriceLookup(store, items, reportProgress = () => {}, jobId = '') {
@@ -658,7 +719,9 @@ async function performPriceLookup(store, items, reportProgress = () => {}, jobId
 
   const batches = splitBatches(items, PRICE_SEARCH_BATCH_SIZE);
   const productsByKey = new Map(items.map(item => [item.key, []]));
-  let recordsScanned = 0, rejectedRecords = 0;
+  const searchedItemKeys = new Set();
+  let recordsScanned = 0, rejectedRecords = 0, completedBatches = 0;
+  let partialWarning = '';
   for (let index = 0; index < batches.length; index++) {
     const batch = batches[index];
     reportProgress({
@@ -667,15 +730,32 @@ async function performPriceLookup(store, items, reportProgress = () => {}, jobId
       currentBatch: index + 1,
       totalBatches: batches.length
     });
-    const found = await searchPriceBatch(store, batch);
+    let found;
+    try {
+      found = await searchPriceBatch(store, batch, reportProgress, index + 1, batches.length);
+    } catch (error) {
+      if (['rate_limit', 'quota'].includes(error?.kind) && completedBatches > 0) {
+        const reason = error.kind === 'quota' ? 'Groq reports that its free-tier daily quota has been reached.' : 'Groq kept rate-limiting price searches after automatic retries.';
+        partialWarning = `${reason} Kept the ${completedBatches} completed batch(es); ${batches.length - completedBatches} batch(es) remain. Wait a minute and run the lookup again to continue. Completed batch results are cached temporarily to avoid repeating searches.`;
+        console.warn(`[PriceLookup ${jobId || 'n/a'}] Returning partial ${store} results after ${completedBatches}/${batches.length} batches: ${reason}`);
+        break;
+      }
+      if (error?.kind === 'rate_limit') {
+        throw new Error('Groq’s free-tier token-per-minute limit is still busy after automatic retries. Wait about a minute, then start the price lookup again. No paid service was used.');
+      }
+      if (error?.kind === 'quota') {
+        throw new Error('Groq’s free-tier daily quota appears to be exhausted. Please try again after the quota resets; no paid service was used.');
+      }
+      throw error;
+    }
     recordsScanned += found.recordsScanned;
     rejectedRecords += found.rejected;
+    completedBatches++;
     for (const item of batch) {
+      searchedItemKeys.add(item.key);
       const products = found.items.get(item.key) || [];
       productsByKey.set(item.key, [...(productsByKey.get(item.key) || []), ...products]);
     }
-    // Stay gentle on the free-tier account while browser-search calls are in flight.
-    if (index < batches.length - 1) await delay(900);
   }
 
   reportProgress({ stage: 'matching', message: `Checking official retailer links, visible price evidence and pack-size compatibility for ${items.length} ingredients.`, currentBatch: batches.length, totalBatches: batches.length });
@@ -696,15 +776,18 @@ async function performPriceLookup(store, items, reportProgress = () => {}, jobId
     // Only auto-save exceptionally strong matches with an official product URL and an exact price in the quoted evidence.
     const autoCandidate = top && top.canApply && top.score >= 0.72 && top.aiConfidence >= 0.9 &&
       top.officialSourceVerified && top.priceEvidence ? top : null;
+    const searched = searchedItemKeys.has(item.key);
     return {
       key: item.key,
       name: item.name,
       candidates: top ? [top] : [],
       autoCandidate,
       benchmark,
-      status: autoCandidate ? 'best-match-auto-saved' : top ? 'best-match-review' : 'no-price-match',
+      status: autoCandidate ? 'best-match-auto-saved' : top ? 'best-match-review' : searched ? 'no-price-match' : 'not-searched',
       note: top ? (autoCandidate ? '' : 'AI found a likely product from the retailer site. Review the product page and price evidence before accepting it.') :
-        `No price could be verified from an official ${store} product page. No price has been invented; try the retailer search link or check again later.`
+        (searched
+          ? `No price could be verified from an official ${store} product page. No price has been invented; try the retailer search link or check again later.`
+          : 'This ingredient was not searched yet because Groq rate-limited the lookup. Run Find prices again shortly; completed batches are cached temporarily.')
     };
   });
   const candidateCount = results.filter(result => result.candidates.length).length;
@@ -718,18 +801,25 @@ async function performPriceLookup(store, items, reportProgress = () => {}, jobId
     checkedAt,
     cacheHit: false,
     sourceMode: 'groq-browser-search-official-retailer-sites',
-    coverageNote: `Searched official ${store} product listings in batches. Only results with official retailer URLs, a GBP pack price, pack size and evidence containing that price were retained. A listing may still be outdated or vary by region, so open the source before relying on it.`,
-    providerWarning: rejectedRecords ? `${rejectedRecords} search result(s) were rejected because the price, pack size, price evidence or official retailer link could not be validated.` : '',
+    coverageNote: partialWarning
+      ? `${partialWarning} Only results with official retailer URLs, a GBP pack price, pack size and evidence containing that price are retained.`
+      : `Searched official ${store} product listings in batches. Only results with official retailer URLs, a GBP pack price, pack size and evidence containing that price were retained. A listing may still be outdated or vary by region, so open the source before relying on it.`,
+    providerWarning: [
+      rejectedRecords ? `${rejectedRecords} search result(s) were rejected because the price, pack size, price evidence or official retailer link could not be validated.` : '',
+      partialWarning
+    ].filter(Boolean).join(' '),
     recordsScanned,
     locationsScanned: 0,
     itemCount: results.length,
     candidateCount,
     autoCandidateCount: autoCount,
     livePriceSearchConfigured: true,
+    partial: Boolean(partialWarning),
+    lookupComplete: !partialWarning,
     shopsplitManualLookup: true,
     results
   };
-  priceLookupCache.set(cacheKey, { at: Date.now(), value: result });
+  if (!partialWarning) priceLookupCache.set(cacheKey, { at: Date.now(), value: result });
   return result;
 }
 
@@ -747,8 +837,12 @@ async function runPriceLookupJob(jobId, store, items) {
     job.status = 'completed';
     job.result = result;
     job.finishedAt = Date.now();
-    job.progress = { stage: 'complete', message: `Completed: ${result.candidateCount} ingredient matches from ${result.recordsScanned} search result products.`, currentBatch: 0, totalBatches: 0, updatedAt: new Date().toISOString() };
-    console.info(`[PriceLookup ${jobId}] Completed in ${Math.round((Date.now() - startedAt) / 1000)}s; store=${store}; rows=${result.recordsScanned}; candidates=${result.candidateCount}; autoCandidates=${result.autoCandidateCount}.`);
+    const searchedCount = result.results.filter(item => item.status !== 'not-searched').length;
+    const progressMessage = result.partial
+      ? `Partial lookup: checked ${searchedCount}/${result.itemCount} ingredients; ${result.candidateCount} matches found. Completed batches are saved temporarily; run the lookup again shortly to continue.`
+      : `Completed: ${result.candidateCount} ingredient matches from ${result.recordsScanned} search result products.`;
+    job.progress = { stage: result.partial ? 'partial' : 'complete', message: progressMessage, currentBatch: result.partial ? searchedCount : result.itemCount, totalBatches: result.itemCount, updatedAt: new Date().toISOString() };
+    console.info(`[PriceLookup ${jobId}] ${result.partial ? 'Partially completed' : 'Completed'} in ${Math.round((Date.now() - startedAt) / 1000)}s; store=${store}; rows=${result.recordsScanned}; candidates=${result.candidateCount}; autoCandidates=${result.autoCandidateCount}.`);
   } catch (e) {
     const message = cleanString(e?.message, 450) || 'Automatic price lookup failed.';
     job.status = 'failed';
@@ -792,7 +886,7 @@ app.get('/api/prices/lookup/:jobId', priceLookupAuthenticated, (req, res) => {
   return res.json(response);
 });
 
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner' , aiProvider: 'Groq API (free-tier models)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, livePriceSearchConfigured: Boolean(GROQ_API_KEY), livePriceStores: Object.keys(PRICE_LOOKUP_STORES), priceSearchModel: GROQ_PRICE_SEARCH_MODEL, priceDataSource: 'Groq browser search of official retailer product pages; unverified results rejected', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner' , aiProvider: 'Groq API (free-tier models)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors', priceSearchRetryPolicy: 'retries TPM rate limits twice; partial batches cached temporarily', priceSearchMinimumIntervalMs: PRICE_SEARCH_MIN_INTERVAL_MS, videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, livePriceSearchConfigured: Boolean(GROQ_API_KEY), livePriceStores: Object.keys(PRICE_LOOKUP_STORES), priceSearchModel: GROQ_PRICE_SEARCH_MODEL, priceDataSource: 'Groq browser search of official retailer product pages; unverified results rejected', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
 
 app.post('/api/import-recipe', authenticated, async (req, res) => {
   const url = cleanString(req.body?.url, 2000);
