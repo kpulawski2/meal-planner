@@ -1,8 +1,7 @@
 services:
   - type: web
-    name: meal-planner-recipe-import
+    name: meal-planner
     runtime: docker
-    rootDir: recipe-import-api
     plan: free
     healthCheckPath: /health
     envVars:
@@ -10,11 +9,11 @@ services:
         sync: false
       - key: IMPORT_API_TOKEN
         sync: false
+      - key: ALLOWED_ORIGINS
+        value: ""
       - key: GROQ_RECIPE_MODEL
         value: qwen/qwen3.8-27b
       - key: GROQ_TRANSCRIPTION_MODEL
         value: whisper-large-v3-turbo
       - key: GROQ_PRICE_SEARCH_MODEL
         value: openai/gpt-oss-20b
-      - key: ALLOWED_ORIGINS
-        value: https://kpulawski2.github.io
