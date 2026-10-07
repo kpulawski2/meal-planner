@@ -1,0 +1,4471 @@
+{
+  "title": "Meal Planner Direct Retailer Product & Price Reference Catalogue",
+  "generatedDate": "2026-10-06",
+  "ingredientCount": 114,
+  "retailerCount": 2,
+  "retailers": [
+    "Asda",
+    "Aldi"
+  ],
+  "directProductPageCount": 93,
+  "pricedSnapshotCount": 83,
+  "importantNotes": [
+    "All links are direct ASDA or ALDI product-detail pages; there are no Google or other search-result links.",
+    "The catalogue contains one row per ingredient/store pair for the 114 ingredients in the bundled recipe library.",
+    "A numeric price appears only when a price snapshot was captured from an official retailer product-page listing. Prices and product availability can vary by postcode and over time.",
+    "Rows with a direct product page but no price remain unpriced until a price is verified.",
+    "If a direct product page is not verified, its URL and price are blank rather than substituting a search-engine link.",
+    "The catalogue is restricted to ASDA and ALDI."
+  ],
+  "currentPriceSnapshots": [
+    {
+      "ingredient": "5% beef mince",
+      "store": "Aldi",
+      "productName": "Ashfields British Lean Beef Steak Mince 5% Fat",
+      "size": 500,
+      "unit": "g",
+      "priceGBP": 5.05,
+      "productUrl": "https://www.aldi.co.uk/product/ashfields-british-lean-beef-steak-mince-5-fat-000000000000575278",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Banana",
+      "store": "Aldi",
+      "productName": "Nature's Pick Bananas",
+      "size": 5,
+      "unit": "pieces",
+      "priceGBP": 0.78,
+      "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-bananas-000000000000267180",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "BBQ sauce",
+      "store": "Aldi",
+      "productName": "Bramwells BBQ Sauce",
+      "size": 460,
+      "unit": "g",
+      "priceGBP": 0.85,
+      "productUrl": "https://www.aldi.co.uk/product/bramwells-bbq-sauce-000000000000540095",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Blueberries",
+      "store": "Aldi",
+      "productName": "Nature's Pick Blueberries",
+      "size": 150,
+      "unit": "g",
+      "priceGBP": 1.69,
+      "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-blueberries-000000000000276890",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Broccoli",
+      "store": "Aldi",
+      "productName": "Nature's Pick British Broccoli",
+      "size": 360,
+      "unit": "g",
+      "priceGBP": 0.86,
+      "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-british-broccoli-000000000000339776",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Cheddar",
+      "store": "Aldi",
+      "productName": "Emporium British Extra Mature Cheddar Cheese",
+      "size": 400,
+      "unit": "g",
+      "priceGBP": 2.45,
+      "productUrl": "https://www.aldi.co.uk/product/emporium-british-extra-mature-cheddar-cheese-000000000000522620",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Chicken breast",
+      "store": "Aldi",
+      "productName": "Everyday Essentials Chicken Breast Fillets",
+      "size": 1000,
+      "unit": "g",
+      "priceGBP": 4.25,
+      "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-chicken-breast-fillets-000000000000365448",
+      "checkedAt": "2026-10-06",
+      "note": "Official ALDI product page lists 1 kg at £4.25; page warns online and in-store prices may vary."
+    },
+    {
+      "ingredient": "Chicken stock",
+      "store": "Aldi",
+      "productName": "Bramwells Chicken Stock Cubes",
+      "size": 120,
+      "unit": "g",
+      "priceGBP": 0.69,
+      "productUrl": "https://www.aldi.co.uk/product/bramwells-chicken-stock-cubes-000000000000633943",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Chopped tomatoes",
+      "store": "Aldi",
+      "productName": "Everyday Essentials Chopped Tomatoes in Tomato Juice",
+      "size": 400,
+      "unit": "g",
+      "priceGBP": 0.43,
+      "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-chopped-tomatoes-in-tomato-juice-000000000000278702",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Cinnamon",
+      "store": "Aldi",
+      "productName": "Ready Set Cook Ground Cinnamon",
+      "size": 40,
+      "unit": "g",
+      "priceGBP": 0.89,
+      "productUrl": "https://www.aldi.co.uk/product/ready-set-cook-ground-cinnamon-000000000000335976",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Cooking oil",
+      "store": "Aldi",
+      "productName": "Solesta Vegetable Oil",
+      "size": 1000,
+      "unit": "ml",
+      "priceGBP": 1.45,
+      "productUrl": "https://www.aldi.co.uk/product/solesta-vegetable-oil-000000000000335872",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Cottage cheese",
+      "store": "Aldi",
+      "productName": "Everyday Essentials Low Fat Cottage Cheese",
+      "size": 300,
+      "unit": "g",
+      "priceGBP": 0.85,
+      "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-low-fat-cottage-cheese-000000000000416217",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Courgette",
+      "store": "Aldi",
+      "productName": "Nature's Pick Courgettes",
+      "size": 500,
+      "unit": "g",
+      "priceGBP": 1.39,
+      "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-courgettes-000000000000339808",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Cucumber",
+      "store": "Aldi",
+      "productName": "Nature's Pick Cucumber",
+      "size": 1,
+      "unit": "pieces",
+      "priceGBP": 0.99,
+      "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-cucumber-000000000000273659",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Curry paste",
+      "store": "Aldi",
+      "productName": "Ready Set Cook Thai Red Curry Paste",
+      "size": 180,
+      "unit": "g",
+      "priceGBP": 1.39,
+      "productUrl": "https://www.aldi.co.uk/product/ready-set-cook-thai-red-curry-paste-000000000557102001",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Curry powder",
+      "store": "Aldi",
+      "productName": "Ready Set Cook Mild Curry Powder",
+      "size": 90,
+      "unit": "g",
+      "priceGBP": 0.89,
+      "productUrl": "https://www.aldi.co.uk/product/ready-set-cook-mild-curry-powder-000000000336690002",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Dried mixed herbs",
+      "store": "Aldi",
+      "productName": "Ready Set Cook Mixed Herbs",
+      "size": 11,
+      "unit": "g",
+      "priceGBP": 0.59,
+      "productUrl": "https://www.aldi.co.uk/product/ready-set-cook-mixed-herbs-000000000000335977",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Eggs",
+      "store": "Aldi",
+      "productName": "Merevale Free Range Eggs 6 Pack",
+      "size": 6,
+      "unit": "pieces",
+      "priceGBP": 0.99,
+      "productUrl": "https://www.aldi.co.uk/product/merevale-free-range-eggs-6-pack-000000000000548465",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Feta cheese",
+      "store": "Aldi",
+      "productName": "Specially Selected Barrel Aged Feta Cheese",
+      "size": 200,
+      "unit": "g",
+      "priceGBP": 2.59,
+      "productUrl": "https://www.aldi.co.uk/product/specially-selected-barrel-aged-feta-cheese-000000000000558048",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Firm tofu",
+      "store": "Aldi",
+      "productName": "Plant Menu Organic Super Firm Tofu",
+      "size": 180,
+      "unit": "g",
+      "priceGBP": 0.95,
+      "productUrl": "https://www.aldi.co.uk/product/plant-menu-organic-super-firm-tofu-000000000513086001",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Grapes",
+      "store": "Aldi",
+      "productName": "Nature's Pick White Seedless Grapes",
+      "size": 500,
+      "unit": "g",
+      "priceGBP": 1.89,
+      "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-white-seedless-grapes-000000000000266267",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Halloumi",
+      "store": "Aldi",
+      "productName": "Emporium Halloumi Plain",
+      "size": 225,
+      "unit": "g",
+      "priceGBP": 1.99,
+      "productUrl": "https://www.aldi.co.uk/product/emporium-halloumi-plain-225g-000000000000612513",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Lentils",
+      "store": "Aldi",
+      "productName": "Four Seasons Tinned Lentils",
+      "size": 400,
+      "unit": "g",
+      "priceGBP": 0.45,
+      "productUrl": "https://www.aldi.co.uk/product/four-seasons-tinned-lentils-000000000627180002",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Milk",
+      "store": "Aldi",
+      "productName": "Cowbelle Filtered British Semi Skimmed Milk",
+      "size": 2000,
+      "unit": "ml",
+      "priceGBP": 1.69,
+      "productUrl": "https://www.aldi.co.uk/product/cowbelle-filtered-british-semi-skimmed-milk-000000000000417584",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Mustard",
+      "store": "Aldi",
+      "productName": "Bramwells English Mustard",
+      "size": 200,
+      "unit": "g",
+      "priceGBP": 0.49,
+      "productUrl": "https://www.aldi.co.uk/product/bramwells-english-mustard-000000000335764002",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Noodles",
+      "store": "Aldi",
+      "productName": "Ready Set Cook Rice Noodles",
+      "size": 300,
+      "unit": "g",
+      "priceGBP": 0.99,
+      "productUrl": "https://www.aldi.co.uk/product/ready-set-cook-rice-noodles-000000000340666001",
+      "checkedAt": "2026-10-06",
+      "note": "Official ALDI product-page snapshot for rice noodles; check this is the noodle type required by the recipe."
+    },
+    {
+      "ingredient": "Oats",
+      "store": "Aldi",
+      "productName": "Everyday Essentials Porridge Oats",
+      "size": 1000,
+      "unit": "g",
+      "priceGBP": 0.85,
+      "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-porridge-oats-000000000000337387",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Paprika",
+      "store": "Aldi",
+      "productName": "Ready Set Cook Paprika",
+      "size": 40,
+      "unit": "g",
+      "priceGBP": 0.69,
+      "productUrl": "https://www.aldi.co.uk/product/ready-set-cook-paprika-000000000000575019",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Pasta",
+      "store": "Aldi",
+      "productName": "Everyday Essentials Spaghetti Pasta",
+      "size": 500,
+      "unit": "g",
+      "priceGBP": 0.28,
+      "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-spaghetti-pasta-500g-000000000000306030",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Peanut butter",
+      "store": "Aldi",
+      "productName": "Grandessa Smooth Peanut Butter",
+      "size": 340,
+      "unit": "g",
+      "priceGBP": 0.95,
+      "productUrl": "https://www.aldi.co.uk/product/grandessa-smooth-peanut-butter-000000000283841001",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Pesto",
+      "store": "Aldi",
+      "productName": "Cucina Basil Pesto",
+      "size": 190,
+      "unit": "g",
+      "priceGBP": 0.89,
+      "productUrl": "https://www.aldi.co.uk/product/cucina-basil-pesto-000000000337284001",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Prawns",
+      "store": "Aldi",
+      "productName": "Specially Selected Cooked Peeled Extra Large King Prawns",
+      "size": 150,
+      "unit": "g",
+      "priceGBP": 2.99,
+      "productUrl": "https://www.aldi.co.uk/product/specially-selected-cooked-peeled-extra-large-king-prawns-000000000000602839",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Red lentils",
+      "store": "Aldi",
+      "productName": "Worldwide Foods Red Lentils",
+      "size": 500,
+      "unit": "g",
+      "priceGBP": 0.89,
+      "productUrl": "https://www.aldi.co.uk/product/worldwide-foods-red-lentils-000000000000336258",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Rice",
+      "store": "Aldi",
+      "productName": "Worldwide Foods Basmati Rice",
+      "size": 1000,
+      "unit": "g",
+      "priceGBP": 1.79,
+      "productUrl": "https://www.aldi.co.uk/product/worldwide-foods-basmati-rice-000000000000262344",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Romaine lettuce",
+      "store": "Aldi",
+      "productName": "Nature's Pick British Romaine Lettuce",
+      "size": 2,
+      "unit": "pieces",
+      "priceGBP": 1.15,
+      "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-british-romaine-lettuce-000000000000339921",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Salmon fillet",
+      "store": "Aldi",
+      "productName": "The Fishmonger Salmon Fillets",
+      "size": 240,
+      "unit": "g",
+      "priceGBP": 3.59,
+      "productUrl": "https://www.aldi.co.uk/product/the-fishmonger-salmon-fillets-000000000000381995",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Spinach",
+      "store": "Aldi",
+      "productName": "Nature's Pick British Baby Spinach",
+      "size": 450,
+      "unit": "g",
+      "priceGBP": 1.59,
+      "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-british-baby-spinach-000000000000340023",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Strawberries",
+      "store": "Aldi",
+      "productName": "Nature's Pick Strawberries",
+      "size": 400,
+      "unit": "g",
+      "priceGBP": 2.15,
+      "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-strawberries-000000000000339980",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Teriyaki sauce",
+      "store": "Aldi",
+      "productName": "Asia Specialities Teriyaki Sauce",
+      "size": 285,
+      "unit": "g",
+      "priceGBP": 1.39,
+      "productUrl": "https://www.aldi.co.uk/product/asia-specialities-teriyaki-sauce-000000000337196003",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Turkey mince",
+      "store": "Aldi",
+      "productName": "Ashfields British Turkey Mince 7% Fat",
+      "size": 500,
+      "unit": "g",
+      "priceGBP": 2.99,
+      "productUrl": "https://www.aldi.co.uk/product/ashfields-british-turkey-mince-7-fat-000000000000386144",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Wholemeal bread",
+      "store": "Aldi",
+      "productName": "Everyday Essentials Medium Sliced Wholemeal Bread",
+      "size": 800,
+      "unit": "g",
+      "priceGBP": 0.55,
+      "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-medium-sliced-wholemeal-bread-000000000383372002",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "5% beef mince",
+      "store": "Asda",
+      "productName": "ASDA Beef Mince <5% Fat 500g",
+      "size": 500,
+      "unit": "g",
+      "priceGBP": 5.15,
+      "productUrl": "https://www.asda.com/groceries/product/beef-mince-meatballs/asda-butchers-selection-lean-beef-mince-typically-less-than-5-fat/5391423",
+      "checkedAt": "2026-10-06",
+      "note": "Official ASDA product listing reported £5.15 for the 500 g pack in the reviewed page data; verify the displayed price before using."
+    },
+    {
+      "ingredient": "Bagel",
+      "store": "Asda",
+      "productName": "New York Bakery Co Original Bagels",
+      "size": 5,
+      "unit": "pieces",
+      "priceGBP": 1.87,
+      "productUrl": "https://www.asda.com/groceries/product/bagels/new-york-bakery-co-original-bagels/4095971",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Blueberries",
+      "store": "Asda",
+      "productName": "ASDA Blueberries",
+      "size": 300,
+      "unit": "g",
+      "priceGBP": 3.12,
+      "productUrl": "https://www.asda.com/groceries/product/blueberries/asda-blueberries-300g/6755715",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Broccoli",
+      "store": "Asda",
+      "productName": "ASDA Tender & Crunchy Broccoli",
+      "size": 360,
+      "unit": "g",
+      "priceGBP": 0.74,
+      "productUrl": "https://www.asda.com/groceries/product/default/asda-growers-selection-broccoli/5561471",
+      "checkedAt": "2026-10-06",
+      "note": "Official ASDA page showed £0.74 (was £0.86) in the captured page; likely promotion, recheck before buying."
+    },
+    {
+      "ingredient": "Cannellini beans",
+      "store": "Asda",
+      "productName": "ASDA Cannellini Beans in Water",
+      "size": 400,
+      "unit": "g",
+      "priceGBP": 0.45,
+      "productUrl": "https://www.asda.com/groceries/product/tinned-pulses-lentils/asda-cannellini-beans-in-water-400g/6038333",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Chia seeds",
+      "store": "Asda",
+      "productName": "ASDA Chia Seeds",
+      "size": 150,
+      "unit": "g",
+      "priceGBP": 1.54,
+      "productUrl": "https://www.asda.com/groceries/product/baking-nuts-seeds-fruit/asda-chia-seeds-150g/5519935",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Chicken breast",
+      "store": "Asda",
+      "productName": "ASDA British Chicken Breast Fillets",
+      "size": 1000,
+      "unit": "g",
+      "priceGBP": 7.0,
+      "productUrl": "https://www.asda.com/groceries/product/chicken-breasts/asda-tender-chicken-breast-fillets-1kg/4778498",
+      "checkedAt": "2026-10-06",
+      "note": "Official ASDA page currently lists 1 kg at £7.00 (£7.00/kg); ASDA notes local prices and availability may vary."
+    },
+    {
+      "ingredient": "Chicken stock",
+      "store": "Asda",
+      "productName": "ASDA Chicken Stock Cubes",
+      "size": 120,
+      "unit": "g",
+      "priceGBP": 1.25,
+      "productUrl": "https://www.asda.com/groceries/product/stock/asda-chicken-stock-cubes-12-x-10g-120g-/2687967",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Chickpeas",
+      "store": "Asda",
+      "productName": "ASDA Chickpeas",
+      "size": 400,
+      "unit": "g",
+      "priceGBP": 0.41,
+      "productUrl": "https://www.asda.com/groceries/product/5016063",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Chopped tomatoes",
+      "store": "Asda",
+      "productName": "JUST ESSENTIALS by ASDA Chopped Tomatoes",
+      "size": 400,
+      "unit": "g",
+      "priceGBP": 0.43,
+      "productUrl": "https://www.asda.com/groceries/product/tinned-tomatoes/just-essentials-by-asda-just-essentials-chopped-tomatoes-400g/22744",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Cocoa powder",
+      "store": "Asda",
+      "productName": "ASDA Cocoa Powder",
+      "size": 250,
+      "unit": "g",
+      "priceGBP": 3.34,
+      "productUrl": "https://www.asda.com/groceries/product/cocoa/asda-cocoa-250g/1823351",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Cod fillet",
+      "store": "Asda",
+      "productName": "ASDA Cod Fillets",
+      "size": 320,
+      "unit": "g",
+      "priceGBP": 6.27,
+      "productUrl": "https://www.asda.com/groceries/product/frozen-fish-fillets/asda-cod-fillets-by-320g/9221543",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Cottage cheese",
+      "store": "Asda",
+      "productName": "JUST ESSENTIALS by ASDA Cottage Cheese",
+      "size": 300,
+      "unit": "g",
+      "priceGBP": 0.87,
+      "productUrl": "https://www.asda.com/groceries/product/cottage-cheese-quark/just-essentials-by-asda-cottage-cheese-300g/7449545",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Courgette",
+      "store": "Asda",
+      "productName": "ASDA Courgettes (typically 0.35kg)",
+      "size": 350,
+      "unit": "g",
+      "priceGBP": 0.82,
+      "productUrl": "https://www.asda.com/groceries/product/courgettes/asda-courgettes-typically-0-35kg-/150567",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Dark chocolate",
+      "store": "Asda",
+      "productName": "ASDA Dark Chocolate",
+      "size": 200,
+      "unit": "g",
+      "priceGBP": 2.28,
+      "productUrl": "https://www.asda.com/groceries/product/sharing-chocolate-bars/asda-dark-chocolate-200g/9112838",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Edamame beans",
+      "store": "Asda",
+      "productName": "ASDA Edamame Soya Beans",
+      "size": 600,
+      "unit": "g",
+      "priceGBP": 3.42,
+      "productUrl": "https://www.asda.com/groceries/product/view-all-frozen-vegetables/asda-edamame-soya-beans-600g/5542185",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Eggs",
+      "store": "Asda",
+      "productName": "ASDA Free Range 6 Large Eggs",
+      "size": 6,
+      "unit": "pieces",
+      "priceGBP": 2.1,
+      "productUrl": "https://www.asda.com/groceries/product/free-range-eggs/asda-6-free-range-large-eggs/166779",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Halloumi",
+      "store": "Asda",
+      "productName": "ASDA Halloumi",
+      "size": 225,
+      "unit": "g",
+      "priceGBP": 1.97,
+      "productUrl": "https://www.asda.com/groceries/product/feta-halloumi-salad/asda-halloumi-225g/6487115",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "High-protein natural yoghurt",
+      "store": "Asda",
+      "productName": "ASDA Fat Free Protein Natural Yogurt",
+      "size": 500,
+      "unit": "g",
+      "priceGBP": 1.85,
+      "productUrl": "https://www.asda.com/groceries/product/high-in-protein/asda-fat-free-protein-natural-yogurt-500g/9375176",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Milk",
+      "store": "Asda",
+      "productName": "ASDA British Filtered Semi Skimmed Milk",
+      "size": 2000,
+      "unit": "ml",
+      "priceGBP": 2.08,
+      "productUrl": "https://www.asda.com/groceries/product/filtered-milk/asda-british-milk-filtered-semi-skimmed-2-litres/7504719",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Noodles",
+      "store": "Asda",
+      "productName": "ASDA Straight to Wok Noodles",
+      "size": 300,
+      "unit": "g",
+      "priceGBP": 1.0,
+      "productUrl": "https://www.asda.com/groceries/product/noodles/asda-straight-to-wok-noodles-300g/5295909",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Oats",
+      "store": "Asda",
+      "productName": "ASDA Scottish Porridge Oats",
+      "size": 1000,
+      "unit": "g",
+      "priceGBP": 1.18,
+      "productUrl": "https://www.asda.com/groceries/product/traditional-porridge-oats/asda-scottish-porridge-oats-1kg/5805443",
+      "checkedAt": "2026-10-06",
+      "note": "Official ASDA page displayed £1.18 against a previous £1.25 price; offer may change."
+    },
+    {
+      "ingredient": "Olive oil",
+      "store": "Asda",
+      "productName": "ASDA Olive Oil",
+      "size": 500,
+      "unit": "ml",
+      "priceGBP": 5.5,
+      "productUrl": "https://www.asda.com/groceries/product/olive-oil/asda-olive-oil-500ml/9019015",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Onion",
+      "store": "Asda",
+      "productName": "ASDA Brown Onions",
+      "size": 1000,
+      "unit": "g",
+      "priceGBP": 0.98,
+      "productUrl": "https://www.asda.com/groceries/product/onions-leeks/asda-brown-onions-1kg/2110666",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Paprika",
+      "store": "Asda",
+      "productName": "Cook by ASDA Paprika",
+      "size": 46,
+      "unit": "g",
+      "priceGBP": 1.0,
+      "productUrl": "https://www.asda.com/groceries/product/spices/cook-by-asda-cook-paprika-46g/544306",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Passata",
+      "store": "Asda",
+      "productName": "ASDA Passata",
+      "size": 500,
+      "unit": "g",
+      "priceGBP": 0.6,
+      "productUrl": "https://www.asda.com/groceries/product/passata-and-tomato-puree/asda-passata-500g/226958",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Pasta",
+      "store": "Asda",
+      "productName": "ASDA Spaghetti",
+      "size": 500,
+      "unit": "g",
+      "priceGBP": 0.75,
+      "productUrl": "https://www.asda.com/groceries/product/spaghetti-tagliatelle/spaghetti-500g/12943",
+      "checkedAt": "2026-10-06",
+      "note": "Official ASDA page showed £0.75 for one 500 g pack; a multibuy offer was also displayed and may change."
+    },
+    {
+      "ingredient": "Pesto",
+      "store": "Asda",
+      "productName": "Exceptional by ASDA Pesto Alla Genovese",
+      "size": 190,
+      "unit": "g",
+      "priceGBP": 2.0,
+      "productUrl": "https://www.asda.com/groceries/product/pesto/exceptional-by-asda-pesto-alla-genovese-190g/9009352",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Potato",
+      "store": "Asda",
+      "productName": "ASDA British White Potatoes",
+      "size": 2000,
+      "unit": "g",
+      "priceGBP": 1.32,
+      "productUrl": "https://www.asda.com/groceries/product/white-potatoes/asda-british-white-potatoes-2kg/9402722",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Prawns",
+      "store": "Asda",
+      "productName": "ASDA Succulent Cooked Peeled Cold Water Prawns",
+      "size": 150,
+      "unit": "g",
+      "priceGBP": 3.57,
+      "productUrl": "https://www.asda.com/groceries/product/prawns-mussels/asda-succulent-cooked-peeled-cold-water-prawns-150g/6305703",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Quark",
+      "store": "Asda",
+      "productName": "Arla Quark Natural Fat Free Soft Cheese",
+      "size": 250,
+      "unit": "g",
+      "priceGBP": 1.3,
+      "productUrl": "https://www.asda.com/groceries/product/cottage-cheese-quark/arla-quark-natural-fat-free-soft-cheese-250g/9370148",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Red lentils",
+      "store": "Asda",
+      "productName": "ASDA Red Lentils",
+      "size": 500,
+      "unit": "g",
+      "priceGBP": 2.0,
+      "productUrl": "https://www.asda.com/groceries/product/5021677",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Rice",
+      "store": "Asda",
+      "productName": "ASDA Easy Cook Long Grain White Rice",
+      "size": 1000,
+      "unit": "g",
+      "priceGBP": 1.25,
+      "productUrl": "https://www.asda.com/groceries/product/long-grain-basmati-rice/asda-easy-cook-long-grain-white-rice/9132441",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Sweet potato",
+      "store": "Asda",
+      "productName": "ASDA Creamy & Flavoursome Sweet Potatoes",
+      "size": 1000,
+      "unit": "g",
+      "priceGBP": 1.24,
+      "productUrl": "https://www.asda.com/groceries/product/sweet-potatoes/asda-creamy-flavoursome-sweet-potatoes-1kg/2076628",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Sweetcorn",
+      "store": "Asda",
+      "productName": "ASDA Frozen for Freshness Sweetcorn",
+      "size": 1000,
+      "unit": "g",
+      "priceGBP": 1.7,
+      "productUrl": "https://www.asda.com/groceries/product/vegetables/asda-frozen-for-freshness-sweetcorn/2027119",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Teriyaki sauce",
+      "store": "Asda",
+      "productName": "ASDA Teriyaki Sauce",
+      "size": 300,
+      "unit": "g",
+      "priceGBP": 2.24,
+      "productUrl": "https://www.asda.com/groceries/product/hot-chilli-sauces/asda-teriyaki-sauce-300g/9289308",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Tuna",
+      "store": "Asda",
+      "productName": "ASDA Skipjack Tuna Chunks in Spring Water",
+      "size": 145,
+      "unit": "g",
+      "priceGBP": 0.65,
+      "productUrl": "https://www.asda.com/groceries/product/tuna/asda-skipjack-tuna-chunks-in-spring-water/6117168",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Turkey mince",
+      "store": "Asda",
+      "productName": "ASDA Lean Turkey Mince",
+      "size": 500,
+      "unit": "g",
+      "priceGBP": 4.17,
+      "productUrl": "https://www.asda.com/groceries/product/turkey/asda-lean-turkey-mince-500g/4457673",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Turkey sausages",
+      "store": "Asda",
+      "productName": "ASDA 8 Succulent Turkey Sausages",
+      "size": 454,
+      "unit": "g",
+      "priceGBP": 3.5,
+      "productUrl": "https://www.asda.com/groceries/product/sausages/asda-8-succulent-turkey-sausages-454g/5082487",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Walnuts",
+      "store": "Asda",
+      "productName": "ASDA Walnuts",
+      "size": 200,
+      "unit": "g",
+      "priceGBP": 2.18,
+      "productUrl": "https://www.asda.com/groceries/product/raw-nuts-seeds/asda-walnuts-200g/7359203",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Wholemeal bread",
+      "store": "Asda",
+      "productName": "The Bakery at ASDA Farmhouse Wholemeal Bread",
+      "size": 440,
+      "unit": "g",
+      "priceGBP": 0.93,
+      "productUrl": "https://www.asda.com/groceries/product/wholemeal-bread/the-bakery-at-asda-the-bakery-farmhouse-wholemeal-440g/7427615",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Wholemeal wrap",
+      "store": "Asda",
+      "productName": "The Bakery at ASDA 8 Wholemeal Wraps",
+      "size": 8,
+      "unit": "pieces",
+      "priceGBP": 1.32,
+      "productUrl": "https://www.asda.com/groceries/product/wraps/the-bakery-at-asda-the-bakery-8-wholemeal-wraps-488g/3207137",
+      "checkedAt": "2026-10-06",
+      "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    }
+  ],
+  "ingredients": [
+    {
+      "ingredient": "0% Greek yoghurt",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "5% beef mince",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/beef-mince-meatballs/asda-butchers-selection-lean-beef-mince-typically-less-than-5-fat/5391423",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/beef-mince-meatballs/asda-butchers-selection-lean-beef-mince-typically-less-than-5-fat/5391423",
+          "productName": "ASDA Beef Mince <5% Fat 500g",
+          "packSize": "500 g",
+          "size": 500,
+          "unit": "g",
+          "priceGBP": 5.15,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Official ASDA product listing reported £5.15 for the 500 g pack in the reviewed page data; verify the displayed price before using."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/ashfields-british-lean-beef-steak-mince-5-fat-000000000000575278",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/ashfields-british-lean-beef-steak-mince-5-fat-000000000000575278",
+          "productName": "Ashfields British Lean Beef Steak Mince 5% Fat",
+          "packSize": "500 g",
+          "size": 500,
+          "unit": "g",
+          "priceGBP": 5.05,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Apple",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Bagel",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/bagels/new-york-bakery-co-original-bagels/4095971",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/bagels/new-york-bakery-co-original-bagels/4095971",
+          "productName": "New York Bakery Co Original Bagels",
+          "packSize": "5 pieces",
+          "size": 5,
+          "unit": "pieces",
+          "priceGBP": 1.87,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Banana",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-bananas-000000000000267180",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/nature-s-pick-bananas-000000000000267180",
+          "productName": "Nature's Pick Bananas",
+          "packSize": "5 pieces",
+          "size": 5,
+          "unit": "pieces",
+          "priceGBP": 0.78,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "BBQ sauce",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/bramwells-bbq-sauce-000000000000540095",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/bramwells-bbq-sauce-000000000000540095",
+          "productName": "Bramwells BBQ Sauce",
+          "packSize": "460 g",
+          "size": 460,
+          "unit": "g",
+          "priceGBP": 0.85,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Black beans",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/four-seasons-tinned-black-beans-000000000627180001",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/four-seasons-tinned-black-beans-000000000627180001",
+          "productName": "Four Seasons Tinned Black Beans",
+          "packSize": "400 g",
+          "size": 400,
+          "unit": "g",
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "direct_product_page_price_unverified",
+          "notes": "Direct official ALDI page for tinned black beans. Price intentionally left blank because the indexed price may be stale."
+        }
+      ]
+    },
+    {
+      "ingredient": "Blueberries",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/blueberries/asda-blueberries-300g/6755715",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/blueberries/asda-blueberries-300g/6755715",
+          "productName": "ASDA Blueberries",
+          "packSize": "300 g",
+          "size": 300,
+          "unit": "g",
+          "priceGBP": 3.12,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-blueberries-000000000000276890",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/nature-s-pick-blueberries-000000000000276890",
+          "productName": "Nature's Pick Blueberries",
+          "packSize": "150 g",
+          "size": 150,
+          "unit": "g",
+          "priceGBP": 1.69,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Broccoli",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/default/asda-growers-selection-broccoli/5561471",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/default/asda-growers-selection-broccoli/5561471",
+          "productName": "ASDA Tender & Crunchy Broccoli",
+          "packSize": "360 g",
+          "size": 360,
+          "unit": "g",
+          "priceGBP": 0.74,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Official ASDA page showed £0.74 (was £0.86) in the captured page; likely promotion, recheck before buying."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-british-broccoli-000000000000339776",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/nature-s-pick-british-broccoli-000000000000339776",
+          "productName": "Nature's Pick British Broccoli",
+          "packSize": "360 g",
+          "size": 360,
+          "unit": "g",
+          "priceGBP": 0.86,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Cannellini beans",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/tinned-pulses-lentils/asda-cannellini-beans-in-water-400g/6038333",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/tinned-pulses-lentils/asda-cannellini-beans-in-water-400g/6038333",
+          "productName": "ASDA Cannellini Beans in Water",
+          "packSize": "400 g",
+          "size": 400,
+          "unit": "g",
+          "priceGBP": 0.45,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Carrot",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/carrots/asda-carrots/1772564",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/carrots/asda-carrots/1772564",
+          "productName": "ASDA Carrots",
+          "packSize": "1000 g",
+          "size": 1000,
+          "unit": "g",
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "direct_product_page_price_unverified",
+          "notes": "Direct ASDA product page exists, but the page indicated this product was unavailable during review; no price snapshot added."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-british-carrots-000000000000339792",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/nature-s-pick-british-carrots-000000000000339792",
+          "productName": "Nature's Pick British Carrots",
+          "packSize": "500 g",
+          "size": 500,
+          "unit": "g",
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "direct_product_page_price_unverified",
+          "notes": "Direct official ALDI page for a 500 g pack. Price intentionally left blank until checked against the live page."
+        }
+      ]
+    },
+    {
+      "ingredient": "Celery",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Cheddar",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/emporium-british-extra-mature-cheddar-cheese-000000000000522620",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/emporium-british-extra-mature-cheddar-cheese-000000000000522620",
+          "productName": "Emporium British Extra Mature Cheddar Cheese",
+          "packSize": "400 g",
+          "size": 400,
+          "unit": "g",
+          "priceGBP": 2.45,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Cherry tomatoes",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Chia seeds",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/baking-nuts-seeds-fruit/asda-chia-seeds-150g/5519935",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/baking-nuts-seeds-fruit/asda-chia-seeds-150g/5519935",
+          "productName": "ASDA Chia Seeds",
+          "packSize": "150 g",
+          "size": 150,
+          "unit": "g",
+          "priceGBP": 1.54,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Chicken breast",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/chicken-breasts/asda-tender-chicken-breast-fillets-1kg/4778498",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/chicken-breasts/asda-tender-chicken-breast-fillets-1kg/4778498",
+          "productName": "ASDA British Chicken Breast Fillets",
+          "packSize": "1000 g",
+          "size": 1000,
+          "unit": "g",
+          "priceGBP": 7.0,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Official ASDA page currently lists 1 kg at £7.00 (£7.00/kg); ASDA notes local prices and availability may vary."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-chicken-breast-fillets-000000000000365448",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/everyday-essentials-chicken-breast-fillets-000000000000365448",
+          "productName": "Everyday Essentials Chicken Breast Fillets",
+          "packSize": "1000 g",
+          "size": 1000,
+          "unit": "g",
+          "priceGBP": 4.25,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Official ALDI product page lists 1 kg at £4.25; page warns online and in-store prices may vary."
+        }
+      ]
+    },
+    {
+      "ingredient": "Chicken stock",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/stock/asda-chicken-stock-cubes-12-x-10g-120g-/2687967",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/stock/asda-chicken-stock-cubes-12-x-10g-120g-/2687967",
+          "productName": "ASDA Chicken Stock Cubes",
+          "packSize": "120 g",
+          "size": 120,
+          "unit": "g",
+          "priceGBP": 1.25,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/bramwells-chicken-stock-cubes-000000000000633943",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/bramwells-chicken-stock-cubes-000000000000633943",
+          "productName": "Bramwells Chicken Stock Cubes",
+          "packSize": "120 g",
+          "size": 120,
+          "unit": "g",
+          "priceGBP": 0.69,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Chickpeas",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/5016063",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/5016063",
+          "productName": "ASDA Chickpeas",
+          "packSize": "400 g",
+          "size": 400,
+          "unit": "g",
+          "priceGBP": 0.41,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Chilli flakes",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Chopped tomatoes",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/tinned-tomatoes/just-essentials-by-asda-just-essentials-chopped-tomatoes-400g/22744",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/tinned-tomatoes/just-essentials-by-asda-just-essentials-chopped-tomatoes-400g/22744",
+          "productName": "JUST ESSENTIALS by ASDA Chopped Tomatoes",
+          "packSize": "400 g",
+          "size": 400,
+          "unit": "g",
+          "priceGBP": 0.43,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-chopped-tomatoes-in-tomato-juice-000000000000278702",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/everyday-essentials-chopped-tomatoes-in-tomato-juice-000000000000278702",
+          "productName": "Everyday Essentials Chopped Tomatoes in Tomato Juice",
+          "packSize": "400 g",
+          "size": 400,
+          "unit": "g",
+          "priceGBP": 0.43,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Cinnamon",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/ready-set-cook-ground-cinnamon-000000000000335976",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/ready-set-cook-ground-cinnamon-000000000000335976",
+          "productName": "Ready Set Cook Ground Cinnamon",
+          "packSize": "40 g",
+          "size": 40,
+          "unit": "g",
+          "priceGBP": 0.89,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Cocoa powder",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/cocoa/asda-cocoa-250g/1823351",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/cocoa/asda-cocoa-250g/1823351",
+          "productName": "ASDA Cocoa Powder",
+          "packSize": "250 g",
+          "size": 250,
+          "unit": "g",
+          "priceGBP": 3.34,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Cod fillet",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/frozen-fish-fillets/asda-cod-fillets-by-320g/9221543",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/frozen-fish-fillets/asda-cod-fillets-by-320g/9221543",
+          "productName": "ASDA Cod Fillets",
+          "packSize": "320 g",
+          "size": 320,
+          "unit": "g",
+          "priceGBP": 6.27,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Cooking oil",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/solesta-vegetable-oil-000000000000335872",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/solesta-vegetable-oil-000000000000335872",
+          "productName": "Solesta Vegetable Oil",
+          "packSize": "1000 ml",
+          "size": 1000,
+          "unit": "ml",
+          "priceGBP": 1.45,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Cottage cheese",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/cottage-cheese-quark/just-essentials-by-asda-cottage-cheese-300g/7449545",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/cottage-cheese-quark/just-essentials-by-asda-cottage-cheese-300g/7449545",
+          "productName": "JUST ESSENTIALS by ASDA Cottage Cheese",
+          "packSize": "300 g",
+          "size": 300,
+          "unit": "g",
+          "priceGBP": 0.87,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-low-fat-cottage-cheese-000000000000416217",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/everyday-essentials-low-fat-cottage-cheese-000000000000416217",
+          "productName": "Everyday Essentials Low Fat Cottage Cheese",
+          "packSize": "300 g",
+          "size": 300,
+          "unit": "g",
+          "priceGBP": 0.85,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Courgette",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/courgettes/asda-courgettes-typically-0-35kg-/150567",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/courgettes/asda-courgettes-typically-0-35kg-/150567",
+          "productName": "ASDA Courgettes (typically 0.35kg)",
+          "packSize": "350 g",
+          "size": 350,
+          "unit": "g",
+          "priceGBP": 0.82,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-courgettes-000000000000339808",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/nature-s-pick-courgettes-000000000000339808",
+          "productName": "Nature's Pick Courgettes",
+          "packSize": "500 g",
+          "size": 500,
+          "unit": "g",
+          "priceGBP": 1.39,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Couscous",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Cucumber",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-cucumber-000000000000273659",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/nature-s-pick-cucumber-000000000000273659",
+          "productName": "Nature's Pick Cucumber",
+          "packSize": "1 pieces",
+          "size": 1,
+          "unit": "pieces",
+          "priceGBP": 0.99,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Curry paste",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/ready-set-cook-thai-red-curry-paste-000000000557102001",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/ready-set-cook-thai-red-curry-paste-000000000557102001",
+          "productName": "Ready Set Cook Thai Red Curry Paste",
+          "packSize": "180 g",
+          "size": 180,
+          "unit": "g",
+          "priceGBP": 1.39,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Curry powder",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/ready-set-cook-mild-curry-powder-000000000336690002",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/ready-set-cook-mild-curry-powder-000000000336690002",
+          "productName": "Ready Set Cook Mild Curry Powder",
+          "packSize": "90 g",
+          "size": 90,
+          "unit": "g",
+          "priceGBP": 0.89,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Curry sauce",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Dark chocolate",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/sharing-chocolate-bars/asda-dark-chocolate-200g/9112838",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/sharing-chocolate-bars/asda-dark-chocolate-200g/9112838",
+          "productName": "ASDA Dark Chocolate",
+          "packSize": "200 g",
+          "size": 200,
+          "unit": "g",
+          "priceGBP": 2.28,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Dates",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Dried dill",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Dried mixed herbs",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/ready-set-cook-mixed-herbs-000000000000335977",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/ready-set-cook-mixed-herbs-000000000000335977",
+          "productName": "Ready Set Cook Mixed Herbs",
+          "packSize": "11 g",
+          "size": 11,
+          "unit": "g",
+          "priceGBP": 0.59,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Edamame beans",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/view-all-frozen-vegetables/asda-edamame-soya-beans-600g/5542185",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/view-all-frozen-vegetables/asda-edamame-soya-beans-600g/5542185",
+          "productName": "ASDA Edamame Soya Beans",
+          "packSize": "600 g",
+          "size": 600,
+          "unit": "g",
+          "priceGBP": 3.42,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Egg whites",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Eggs",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/free-range-eggs/asda-6-free-range-large-eggs/166779",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/free-range-eggs/asda-6-free-range-large-eggs/166779",
+          "productName": "ASDA Free Range 6 Large Eggs",
+          "packSize": "6 pieces",
+          "size": 6,
+          "unit": "pieces",
+          "priceGBP": 2.1,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/merevale-free-range-eggs-6-pack-000000000000548465",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/merevale-free-range-eggs-6-pack-000000000000548465",
+          "productName": "Merevale Free Range Eggs 6 Pack",
+          "packSize": "6 pieces",
+          "size": 6,
+          "unit": "pieces",
+          "priceGBP": 0.99,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Fajita seasoning",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Feta cheese",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/specially-selected-barrel-aged-feta-cheese-000000000000558048",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/specially-selected-barrel-aged-feta-cheese-000000000000558048",
+          "productName": "Specially Selected Barrel Aged Feta Cheese",
+          "packSize": "200 g",
+          "size": 200,
+          "unit": "g",
+          "priceGBP": 2.59,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Firm tofu",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/plant-menu-organic-super-firm-tofu-000000000513086001",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/plant-menu-organic-super-firm-tofu-000000000513086001",
+          "productName": "Plant Menu Organic Super Firm Tofu",
+          "packSize": "180 g",
+          "size": 180,
+          "unit": "g",
+          "priceGBP": 0.95,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Frozen berries",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Frozen mixed peppers",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Frozen mixed vegetables",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/four-seasons-mixed-vegetables-000000000000366028",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/four-seasons-mixed-vegetables-000000000000366028",
+          "productName": "Four Seasons Mixed Vegetables",
+          "packSize": "1000 g",
+          "size": 1000,
+          "unit": "g",
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "direct_product_page_price_unverified",
+          "notes": "Direct official ALDI page for frozen mixed vegetables. Price intentionally left blank because the indexed price may be stale."
+        }
+      ]
+    },
+    {
+      "ingredient": "Frozen peas",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Garlic",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-garlic-000000000000273810",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/nature-s-pick-garlic-000000000000273810",
+          "productName": "Nature's Pick Garlic",
+          "packSize": "4 pieces",
+          "size": 4,
+          "unit": "pieces",
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "direct_product_page_price_unverified",
+          "notes": "Direct official ALDI page for a four-pack of garlic. Price intentionally left blank because the indexed price may be stale."
+        }
+      ]
+    },
+    {
+      "ingredient": "Grapes",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-white-seedless-grapes-000000000000266267",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/nature-s-pick-white-seedless-grapes-000000000000266267",
+          "productName": "Nature's Pick White Seedless Grapes",
+          "packSize": "500 g",
+          "size": 500,
+          "unit": "g",
+          "priceGBP": 1.89,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Green beans",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/four-seasons-whole-green-beans-000000000275878001",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/four-seasons-whole-green-beans-000000000275878001",
+          "productName": "Four Seasons Whole Green Beans",
+          "packSize": "1000 g",
+          "size": 1000,
+          "unit": "g",
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "direct_product_page_price_unverified",
+          "notes": "Direct official ALDI page for frozen whole green beans. The visible index price was not treated as a current snapshot; verify the current page before saving a price."
+        }
+      ]
+    },
+    {
+      "ingredient": "Ground cumin",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Halloumi",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/feta-halloumi-salad/asda-halloumi-225g/6487115",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/feta-halloumi-salad/asda-halloumi-225g/6487115",
+          "productName": "ASDA Halloumi",
+          "packSize": "225 g",
+          "size": 225,
+          "unit": "g",
+          "priceGBP": 1.97,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/emporium-halloumi-plain-225g-000000000000612513",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/emporium-halloumi-plain-225g-000000000000612513",
+          "productName": "Emporium Halloumi Plain",
+          "packSize": "225 g",
+          "size": 225,
+          "unit": "g",
+          "priceGBP": 1.99,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "High-protein natural yoghurt",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/high-in-protein/asda-fat-free-protein-natural-yogurt-500g/9375176",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/high-in-protein/asda-fat-free-protein-natural-yogurt-500g/9375176",
+          "productName": "ASDA Fat Free Protein Natural Yogurt",
+          "packSize": "500 g",
+          "size": 500,
+          "unit": "g",
+          "priceGBP": 1.85,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Honey",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Hot sauce",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Kidney beans",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-red-kidney-beans-000000000000623466",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/everyday-essentials-red-kidney-beans-000000000000623466",
+          "productName": "Everyday Essentials Red Kidney Beans",
+          "packSize": "260 g",
+          "size": 260,
+          "unit": "g",
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "direct_product_page_price_unverified",
+          "notes": "Direct official ALDI page for tinned red kidney beans. Price intentionally left blank because the indexed price may be stale."
+        }
+      ]
+    },
+    {
+      "ingredient": "Kiwi",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Lean ham",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Lean pork",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Lemon",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Lemon juice",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Lentils",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/four-seasons-tinned-lentils-000000000627180002",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/four-seasons-tinned-lentils-000000000627180002",
+          "productName": "Four Seasons Tinned Lentils",
+          "packSize": "400 g",
+          "size": 400,
+          "unit": "g",
+          "priceGBP": 0.45,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Lettuce",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Light burger sauce",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Light Caesar dressing",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Light coconut milk",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Light cream cheese",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Lime",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Mandarin",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Melon",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Milk",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/filtered-milk/asda-british-milk-filtered-semi-skimmed-2-litres/7504719",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/filtered-milk/asda-british-milk-filtered-semi-skimmed-2-litres/7504719",
+          "productName": "ASDA British Filtered Semi Skimmed Milk",
+          "packSize": "2000 ml",
+          "size": 2000,
+          "unit": "ml",
+          "priceGBP": 2.08,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/cowbelle-filtered-british-semi-skimmed-milk-000000000000417584",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/cowbelle-filtered-british-semi-skimmed-milk-000000000000417584",
+          "productName": "Cowbelle Filtered British Semi Skimmed Milk",
+          "packSize": "2000 ml",
+          "size": 2000,
+          "unit": "ml",
+          "priceGBP": 1.69,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Mixed salad",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Mushrooms",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/ready-set-cook-sliced-mushrooms-000000000367190001",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/ready-set-cook-sliced-mushrooms-000000000367190001",
+          "productName": "Ready Set Cook Sliced Mushrooms",
+          "packSize": "500 g",
+          "size": 500,
+          "unit": "g",
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "direct_product_page_price_unverified",
+          "notes": "Direct official ALDI page for sliced mushrooms. Price intentionally left blank because the indexed price may be stale."
+        }
+      ]
+    },
+    {
+      "ingredient": "Mustard",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/bramwells-english-mustard-000000000335764002",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/bramwells-english-mustard-000000000335764002",
+          "productName": "Bramwells English Mustard",
+          "packSize": "200 g",
+          "size": 200,
+          "unit": "g",
+          "priceGBP": 0.49,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Noodles",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/noodles/asda-straight-to-wok-noodles-300g/5295909",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/noodles/asda-straight-to-wok-noodles-300g/5295909",
+          "productName": "ASDA Straight to Wok Noodles",
+          "packSize": "300 g",
+          "size": 300,
+          "unit": "g",
+          "priceGBP": 1.0,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/ready-set-cook-rice-noodles-000000000340666001",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/ready-set-cook-rice-noodles-000000000340666001",
+          "productName": "Ready Set Cook Rice Noodles",
+          "packSize": "300 g",
+          "size": 300,
+          "unit": "g",
+          "priceGBP": 0.99,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Official ALDI product-page snapshot for rice noodles; check this is the noodle type required by the recipe."
+        }
+      ]
+    },
+    {
+      "ingredient": "Oat biscuits",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Oats",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/traditional-porridge-oats/asda-scottish-porridge-oats-1kg/5805443",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/traditional-porridge-oats/asda-scottish-porridge-oats-1kg/5805443",
+          "productName": "ASDA Scottish Porridge Oats",
+          "packSize": "1000 g",
+          "size": 1000,
+          "unit": "g",
+          "priceGBP": 1.18,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Official ASDA page displayed £1.18 against a previous £1.25 price; offer may change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-porridge-oats-000000000000337387",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/everyday-essentials-porridge-oats-000000000000337387",
+          "productName": "Everyday Essentials Porridge Oats",
+          "packSize": "1000 g",
+          "size": 1000,
+          "unit": "g",
+          "priceGBP": 0.85,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Olive oil",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/olive-oil/asda-olive-oil-500ml/9019015",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/olive-oil/asda-olive-oil-500ml/9019015",
+          "productName": "ASDA Olive Oil",
+          "packSize": "500 ml",
+          "size": 500,
+          "unit": "ml",
+          "priceGBP": 5.5,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Onion",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/onions-leeks/asda-brown-onions-1kg/2110666",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/onions-leeks/asda-brown-onions-1kg/2110666",
+          "productName": "ASDA Brown Onions",
+          "packSize": "1000 g",
+          "size": 1000,
+          "unit": "g",
+          "priceGBP": 0.98,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Orange",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-large-oranges-000000000000267083",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/nature-s-pick-large-oranges-000000000000267083",
+          "productName": "Nature's Pick Large Oranges",
+          "packSize": "4 pieces",
+          "size": 4,
+          "unit": "pieces",
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "direct_product_page_price_unverified",
+          "notes": "Direct official ALDI page for a four-orange pack. Price intentionally left blank because the indexed price may be stale."
+        }
+      ]
+    },
+    {
+      "ingredient": "Orzo",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Paprika",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/spices/cook-by-asda-cook-paprika-46g/544306",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/spices/cook-by-asda-cook-paprika-46g/544306",
+          "productName": "Cook by ASDA Paprika",
+          "packSize": "46 g",
+          "size": 46,
+          "unit": "g",
+          "priceGBP": 1.0,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/ready-set-cook-paprika-000000000000575019",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/ready-set-cook-paprika-000000000000575019",
+          "productName": "Ready Set Cook Paprika",
+          "packSize": "40 g",
+          "size": 40,
+          "unit": "g",
+          "priceGBP": 0.69,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Parmesan",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Passata",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/passata-and-tomato-puree/asda-passata-500g/226958",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/passata-and-tomato-puree/asda-passata-500g/226958",
+          "productName": "ASDA Passata",
+          "packSize": "500 g",
+          "size": 500,
+          "unit": "g",
+          "priceGBP": 0.6,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Pasta",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/spaghetti-tagliatelle/spaghetti-500g/12943",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/spaghetti-tagliatelle/spaghetti-500g/12943",
+          "productName": "ASDA Spaghetti",
+          "packSize": "500 g",
+          "size": 500,
+          "unit": "g",
+          "priceGBP": 0.75,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Official ASDA page showed £0.75 for one 500 g pack; a multibuy offer was also displayed and may change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-spaghetti-pasta-500g-000000000000306030",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/everyday-essentials-spaghetti-pasta-500g-000000000000306030",
+          "productName": "Everyday Essentials Spaghetti Pasta",
+          "packSize": "500 g",
+          "size": 500,
+          "unit": "g",
+          "priceGBP": 0.28,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Peanut butter",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/grandessa-smooth-peanut-butter-000000000283841001",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/grandessa-smooth-peanut-butter-000000000283841001",
+          "productName": "Grandessa Smooth Peanut Butter",
+          "packSize": "340 g",
+          "size": 340,
+          "unit": "g",
+          "priceGBP": 0.95,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Pear",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Pesto",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/pesto/exceptional-by-asda-pesto-alla-genovese-190g/9009352",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/pesto/exceptional-by-asda-pesto-alla-genovese-190g/9009352",
+          "productName": "Exceptional by ASDA Pesto Alla Genovese",
+          "packSize": "190 g",
+          "size": 190,
+          "unit": "g",
+          "priceGBP": 2.0,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/cucina-basil-pesto-000000000337284001",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/cucina-basil-pesto-000000000337284001",
+          "productName": "Cucina Basil Pesto",
+          "packSize": "190 g",
+          "size": 190,
+          "unit": "g",
+          "priceGBP": 0.89,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Potato",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/white-potatoes/asda-british-white-potatoes-2kg/9402722",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/white-potatoes/asda-british-white-potatoes-2kg/9402722",
+          "productName": "ASDA British White Potatoes",
+          "packSize": "2000 g",
+          "size": 2000,
+          "unit": "g",
+          "priceGBP": 1.32,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Prawns",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/prawns-mussels/asda-succulent-cooked-peeled-cold-water-prawns-150g/6305703",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/prawns-mussels/asda-succulent-cooked-peeled-cold-water-prawns-150g/6305703",
+          "productName": "ASDA Succulent Cooked Peeled Cold Water Prawns",
+          "packSize": "150 g",
+          "size": 150,
+          "unit": "g",
+          "priceGBP": 3.57,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/specially-selected-cooked-peeled-extra-large-king-prawns-000000000000602839",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/specially-selected-cooked-peeled-extra-large-king-prawns-000000000000602839",
+          "productName": "Specially Selected Cooked Peeled Extra Large King Prawns",
+          "packSize": "150 g",
+          "size": 150,
+          "unit": "g",
+          "priceGBP": 2.99,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Quark",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/cottage-cheese-quark/arla-quark-natural-fat-free-soft-cheese-250g/9370148",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/cottage-cheese-quark/arla-quark-natural-fat-free-soft-cheese-250g/9370148",
+          "productName": "Arla Quark Natural Fat Free Soft Cheese",
+          "packSize": "250 g",
+          "size": 250,
+          "unit": "g",
+          "priceGBP": 1.3,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Red lentils",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/5021677",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/5021677",
+          "productName": "ASDA Red Lentils",
+          "packSize": "500 g",
+          "size": 500,
+          "unit": "g",
+          "priceGBP": 2.0,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/worldwide-foods-red-lentils-000000000000336258",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/worldwide-foods-red-lentils-000000000000336258",
+          "productName": "Worldwide Foods Red Lentils",
+          "packSize": "500 g",
+          "size": 500,
+          "unit": "g",
+          "priceGBP": 0.89,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Rice",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/long-grain-basmati-rice/asda-easy-cook-long-grain-white-rice/9132441",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/long-grain-basmati-rice/asda-easy-cook-long-grain-white-rice/9132441",
+          "productName": "ASDA Easy Cook Long Grain White Rice",
+          "packSize": "1000 g",
+          "size": 1000,
+          "unit": "g",
+          "priceGBP": 1.25,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/worldwide-foods-basmati-rice-000000000000262344",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/worldwide-foods-basmati-rice-000000000000262344",
+          "productName": "Worldwide Foods Basmati Rice",
+          "packSize": "1000 g",
+          "size": 1000,
+          "unit": "g",
+          "priceGBP": 1.79,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Romaine lettuce",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/lettuce/asda-british-cos-lettuce/5494309",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/lettuce/asda-british-cos-lettuce/5494309",
+          "productName": "ASDA British Cos Lettuce",
+          "packSize": "1 pieces",
+          "size": 1,
+          "unit": "pieces",
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "direct_product_page_price_unverified",
+          "notes": "Direct ASDA product page exists, but the page indicated this product was unavailable during review; no price snapshot added."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-british-romaine-lettuce-000000000000339921",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/nature-s-pick-british-romaine-lettuce-000000000000339921",
+          "productName": "Nature's Pick British Romaine Lettuce",
+          "packSize": "2 pieces",
+          "size": 2,
+          "unit": "pieces",
+          "priceGBP": 1.15,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Salmon fillet",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/the-fishmonger-salmon-fillets-000000000000381995",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/the-fishmonger-salmon-fillets-000000000000381995",
+          "productName": "The Fishmonger Salmon Fillets",
+          "packSize": "240 g",
+          "size": 240,
+          "unit": "g",
+          "priceGBP": 3.59,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Skyr yoghurt",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Smoked salmon",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Soy sauce",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Spinach",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-british-baby-spinach-000000000000340023",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/nature-s-pick-british-baby-spinach-000000000000340023",
+          "productName": "Nature's Pick British Baby Spinach",
+          "packSize": "450 g",
+          "size": 450,
+          "unit": "g",
+          "priceGBP": 1.59,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Strawberries",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/nature-s-pick-strawberries-000000000000339980",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/nature-s-pick-strawberries-000000000000339980",
+          "productName": "Nature's Pick Strawberries",
+          "packSize": "400 g",
+          "size": 400,
+          "unit": "g",
+          "priceGBP": 2.15,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Sweet potato",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/sweet-potatoes/asda-creamy-flavoursome-sweet-potatoes-1kg/2076628",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/sweet-potatoes/asda-creamy-flavoursome-sweet-potatoes-1kg/2076628",
+          "productName": "ASDA Creamy & Flavoursome Sweet Potatoes",
+          "packSize": "1000 g",
+          "size": 1000,
+          "unit": "g",
+          "priceGBP": 1.24,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Sweetcorn",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/vegetables/asda-frozen-for-freshness-sweetcorn/2027119",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/vegetables/asda-frozen-for-freshness-sweetcorn/2027119",
+          "productName": "ASDA Frozen for Freshness Sweetcorn",
+          "packSize": "1000 g",
+          "size": 1000,
+          "unit": "g",
+          "priceGBP": 1.7,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Sweetener",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Taco seasoning",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Teriyaki sauce",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/hot-chilli-sauces/asda-teriyaki-sauce-300g/9289308",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/hot-chilli-sauces/asda-teriyaki-sauce-300g/9289308",
+          "productName": "ASDA Teriyaki Sauce",
+          "packSize": "300 g",
+          "size": 300,
+          "unit": "g",
+          "priceGBP": 2.24,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/asia-specialities-teriyaki-sauce-000000000337196003",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/asia-specialities-teriyaki-sauce-000000000337196003",
+          "productName": "Asia Specialities Teriyaki Sauce",
+          "packSize": "285 g",
+          "size": 285,
+          "unit": "g",
+          "priceGBP": 1.39,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Tikka seasoning",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Tomato",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Tuna",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/tuna/asda-skipjack-tuna-chunks-in-spring-water/6117168",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/tuna/asda-skipjack-tuna-chunks-in-spring-water/6117168",
+          "productName": "ASDA Skipjack Tuna Chunks in Spring Water",
+          "packSize": "145 g",
+          "size": 145,
+          "unit": "g",
+          "priceGBP": 0.65,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Turkey mince",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/turkey/asda-lean-turkey-mince-500g/4457673",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/turkey/asda-lean-turkey-mince-500g/4457673",
+          "productName": "ASDA Lean Turkey Mince",
+          "packSize": "500 g",
+          "size": 500,
+          "unit": "g",
+          "priceGBP": 4.17,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/ashfields-british-turkey-mince-7-fat-000000000000386144",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/ashfields-british-turkey-mince-7-fat-000000000000386144",
+          "productName": "Ashfields British Turkey Mince 7% Fat",
+          "packSize": "500 g",
+          "size": 500,
+          "unit": "g",
+          "priceGBP": 2.99,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Turkey sausages",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/sausages/asda-8-succulent-turkey-sausages-454g/5082487",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/sausages/asda-8-succulent-turkey-sausages-454g/5082487",
+          "productName": "ASDA 8 Succulent Turkey Sausages",
+          "packSize": "454 g",
+          "size": 454,
+          "unit": "g",
+          "priceGBP": 3.5,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Walnuts",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/raw-nuts-seeds/asda-walnuts-200g/7359203",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/raw-nuts-seeds/asda-walnuts-200g/7359203",
+          "productName": "ASDA Walnuts",
+          "packSize": "200 g",
+          "size": 200,
+          "unit": "g",
+          "priceGBP": 2.18,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Whey protein powder",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Wholegrain crackers",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Wholemeal bread",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/wholemeal-bread/the-bakery-at-asda-the-bakery-farmhouse-wholemeal-440g/7427615",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/wholemeal-bread/the-bakery-at-asda-the-bakery-farmhouse-wholemeal-440g/7427615",
+          "productName": "The Bakery at ASDA Farmhouse Wholemeal Bread",
+          "packSize": "440 g",
+          "size": 440,
+          "unit": "g",
+          "priceGBP": 0.93,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-medium-sliced-wholemeal-bread-000000000383372002",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/everyday-essentials-medium-sliced-wholemeal-bread-000000000383372002",
+          "productName": "Everyday Essentials Medium Sliced Wholemeal Bread",
+          "packSize": "800 g",
+          "size": 800,
+          "unit": "g",
+          "priceGBP": 0.55,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Aldi product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        }
+      ]
+    },
+    {
+      "ingredient": "Wholemeal pitta",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Wholemeal wrap",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/wraps/the-bakery-at-asda-the-bakery-8-wholemeal-wraps-488g/3207137",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/wraps/the-bakery-at-asda-the-bakery-8-wholemeal-wraps-488g/3207137",
+          "productName": "The Bakery at ASDA 8 Wholemeal Wraps",
+          "packSize": "8 pieces",
+          "size": 8,
+          "unit": "pieces",
+          "priceGBP": 1.32,
+          "priceCheckedDate": "2026-10-06",
+          "status": "verified_price_snapshot",
+          "notes": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    }
+  ]
+}
