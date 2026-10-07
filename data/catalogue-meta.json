@@ -1,7 +1,13 @@
 {
+  "schema_version": 2,
+  "status": "seed",
   "checked": "2026-10-07T00:00:00Z",
+  "refreshed_at": "2026-10-07T00:00:00Z",
   "discovered_urls": 42,
+  "discovered_sitemaps": 0,
+  "pages_fetched": 42,
   "products_saved": 42,
+  "healthy": false,
   "source": "ASDA official sitemap + official product pages",
-  "note": "Seed data only until the first full GitHub Actions/Render refresh runs."
+  "note": "Seed snapshot only; waiting for the first complete, validated ASDA sitemap refresh."
 }

@@ -1,4 +1,6 @@
-import * as cheerio from 'cheerio';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const CATALOG_STORES = {
   Asda: {
@@ -14,10 +16,11 @@ const CATALOG_STORES = {
 };
 
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
-const MAX_SITEMAPS = 250;
-const MAX_PRODUCT_URLS = 100000;
 const REQUEST_TIMEOUT_MS = 12000;
 const catalogCache = new Map();
+const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const ASDA_CATALOGUE_PATH = process.env.ASDA_CATALOGUE_PATH || path.resolve(MODULE_DIR, '../data/products.json');
+const ASDA_METADATA_PATH = process.env.ASDA_CATALOGUE_META_PATH || path.resolve(MODULE_DIR, '../data/catalogue-meta.json');
 
 function clean(value, max = 300) {
   return String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
@@ -52,20 +55,54 @@ function extractLocs(xml) {
 async function buildUrlIndex(storeName) {
   const config = CATALOG_STORES[storeName];
   if (!config) throw new Error(`Unsupported catalog store: ${storeName}`);
+
+  if (storeName === 'Asda') {
+    try {
+      const [catalogueText, metadataText] = await Promise.all([
+        readFile(ASDA_CATALOGUE_PATH, 'utf8'),
+        readFile(ASDA_METADATA_PATH, 'utf8'),
+      ]);
+      const products = JSON.parse(catalogueText);
+      const metadata = JSON.parse(metadataText);
+      const productCount = Array.isArray(products) ? products.length : 0;
+      const complete = metadata.status === 'complete' && productCount >= 100;
+      const seed = metadata.status === 'seed' || (!metadata.status && productCount > 0);
+      if ((complete || seed) && Array.isArray(products) &&
+          products.length === Number(metadata.products_saved) &&
+          products.every(product => product && /^https:\/\/www\.asda\.com\/groceries\/product\//i.test(product.url))) {
+        const createdAt = Date.parse(metadata.refreshed_at) || Date.now();
+        const index = {
+          createdAt,
+          urls: products.map(product => product.url),
+          products,
+          sitemapCount: Number(metadata.discovered_sitemaps) || 0,
+          snapshotStatus: complete ? 'complete' : 'seed',
+          source: complete ? 'validated ASDA catalogue snapshot' : 'ASDA seed snapshot',
+        };
+        catalogCache.set(storeName, index);
+        return index;
+      }
+    } catch (error) {
+      if (error?.code !== 'ENOENT' && !(error instanceof SyntaxError)) throw error;
+    }
+  }
+
   const seen = new Set();
+  const visitedSitemaps = new Set();
   const queue = [config.sitemap];
   let sitemapCount = 0;
 
-  while (queue.length && sitemapCount < MAX_SITEMAPS && seen.size < MAX_PRODUCT_URLS) {
+  while (queue.length) {
     const sitemapUrl = queue.shift();
+    if (visitedSitemaps.has(sitemapUrl)) continue;
+    visitedSitemaps.add(sitemapUrl);
     sitemapCount += 1;
     const xml = await fetchText(sitemapUrl);
     for (const loc of extractLocs(xml)) {
       if (loc.endsWith('.xml') || /sitemap/i.test(loc)) {
-        if (!queue.includes(loc) && sitemapCount + queue.length < MAX_SITEMAPS) queue.push(loc);
+        if (!visitedSitemaps.has(loc) && !queue.includes(loc)) queue.push(loc);
       } else if (config.allowedProduct(loc)) {
         seen.add(loc);
-        if (seen.size >= MAX_PRODUCT_URLS) break;
       }
     }
   }
@@ -111,21 +148,53 @@ function scoreCandidate(query, url) {
   return score;
 }
 
+function productSearchText(product) {
+  return [
+    product.name, product.ingredient, product.brand, product.category,
+    product.packSize, product.sku, product.gtin,
+  ].filter(Boolean).join(' ');
+}
+
 export async function searchCatalog(storeName, query, limit = 8) {
   const index = await getIndex(storeName);
   const q = clean(query, 120);
-  const rows = index.urls
-    .map((url) => ({ url, score: scoreCandidate(q, url) }))
-    .filter((x) => x.score > 0)
+  const maxRows = Math.max(1, Math.min(Number(limit) || 8, 12));
+  const rows = (index.products || index.urls.map(url => ({ url })))
+    .map(product => ({
+      product,
+      url: product.url,
+      score: scoreCandidate(q, index.products ? productSearchText(product) : product.url),
+    }))
+    .filter(row => row.score > 0)
     .sort((a, b) => b.score - a.score || a.url.localeCompare(b.url))
-    .slice(0, Math.max(1, Math.min(Number(limit) || 8, 12)));
+    .slice(0, maxRows);
   return {
     store: storeName,
     query: q,
     indexSize: index.urls.length,
     sitemapCount: index.sitemapCount,
     refreshedAt: new Date(index.createdAt).toISOString(),
-    results: rows.map((r) => ({ url: r.url, score: r.score })),
+    source: index.source || 'official retailer sitemap',
+    snapshotStatus: index.snapshotStatus || 'live_sitemap',
+    results: rows.map(({ product, url, score }) => index.products ? ({
+      url,
+      score,
+      productName: product.name,
+      brand: product.brand || null,
+      packSize: product.packSize || null,
+      packQuantity: product.packQuantity ?? null,
+      packUnit: product.packUnit || null,
+      priceGBP: product.price ?? null,
+      sku: product.sku || null,
+      gtin: product.gtin || null,
+      availability: product.availability || 'unknown',
+      available: product.available ?? null,
+      image: product.image || null,
+      category: product.category || null,
+      nutrition: product.nutrition || null,
+      checkedAt: product.checkedAt || product.checked || null,
+      verified: index.snapshotStatus === 'complete' && Number(product.price) > 0 && Number(product.packQuantity) > 0,
+    }) : ({ url, score })),
   };
 }
 
@@ -150,7 +219,32 @@ function extractPack(text) {
 export async function fetchProductPage(storeName, url) {
   const config = CATALOG_STORES[storeName];
   if (!config || !config.allowedProduct(url)) throw new Error('Product URL is not an allowed official retailer product page.');
+  const index = await getIndex(storeName);
+  const saved = index.snapshotStatus === 'complete' ? index.products?.find(product => product.url === url) : null;
+  if (saved) {
+    return {
+      store: storeName,
+      url: saved.url,
+      productName: saved.name,
+      priceGBP: saved.price == null || !Number.isFinite(Number(saved.price)) ? null : Number(saved.price),
+      size: saved.packQuantity ?? null,
+      unit: saved.packUnit || null,
+      packSize: saved.packSize || null,
+      sku: saved.sku || null,
+      gtin: saved.gtin || null,
+      brand: saved.brand || null,
+      category: saved.category || null,
+      availability: saved.availability || 'unknown',
+      available: saved.available ?? null,
+      image: saved.image || null,
+      nutrition: saved.nutrition || null,
+      checkedAt: saved.checkedAt || saved.checked || null,
+      source: 'validated ASDA catalogue snapshot',
+      verified: Number(saved.price) > 0 && Number(saved.packQuantity) > 0,
+    };
+  }
   const html = await fetchText(url);
+  const cheerio = await import('cheerio');
   const $ = cheerio.load(html);
   const title = clean($('h1').first().text() || $('title').first().text(), 240);
   const priceMeta = $('meta[property="product:price:amount"], meta[itemprop="price"]').first().attr('content');
@@ -182,4 +276,24 @@ export function clearCatalogCache(storeName = null) {
 
 export function catalogStoreInfo() {
   return Object.values(CATALOG_STORES).map((x) => ({ name: x.name, sitemap: x.sitemap }));
+}
+
+export async function catalogueStatus() {
+  try {
+    const [catalogueText, metadataText] = await Promise.all([
+      readFile(ASDA_CATALOGUE_PATH, 'utf8'),
+      readFile(ASDA_METADATA_PATH, 'utf8'),
+    ]);
+    const products = JSON.parse(catalogueText);
+    const metadata = JSON.parse(metadataText);
+    const catalogueCount = Array.isArray(products) ? products.length : 0;
+    return {
+      ...metadata,
+      status: metadata.status || (catalogueCount ? 'seed' : 'unavailable'),
+      products_saved: catalogueCount,
+      healthy: metadata.status === 'complete' && catalogueCount >= 100 && catalogueCount === Number(metadata.products_saved),
+    };
+  } catch {
+    return { status: 'unavailable', healthy: false, products_saved: 0, source: 'ASDA official sitemap' };
+  }
 }

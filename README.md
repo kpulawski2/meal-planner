@@ -1,36 +1,38 @@
 # Meal Planner v2
 
-## What changed
-- ASDA-first product catalogue with direct official product links.
-- Recipe quantities normalized to grams/ml.
-- Shopping list rounds recipe requirements up to purchasable ASDA packs.
-- Recipe library expanded to 79 original recipes.
-- Searchable recipe library with meal categories and tags.
-- Separate JSON data files so recipes/products can grow without editing the UI.
-- Render backend scaffold for refreshing ASDA catalogue data.
+The meal planner uses direct ASDA product pages as the source for its growing product catalogue and shopping pack/price matching.
 
-## GitHub Pages
-Upload/replace the contents of this folder in the existing GitHub Pages repository.
-Do not upload the old single-file recipe database over the new data folder.
+## ASDA catalogue
+
+`data/products.json` is generated from ASDA's official sitemap index (`https://www.asda.com/sitemap-index.xml`), published by `https://www.asda.com/robots.txt`. The scraper recursively follows the sitemap tree, visits every discovered `/groceries/product/` page, and records product name, price, pack size, SKU/GTIN, brand, category, availability, image, nutrition and ingredients where the page exposes them.
+
+The catalogue is refreshed daily by `.github/workflows/refresh-asda.yml` and can also be run from the Actions tab. That workflow runs the scraper tests first. It commits `data/products.json` and `data/catalogue-meta.json` only after a complete, validated run.
+
+The scraper retries transient HTTP failures, uses bounded concurrency, and fails closed when sitemap discovery fails, any discovered product page cannot be parsed, fewer than 100 products are available, or a previously healthy catalogue would drop by more than 20%. It stages both JSON files and atomically replaces each only after validation, so a partial scrape cannot replace a healthy snapshot.
+
+`data/catalogue-meta.json` records refresh status, the number of visited sitemaps, discovered URLs, saved products, coverage, duration, and field coverage. The Render catalogue service exposes this at `/catalogue/status` and includes it in `/health`.
+
+The meal planner's ASDA catalogue search reads the validated snapshot, scores matches against product name, ingredient text, brand, category, pack size, SKU and GTIN, and returns the captured product details and price. Until a complete snapshot is available, the app can still build its live URL index from ASDA's official sitemap.
+
+The product page may omit a price, pack quantity, nutrition or availability. Such products remain in the catalogue with missing values instead of being discarded. The planner only allows a product to be selected as a verified pack quote when it has both a price and a usable pack quantity. Online price and availability are time-sensitive and may vary by location.
+
+## Run and test locally
+
+From the repository root:
+
+```sh
+python -m pip install -r backend/requirements.txt
+python -m unittest discover -s backend/tests -v
+python backend/refresh_catalogue.py
+```
+
+To run the Node app tests, install the dependencies in `package.json`, then run:
+
+```sh
+npm run check
+npm test
+```
 
 ## Render
-Deploy `backend/` as a Python web service. The `/refresh` endpoint rebuilds the ASDA catalogue.
-Because ASDA prices and availability can change, the catalogue stores a checked date.
 
-## Important
-The included `data/products.json` is a seed snapshot from the project's 2026-10-06 official ASDA price snapshot.
-It is not a claim that every ASDA product is already present. The Render crawler is the mechanism intended to expand/refresh the catalogue.
-
-
-## Automatic catalogue refresh
-The repository includes `.github/workflows/refresh-asda.yml`. GitHub Actions runs the catalogue refresh daily and can also be run manually from the Actions tab. It commits the refreshed `data/products.json`, so GitHub Pages receives the updated product prices/links automatically.
-
-The first seed snapshot contains 42 seeded ASDA product records (used only until the first full catalogue refresh) from the project's 2026-10-06 official snapshot. The crawler is what expands this toward the full ASDA grocery catalogue; the exact number of crawlable products can vary with ASDA's site structure, availability and page changes.
-
-## Full ASDA catalogue architecture
-
-The refresh job does **not** use a fixed product list or a small page crawl. ASDA publishes an official sitemap index from its robots.txt. The updater reads that index, follows nested sitemaps, collects every URL under `/groceries/product/`, and fetches each official product page. This is the catalogue discovery mechanism used for each refresh.
-
-The saved catalogue can contain products even when a particular product currently has no price or pack quantity exposed; those records are retained rather than silently discarded. Products with usable pack/price data are the ones the meal planner can cost directly.
-
-Prices and availability are time-sensitive and can vary online/in-store, so every record is stamped with the refresh date.
+The optional Python service in `backend/render.yaml` exposes `/health`, `/catalogue/status`, `/products` and `POST /refresh`. The main meal-planner Docker image includes the committed `data/` catalogue snapshot so its matcher can use the same data.

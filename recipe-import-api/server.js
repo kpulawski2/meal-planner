@@ -12,7 +12,7 @@ import multer from 'multer';
 import { chooseBestPackCandidate, summarizePriceBenchmark } from './price-adapter.js';
 import { GroqApiError, groqChatCompletion, groqTranscribe, evenlySampleFrames } from './groq-adapter.js';
 import { PRICE_LOOKUP_STORES, lookupStoreItem, splitBatches } from './price-search-adapter.js';
-import { searchCatalog, fetchProductPage, clearCatalogCache, catalogStoreInfo } from './catalog-adapter.js';
+import { searchCatalog, fetchProductPage, clearCatalogCache, catalogStoreInfo, catalogueStatus } from './catalog-adapter.js';
 
 const execFileAsync = promisify(execFile);
 const app = express();
@@ -825,6 +825,7 @@ app.get('/api/connection-check', authenticated, (_req, res) => res.json({ ok: tr
 // Automatic supermarket lookups are disabled in the direct-page catalogue build. Prices are stored as verified page snapshots or manually recorded by the user.
 
 app.get('/api/catalog/stores', catalogRateLimit, (_req, res) => res.json({ ok: true, stores: catalogStoreInfo(), mode: 'official-retailer-sitemaps' }));
+app.get('/api/catalog/status', async (_req, res) => res.json({ ok: true, catalogue: await catalogueStatus() }));
 app.get('/api/catalog/search', catalogRateLimit, async (req, res) => {
   try {
     const store = cleanString(req.query.store || '', 40);
@@ -854,7 +855,7 @@ app.post('/api/catalog/refresh', catalogRateLimit, (req, res) => { const store =
 app.post('/api/prices/lookup', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct ASDA/Aldi product-page references in the Shopping List.' }));
 app.get('/api/prices/lookup/:jobId', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct product-page reference catalogue.' }));
 
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner', aiProvider: 'Groq API (recipe/video features only)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors for AI import', priceSearchProvider: 'Manual product reference catalogue; no automated search API', braveSearchConfigured: false, priceSearchRetryPolicy: 'Not used by the manual price-reference UI', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: false, livePriceSearchConfigured: false, livePriceStores: ['Asda', 'Aldi'], priceSearchModel: null, priceDataSource: 'Direct official ASDA/Aldi product-detail URLs and dated price snapshots; missing direct pages/prices remain blank; no search-engine links or automatic price lookup', directProductPageCount: 93, priceSnapshotCount: 83, manualPriceReferenceMode: true, officialCatalogMode: true, officialCatalogSources: catalogStoreInfo(), priceReferenceCatalog: '/price-reference-catalog.json', priceReferenceCsv: '/price-reference-catalog.csv', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
+app.get('/health', async (_req, res) => res.json({ ok: true, service: 'meal-planner', aiProvider: 'Groq API (recipe/video features only)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors for AI import', priceSearchProvider: 'Manual product reference catalogue; no automated search API', braveSearchConfigured: false, priceSearchRetryPolicy: 'Not used by the manual price-reference UI', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: false, livePriceSearchConfigured: false, livePriceStores: ['Asda', 'Aldi'], priceSearchModel: null, priceDataSource: 'Direct official ASDA/Aldi product-detail URLs and dated price snapshots; missing direct pages/prices remain blank; no search-engine links or automatic price lookup', directProductPageCount: 93, priceSnapshotCount: 83, manualPriceReferenceMode: true, officialCatalogMode: true, officialCatalogSources: catalogStoreInfo(), asdaCatalogue: await catalogueStatus(), priceReferenceCatalog: '/price-reference-catalog.json', priceReferenceCsv: '/price-reference-catalog.csv', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
 
 app.post('/api/import-recipe', authenticated, async (req, res) => {
   const url = cleanString(req.body?.url, 2000);
