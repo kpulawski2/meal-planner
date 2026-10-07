@@ -1,19 +1,36 @@
-# Meal Planner
+# Meal Planner v2
 
-Mobile-first personal meal planner with recipe categories, weekly planning, pantry, shopping lists, pack-size planning, retailer-specific saved price snapshots, and a Groq-powered recipe/video importer.
+## What changed
+- ASDA-first product catalogue with direct official product links.
+- Recipe quantities normalized to grams/ml.
+- Shopping list rounds recipe requirements up to purchasable ASDA packs.
+- Recipe library expanded to 79 original recipes.
+- Searchable recipe library with meal categories and tags.
+- Separate JSON data files so recipes/products can grow without editing the UI.
+- Render backend scaffold for refreshing ASDA catalogue data.
 
-## Direct price references
+## GitHub Pages
+Upload/replace the contents of this folder in the existing GitHub Pages repository.
+Do not upload the old single-file recipe database over the new data folder.
 
-Shopping supports ASDA and Aldi only. The bundled recipe library has 114 unique ingredient names and 228 ingredient/store rows in `public/price-reference-catalog.csv` and `public/price-reference-catalog.json`. The current catalogue contains **93 direct official product-detail URLs** and **83 dated price snapshots** (42 ASDA and 41 Aldi). No Google or other search-engine URLs are generated. Where a direct product page has not been verified, the URL and price fields are blank rather than replaced with a search page.
+## Render
+Deploy `backend/` as a Python web service. The `/refresh` endpoint rebuilds the ASDA catalogue.
+Because ASDA prices and availability can change, the catalogue stores a checked date.
 
-The price data is a static snapshot catalogue, not a live price feed. Prices and availability can vary by postcode and over time. Always open the official product page before buying; when a price cannot be verified, record it manually in the Shopping List. Automatic `/api/prices/lookup` searches are disabled in this build. Groq is retained for recipe/video importing only.
-
-## Running and hosting
-
-The single Render service serves both the frontend and backend. Keep `Dockerfile`, `render.yaml`, `package.json`, `public/`, and `recipe-import-api/` at the repository root. See `DEPLOY-FREE.md` for environment variables, deployment and mobile home-screen setup. GitHub Pages is not required.
-
-Keep `GROQ_API_KEY` and `IMPORT_API_TOKEN` in Render environment settings only. The Groq key is used for recipe/video import, not price lookup.
+## Important
+The included `data/products.json` is a seed snapshot from the project's 2026-10-06 official ASDA price snapshot.
+It is not a claim that every ASDA product is already present. The Render crawler is the mechanism intended to expand/refresh the catalogue.
 
 
-## Full retailer catalogue
-The shopping page is no longer restricted to the 114 ingredients in the bundled recipe library. The backend can search the official ASDA grocery product sitemap (`https://www.asda.com/sitemap-index.xml`) and ALDI product sitemap (`https://www.aldi.co.uk/sitemap_products.xml`) to discover direct product pages. When you choose a product, the backend reads that official product page for the current price and pack information; no Google search results are used.
+## Automatic catalogue refresh
+The repository includes `.github/workflows/refresh-asda.yml`. GitHub Actions runs the catalogue refresh daily and can also be run manually from the Actions tab. It commits the refreshed `data/products.json`, so GitHub Pages receives the updated product prices/links automatically.
+
+The first seed snapshot contains 42 seeded ASDA product records (used only until the first full catalogue refresh) from the project's 2026-10-06 official snapshot. The crawler is what expands this toward the full ASDA grocery catalogue; the exact number of crawlable products can vary with ASDA's site structure, availability and page changes.
+
+## Full ASDA catalogue architecture
+
+The refresh job does **not** use a fixed product list or a small page crawl. ASDA publishes an official sitemap index from its robots.txt. The updater reads that index, follows nested sitemaps, collects every URL under `/groceries/product/`, and fetches each official product page. This is the catalogue discovery mechanism used for each refresh.
+
+The saved catalogue can contain products even when a particular product currently has no price or pack quantity exposed; those records are retained rather than silently discarded. Products with usable pack/price data are the ones the meal planner can cost directly.
+
+Prices and availability are time-sensitive and can vary online/in-store, so every record is stamped with the refresh date.

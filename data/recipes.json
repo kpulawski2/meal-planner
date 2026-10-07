@@ -1,0 +1,3718 @@
+[
+  {
+    "id": "protein-oats",
+    "name": "Protein Berry Overnight Oats",
+    "category": "Breakfast",
+    "servings": 1,
+    "kcal": 430,
+    "protein": 42,
+    "carbs": 48,
+    "fat": 8,
+    "prepMinutes": 5,
+    "cookMinutes": 0,
+    "totalMinutes": 5,
+    "tags": [
+      "High Protein",
+      "Breakfast",
+      "Under 500 kcal"
+    ],
+    "icon": "🥣",
+    "ingredients": [
+      {
+        "ingredient": "0% Greek yoghurt",
+        "quantity": 300,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Oats",
+        "quantity": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed berries",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chia seeds",
+        "quantity": 10,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Milk",
+        "quantity": 100,
+        "unit": "ml"
+      }
+    ],
+    "method": "Mix everything in a container, refrigerate overnight, and stir before serving."
+  },
+  {
+    "id": "banana-protein-oats",
+    "name": "Banana Protein Porridge",
+    "category": "Breakfast",
+    "servings": 1,
+    "kcal": 445,
+    "protein": 38,
+    "carbs": 58,
+    "fat": 7,
+    "prepMinutes": 3,
+    "cookMinutes": 5,
+    "totalMinutes": 8,
+    "tags": [
+      "High Protein",
+      "Breakfast",
+      "Under 500 kcal"
+    ],
+    "icon": "🥣",
+    "ingredients": [
+      {
+        "ingredient": "Oats",
+        "quantity": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Milk",
+        "quantity": 200,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Banana",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Protein powder",
+        "quantity": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cinnamon",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook oats with milk until creamy. Stir in protein powder off the heat and top with banana and cinnamon."
+  },
+  {
+    "id": "egg-toast",
+    "name": "Protein Eggs on Wholemeal Toast",
+    "category": "Breakfast",
+    "servings": 1,
+    "kcal": 455,
+    "protein": 34,
+    "carbs": 38,
+    "fat": 16,
+    "prepMinutes": 5,
+    "cookMinutes": 8,
+    "totalMinutes": 13,
+    "tags": [
+      "High Protein",
+      "Breakfast"
+    ],
+    "icon": "🍳",
+    "ingredients": [
+      {
+        "ingredient": "Eggs",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Wholemeal bread",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 60,
+        "unit": "g"
+      }
+    ],
+    "method": "Scramble or fry the eggs. Toast the bread and serve with tomato and wilted spinach."
+  },
+  {
+    "id": "yoghurt-bowl",
+    "name": "Greek Yogurt Berry Bowl",
+    "category": "Breakfast",
+    "servings": 1,
+    "kcal": 360,
+    "protein": 35,
+    "carbs": 39,
+    "fat": 6,
+    "prepMinutes": 5,
+    "cookMinutes": 0,
+    "totalMinutes": 5,
+    "tags": [
+      "High Protein",
+      "Breakfast",
+      "Under 400 kcal"
+    ],
+    "icon": "🥣",
+    "ingredients": [
+      {
+        "ingredient": "0% Greek yoghurt",
+        "quantity": 350,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed berries",
+        "quantity": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Oats",
+        "quantity": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chia seeds",
+        "quantity": 10,
+        "unit": "g"
+      }
+    ],
+    "method": "Combine yoghurt and berries. Top with oats and chia seeds."
+  },
+  {
+    "id": "cottage-banana",
+    "name": "Cottage Cheese Banana Bowl",
+    "category": "Breakfast",
+    "servings": 1,
+    "kcal": 330,
+    "protein": 29,
+    "carbs": 39,
+    "fat": 6,
+    "prepMinutes": 5,
+    "cookMinutes": 0,
+    "totalMinutes": 5,
+    "tags": [
+      "High Protein",
+      "Breakfast"
+    ],
+    "icon": "🍌",
+    "ingredients": [
+      {
+        "ingredient": "Cottage cheese",
+        "quantity": 250,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Banana",
+        "quantity": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cinnamon",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Slice the banana and combine with cottage cheese and cinnamon."
+  },
+  {
+    "id": "protein-pancakes",
+    "name": "Protein Banana Pancakes",
+    "category": "Breakfast",
+    "servings": 1,
+    "kcal": 470,
+    "protein": 39,
+    "carbs": 49,
+    "fat": 12,
+    "prepMinutes": 7,
+    "cookMinutes": 10,
+    "totalMinutes": 17,
+    "tags": [
+      "High Protein",
+      "Breakfast"
+    ],
+    "icon": "🥞",
+    "ingredients": [
+      {
+        "ingredient": "Banana",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Eggs",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Oats",
+        "quantity": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient": "0% Greek yoghurt",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Baking powder",
+        "quantity": 3,
+        "unit": "g"
+      }
+    ],
+    "method": "Blend ingredients into a batter. Cook small pancakes in a non-stick pan until set on both sides."
+  },
+  {
+    "id": "breakfast-wrap",
+    "name": "Chicken Breakfast Wrap",
+    "category": "Breakfast",
+    "servings": 1,
+    "kcal": 510,
+    "protein": 45,
+    "carbs": 43,
+    "fat": 15,
+    "prepMinutes": 8,
+    "cookMinutes": 10,
+    "totalMinutes": 18,
+    "tags": [
+      "High Protein",
+      "Breakfast",
+      "Meal Prep"
+    ],
+    "icon": "🌯",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Eggs",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tortilla wrap",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 80,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook diced chicken. Scramble the eggs with spinach, then fill the wrap with chicken, egg and tomato."
+  },
+  {
+    "id": "protein-toast",
+    "name": "Cottage Cheese Protein Toast",
+    "category": "Breakfast",
+    "servings": 1,
+    "kcal": 390,
+    "protein": 32,
+    "carbs": 42,
+    "fat": 10,
+    "prepMinutes": 5,
+    "cookMinutes": 3,
+    "totalMinutes": 8,
+    "tags": [
+      "High Protein",
+      "Breakfast"
+    ],
+    "icon": "🍞",
+    "ingredients": [
+      {
+        "ingredient": "Wholemeal bread",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cottage cheese",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Black pepper",
+        "quantity": 1,
+        "unit": "g"
+      }
+    ],
+    "method": "Toast bread and top with cottage cheese, sliced tomato and pepper."
+  },
+  {
+    "id": "chicken-rice",
+    "name": "Chicken & Broccoli Rice Bowl",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 560,
+    "protein": 58,
+    "carbs": 58,
+    "fat": 10,
+    "prepMinutes": 8,
+    "cookMinutes": 18,
+    "totalMinutes": 26,
+    "tags": [
+      "High Protein",
+      "Lunch",
+      "Meal Prep",
+      "Under 600 kcal"
+    ],
+    "icon": "🍚",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Soy sauce",
+        "quantity": 15,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook rice. Pan-cook chicken until fully cooked, steam broccoli, then combine with soy sauce and olive oil."
+  },
+  {
+    "id": "fajita-bowl",
+    "name": "Chicken Fajita Rice Bowl",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 575,
+    "protein": 57,
+    "carbs": 63,
+    "fat": 10,
+    "prepMinutes": 10,
+    "cookMinutes": 20,
+    "totalMinutes": 30,
+    "tags": [
+      "High Protein",
+      "Lunch",
+      "Mexican",
+      "Meal Prep"
+    ],
+    "icon": "🌯",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed peppers",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Onion",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Greek yoghurt",
+        "quantity": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook rice. Fry sliced chicken, peppers and onion with fajita seasoning. Serve over rice with yoghurt."
+  },
+  {
+    "id": "tuna-pasta",
+    "name": "Tuna Protein Pasta",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 520,
+    "protein": 49,
+    "carbs": 57,
+    "fat": 9,
+    "prepMinutes": 8,
+    "cookMinutes": 12,
+    "totalMinutes": 20,
+    "tags": [
+      "High Protein",
+      "Lunch",
+      "Under 600 kcal"
+    ],
+    "icon": "🍝",
+    "ingredients": [
+      {
+        "ingredient": "Tuna",
+        "quantity": 145,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pasta",
+        "quantity": 65,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Greek yoghurt",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Sweetcorn",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 60,
+        "unit": "g"
+      }
+    ],
+    "method": "Boil pasta. Drain tuna and combine with yoghurt, sweetcorn and spinach; fold through warm pasta."
+  },
+  {
+    "id": "beef-bowl",
+    "name": "Lean Beef & Pepper Rice Bowl",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 590,
+    "protein": 48,
+    "carbs": 60,
+    "fat": 16,
+    "prepMinutes": 8,
+    "cookMinutes": 18,
+    "totalMinutes": 26,
+    "tags": [
+      "High Protein",
+      "Lunch",
+      "Meal Prep"
+    ],
+    "icon": "🥩",
+    "ingredients": [
+      {
+        "ingredient": "5% beef mince",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed peppers",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Onion",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Passata",
+        "quantity": 100,
+        "unit": "g"
+      }
+    ],
+    "method": "Brown beef with onion and peppers. Add passata and simmer. Serve with cooked rice."
+  },
+  {
+    "id": "chicken-pasta",
+    "name": "Creamy Chicken Spinach Pasta",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 585,
+    "protein": 55,
+    "carbs": 55,
+    "fat": 13,
+    "prepMinutes": 8,
+    "cookMinutes": 18,
+    "totalMinutes": 26,
+    "tags": [
+      "High Protein",
+      "Italian",
+      "Lunch"
+    ],
+    "icon": "🍝",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pasta",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Greek yoghurt",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Garlic",
+        "quantity": 5,
+        "unit": "g"
+      }
+    ],
+    "method": "Boil pasta. Cook chicken and garlic, wilt spinach, then lower heat and stir in yoghurt. Toss with pasta."
+  },
+  {
+    "id": "tuna-potato",
+    "name": "Tuna Jacket Potato",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 500,
+    "protein": 42,
+    "carbs": 55,
+    "fat": 9,
+    "prepMinutes": 5,
+    "cookMinutes": 12,
+    "totalMinutes": 17,
+    "tags": [
+      "High Protein",
+      "Lunch",
+      "Under 600 kcal"
+    ],
+    "icon": "🥔",
+    "ingredients": [
+      {
+        "ingredient": "Potato",
+        "quantity": 300,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tuna",
+        "quantity": 145,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cottage cheese",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Sweetcorn",
+        "quantity": 70,
+        "unit": "g"
+      }
+    ],
+    "method": "Bake or microwave the potato until tender. Mix tuna, cottage cheese and sweetcorn and spoon over the potato."
+  },
+  {
+    "id": "chicken-salad",
+    "name": "High Protein Chicken Salad",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 430,
+    "protein": 50,
+    "carbs": 20,
+    "fat": 14,
+    "prepMinutes": 10,
+    "cookMinutes": 15,
+    "totalMinutes": 25,
+    "tags": [
+      "High Protein",
+      "Lunch",
+      "Low Calorie"
+    ],
+    "icon": "🥗",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed salad",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cucumber",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook chicken and slice. Toss salad vegetables and top with chicken and olive oil dressing."
+  },
+  {
+    "id": "turkey-wrap",
+    "name": "Turkey Salad Wrap",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 480,
+    "protein": 42,
+    "carbs": 44,
+    "fat": 13,
+    "prepMinutes": 8,
+    "cookMinutes": 5,
+    "totalMinutes": 13,
+    "tags": [
+      "High Protein",
+      "Lunch"
+    ],
+    "icon": "🌯",
+    "ingredients": [
+      {
+        "ingredient": "Turkey mince",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tortilla wrap",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Lettuce",
+        "quantity": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Greek yoghurt",
+        "quantity": 50,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook turkey mince with seasoning. Fill the wrap with turkey, salad and yoghurt."
+  },
+  {
+    "id": "chicken-curry",
+    "name": "Chicken Curry & Rice",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 610,
+    "protein": 60,
+    "carbs": 61,
+    "fat": 12,
+    "prepMinutes": 10,
+    "cookMinutes": 25,
+    "totalMinutes": 35,
+    "tags": [
+      "High Protein",
+      "Dinner",
+      "Indian",
+      "Meal Prep"
+    ],
+    "icon": "🍛",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chopped tomatoes",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Onion",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed vegetables",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Greek yoghurt",
+        "quantity": 50,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook rice. Fry chicken and onion with curry powder, add tomatoes and vegetables, simmer until chicken is cooked, then finish with yoghurt."
+  },
+  {
+    "id": "beef-chilli",
+    "name": "Lean Beef Chilli & Potato",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 620,
+    "protein": 55,
+    "carbs": 59,
+    "fat": 15,
+    "prepMinutes": 10,
+    "cookMinutes": 30,
+    "totalMinutes": 40,
+    "tags": [
+      "High Protein",
+      "Dinner",
+      "Mexican",
+      "Meal Prep"
+    ],
+    "icon": "🌶️",
+    "ingredients": [
+      {
+        "ingredient": "5% beef mince",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Potato",
+        "quantity": 250,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Kidney beans",
+        "quantity": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chopped tomatoes",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Onion",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Peppers",
+        "quantity": 100,
+        "unit": "g"
+      }
+    ],
+    "method": "Brown beef with onion and peppers. Add tomatoes and beans and simmer. Serve with baked or boiled potato."
+  },
+  {
+    "id": "beef-pasta",
+    "name": "Lean Beef Tomato Pasta",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 610,
+    "protein": 52,
+    "carbs": 65,
+    "fat": 14,
+    "prepMinutes": 8,
+    "cookMinutes": 22,
+    "totalMinutes": 30,
+    "tags": [
+      "High Protein",
+      "Dinner",
+      "Italian"
+    ],
+    "icon": "🍝",
+    "ingredients": [
+      {
+        "ingredient": "5% beef mince",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pasta",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Passata",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Onion",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 60,
+        "unit": "g"
+      }
+    ],
+    "method": "Brown beef and onion. Add passata and simmer. Cook pasta, wilt spinach into the sauce and combine."
+  },
+  {
+    "id": "chicken-tikka",
+    "name": "Chicken Tikka & Rice",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 590,
+    "protein": 61,
+    "carbs": 55,
+    "fat": 11,
+    "prepMinutes": 12,
+    "cookMinutes": 25,
+    "totalMinutes": 37,
+    "tags": [
+      "High Protein",
+      "Dinner",
+      "Indian"
+    ],
+    "icon": "🍛",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 220,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 55,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Greek yoghurt",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Passata",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Onion",
+        "quantity": 70,
+        "unit": "g"
+      }
+    ],
+    "method": "Marinate chicken in yoghurt and spices. Cook chicken thoroughly, simmer with tomato and onion, and serve with rice."
+  },
+  {
+    "id": "teriyaki-chicken",
+    "name": "Teriyaki Chicken Rice Bowl",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 575,
+    "protein": 56,
+    "carbs": 67,
+    "fat": 8,
+    "prepMinutes": 8,
+    "cookMinutes": 18,
+    "totalMinutes": 26,
+    "tags": [
+      "High Protein",
+      "Dinner",
+      "Asian",
+      "Meal Prep"
+    ],
+    "icon": "🥢",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Teriyaki sauce",
+        "quantity": 25,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Carrot",
+        "quantity": 80,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook rice. Stir-fry chicken and vegetables until cooked, add teriyaki sauce and toss. Serve over rice."
+  },
+  {
+    "id": "honey-chicken",
+    "name": "Honey Soy Chicken & Broccoli",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 560,
+    "protein": 55,
+    "carbs": 62,
+    "fat": 8,
+    "prepMinutes": 8,
+    "cookMinutes": 18,
+    "totalMinutes": 26,
+    "tags": [
+      "High Protein",
+      "Dinner",
+      "Asian"
+    ],
+    "icon": "🍯",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 55,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Light soy sauce",
+        "quantity": 15,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Honey",
+        "quantity": 15,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook rice. Stir-fry chicken and broccoli, then add soy sauce and honey. Toss until glossy."
+  },
+  {
+    "id": "salmon-potato",
+    "name": "Salmon & Roasted Potatoes",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 610,
+    "protein": 44,
+    "carbs": 48,
+    "fat": 24,
+    "prepMinutes": 8,
+    "cookMinutes": 30,
+    "totalMinutes": 38,
+    "tags": [
+      "High Protein",
+      "Dinner",
+      "Mediterranean"
+    ],
+    "icon": "🐟",
+    "ingredients": [
+      {
+        "ingredient": "Salmon fillet",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Potato",
+        "quantity": 250,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 160,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 7,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Lemon juice",
+        "quantity": 10,
+        "unit": "ml"
+      }
+    ],
+    "method": "Roast potatoes with oil. Add salmon and broccoli near the end and cook until salmon is opaque and flakes easily."
+  },
+  {
+    "id": "prawn-pasta",
+    "name": "Garlic Prawn Tomato Pasta",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 540,
+    "protein": 43,
+    "carbs": 63,
+    "fat": 10,
+    "prepMinutes": 8,
+    "cookMinutes": 15,
+    "totalMinutes": 23,
+    "tags": [
+      "High Protein",
+      "Dinner",
+      "Italian"
+    ],
+    "icon": "🍤",
+    "ingredients": [
+      {
+        "ingredient": "King prawns",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pasta",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Passata",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook pasta. Sauté prawns and garlic, add passata and spinach, then toss with pasta."
+  },
+  {
+    "id": "turkey-chilli",
+    "name": "Turkey & Bean Chilli",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 540,
+    "protein": 51,
+    "carbs": 48,
+    "fat": 12,
+    "prepMinutes": 10,
+    "cookMinutes": 30,
+    "totalMinutes": 40,
+    "tags": [
+      "High Protein",
+      "Dinner",
+      "Meal Prep"
+    ],
+    "icon": "🌶️",
+    "ingredients": [
+      {
+        "ingredient": "Turkey mince",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Kidney beans",
+        "quantity": 130,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chopped tomatoes",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Onion",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Peppers",
+        "quantity": 120,
+        "unit": "g"
+      }
+    ],
+    "method": "Brown turkey with onion and peppers. Add tomatoes and beans and simmer until thick."
+  },
+  {
+    "id": "chicken-noodles",
+    "name": "Chicken Vegetable Noodles",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 520,
+    "protein": 51,
+    "carbs": 57,
+    "fat": 8,
+    "prepMinutes": 8,
+    "cookMinutes": 15,
+    "totalMinutes": 23,
+    "tags": [
+      "High Protein",
+      "Dinner",
+      "Asian",
+      "Under 600 kcal"
+    ],
+    "icon": "🍜",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Noodles",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Peppers",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Soy sauce",
+        "quantity": 20,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook noodles. Stir-fry chicken and vegetables, add soy sauce and toss through noodles."
+  },
+  {
+    "id": "beef-stirfry",
+    "name": "Lean Beef Stir-Fry Noodles",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 590,
+    "protein": 48,
+    "carbs": 62,
+    "fat": 15,
+    "prepMinutes": 8,
+    "cookMinutes": 15,
+    "totalMinutes": 23,
+    "tags": [
+      "High Protein",
+      "Dinner",
+      "Asian"
+    ],
+    "icon": "🥢",
+    "ingredients": [
+      {
+        "ingredient": "5% beef mince",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Noodles",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Peppers",
+        "quantity": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Soy sauce",
+        "quantity": 20,
+        "unit": "ml"
+      }
+    ],
+    "method": "Brown beef, add vegetables and cook until tender-crisp. Toss with noodles and soy sauce."
+  },
+  {
+    "id": "chicken-burrito",
+    "name": "Chicken Burrito Bowl",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 620,
+    "protein": 58,
+    "carbs": 73,
+    "fat": 10,
+    "prepMinutes": 10,
+    "cookMinutes": 20,
+    "totalMinutes": 30,
+    "tags": [
+      "High Protein",
+      "Dinner",
+      "Mexican"
+    ],
+    "icon": "🌯",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Kidney beans",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Sweetcorn",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Greek yoghurt",
+        "quantity": 50,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook rice and chicken. Assemble with beans, sweetcorn, tomato and yoghurt."
+  },
+  {
+    "id": "chicken-pesto",
+    "name": "Chicken Pesto Pasta",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 600,
+    "protein": 57,
+    "carbs": 58,
+    "fat": 15,
+    "prepMinutes": 8,
+    "cookMinutes": 18,
+    "totalMinutes": 26,
+    "tags": [
+      "High Protein",
+      "Dinner",
+      "Italian"
+    ],
+    "icon": "🍝",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pasta",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pesto",
+        "quantity": 20,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 100,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook pasta and chicken. Toss with pesto, spinach and tomato while warm."
+  },
+  {
+    "id": "tuna-bake",
+    "name": "Tuna Tomato Pasta Bake",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 570,
+    "protein": 49,
+    "carbs": 60,
+    "fat": 11,
+    "prepMinutes": 10,
+    "cookMinutes": 25,
+    "totalMinutes": 35,
+    "tags": [
+      "High Protein",
+      "Dinner",
+      "Meal Prep"
+    ],
+    "icon": "🧀",
+    "ingredients": [
+      {
+        "ingredient": "Tuna",
+        "quantity": 145,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pasta",
+        "quantity": 65,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Passata",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cheddar",
+        "quantity": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 60,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook pasta and combine with tuna, passata and spinach. Top with cheese and bake until bubbling."
+  },
+  {
+    "id": "egg-fried-rice",
+    "name": "High Protein Egg Fried Rice",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 520,
+    "protein": 35,
+    "carbs": 63,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 15,
+    "totalMinutes": 23,
+    "tags": [
+      "High Protein",
+      "Dinner",
+      "Asian"
+    ],
+    "icon": "🍳",
+    "ingredients": [
+      {
+        "ingredient": "Rice",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Eggs",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Peas",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Carrot",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Soy sauce",
+        "quantity": 15,
+        "unit": "ml"
+      }
+    ],
+    "method": "Use cooked chilled rice. Stir-fry vegetables, add rice, then push aside and scramble eggs before combining with soy sauce."
+  },
+  {
+    "id": "lentil-curry",
+    "name": "Red Lentil Curry & Rice",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 560,
+    "protein": 27,
+    "carbs": 78,
+    "fat": 11,
+    "prepMinutes": 10,
+    "cookMinutes": 30,
+    "totalMinutes": 40,
+    "tags": [
+      "Dinner",
+      "Indian",
+      "Vegetarian"
+    ],
+    "icon": "🍛",
+    "ingredients": [
+      {
+        "ingredient": "Red lentils",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chopped tomatoes",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Onion",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 80,
+        "unit": "g"
+      }
+    ],
+    "method": "Simmer lentils with tomatoes, onion and spices until tender. Stir in spinach and serve with rice."
+  },
+  {
+    "id": "tofu-stirfry",
+    "name": "Tofu Vegetable Stir-Fry",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 500,
+    "protein": 29,
+    "carbs": 49,
+    "fat": 20,
+    "prepMinutes": 10,
+    "cookMinutes": 15,
+    "totalMinutes": 25,
+    "tags": [
+      "Dinner",
+      "Vegetarian",
+      "Asian"
+    ],
+    "icon": "🥢",
+    "ingredients": [
+      {
+        "ingredient": "Tofu",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 55,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Peppers",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Soy sauce",
+        "quantity": 20,
+        "unit": "ml"
+      }
+    ],
+    "method": "Brown tofu, stir-fry vegetables, add soy sauce and serve over rice."
+  },
+  {
+    "id": "halloumi-bowl",
+    "name": "Halloumi & Couscous Bowl",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 590,
+    "protein": 28,
+    "carbs": 61,
+    "fat": 25,
+    "prepMinutes": 10,
+    "cookMinutes": 10,
+    "totalMinutes": 20,
+    "tags": [
+      "Dinner",
+      "Vegetarian",
+      "Mediterranean"
+    ],
+    "icon": "🥗",
+    "ingredients": [
+      {
+        "ingredient": "Halloumi",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Couscous",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cucumber",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 60,
+        "unit": "g"
+      }
+    ],
+    "method": "Prepare couscous. Pan-sear halloumi and assemble with chopped vegetables and spinach."
+  },
+  {
+    "id": "bean-pasta",
+    "name": "Mediterranean Bean Pasta",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 540,
+    "protein": 27,
+    "carbs": 78,
+    "fat": 9,
+    "prepMinutes": 8,
+    "cookMinutes": 18,
+    "totalMinutes": 26,
+    "tags": [
+      "Dinner",
+      "Vegetarian",
+      "Italian"
+    ],
+    "icon": "🍝",
+    "ingredients": [
+      {
+        "ingredient": "Pasta",
+        "quantity": 75,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cannellini beans",
+        "quantity": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Passata",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook pasta. Simmer beans, passata and spinach, then toss with pasta and olive oil."
+  },
+  {
+    "id": "chicken-soup",
+    "name": "Chicken Vegetable Soup",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 390,
+    "protein": 46,
+    "carbs": 31,
+    "fat": 7,
+    "prepMinutes": 10,
+    "cookMinutes": 30,
+    "totalMinutes": 40,
+    "tags": [
+      "High Protein",
+      "Lunch",
+      "Low Calorie"
+    ],
+    "icon": "🍲",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Potato",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Carrot",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Onion",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chicken stock",
+        "quantity": 400,
+        "unit": "ml"
+      }
+    ],
+    "method": "Simmer vegetables in stock until tender. Add diced chicken and cook through. Season to taste."
+  },
+  {
+    "id": "beef-soup",
+    "name": "Lean Beef Vegetable Soup",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 430,
+    "protein": 42,
+    "carbs": 35,
+    "fat": 12,
+    "prepMinutes": 10,
+    "cookMinutes": 30,
+    "totalMinutes": 40,
+    "tags": [
+      "High Protein",
+      "Lunch"
+    ],
+    "icon": "🍲",
+    "ingredients": [
+      {
+        "ingredient": "5% beef mince",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Potato",
+        "quantity": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Carrot",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Peas",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chicken stock",
+        "quantity": 400,
+        "unit": "ml"
+      }
+    ],
+    "method": "Brown beef, add vegetables and stock, then simmer until vegetables are tender."
+  },
+  {
+    "id": "tuna-salad",
+    "name": "Tuna Sweetcorn Salad",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 360,
+    "protein": 42,
+    "carbs": 25,
+    "fat": 8,
+    "prepMinutes": 8,
+    "cookMinutes": 0,
+    "totalMinutes": 8,
+    "tags": [
+      "High Protein",
+      "Lunch",
+      "Low Calorie"
+    ],
+    "icon": "🥗",
+    "ingredients": [
+      {
+        "ingredient": "Tuna",
+        "quantity": 145,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Sweetcorn",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed salad",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Greek yoghurt",
+        "quantity": 50,
+        "unit": "g"
+      }
+    ],
+    "method": "Mix tuna, sweetcorn and yoghurt. Serve over salad and tomato."
+  },
+  {
+    "id": "egg-salad",
+    "name": "Egg & Cottage Cheese Salad",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 390,
+    "protein": 34,
+    "carbs": 20,
+    "fat": 18,
+    "prepMinutes": 8,
+    "cookMinutes": 8,
+    "totalMinutes": 16,
+    "tags": [
+      "High Protein",
+      "Lunch"
+    ],
+    "icon": "🥚",
+    "ingredients": [
+      {
+        "ingredient": "Eggs",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cottage cheese",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed salad",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 100,
+        "unit": "g"
+      }
+    ],
+    "method": "Boil eggs, cool and slice. Serve with cottage cheese and salad."
+  },
+  {
+    "id": "chicken-potato",
+    "name": "Chicken & Potato Meal Prep",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 520,
+    "protein": 52,
+    "carbs": 49,
+    "fat": 13,
+    "prepMinutes": 8,
+    "cookMinutes": 30,
+    "totalMinutes": 38,
+    "tags": [
+      "High Protein",
+      "Lunch",
+      "Meal Prep"
+    ],
+    "icon": "🍗",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Potato",
+        "quantity": 250,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      }
+    ],
+    "method": "Roast potato and broccoli. Cook chicken separately until fully cooked, then portion together."
+  },
+  {
+    "id": "beef-potato",
+    "name": "Lean Beef Loaded Potato",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 570,
+    "protein": 49,
+    "carbs": 57,
+    "fat": 14,
+    "prepMinutes": 8,
+    "cookMinutes": 25,
+    "totalMinutes": 33,
+    "tags": [
+      "High Protein",
+      "Lunch"
+    ],
+    "icon": "🥔",
+    "ingredients": [
+      {
+        "ingredient": "5% beef mince",
+        "quantity": 160,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Potato",
+        "quantity": 300,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cottage cheese",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 100,
+        "unit": "g"
+      }
+    ],
+    "method": "Bake potato. Brown beef with seasoning and serve with cottage cheese and tomato."
+  },
+  {
+    "id": "prawn-rice",
+    "name": "Prawn & Vegetable Rice Bowl",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 500,
+    "protein": 40,
+    "carbs": 65,
+    "fat": 8,
+    "prepMinutes": 8,
+    "cookMinutes": 18,
+    "totalMinutes": 26,
+    "tags": [
+      "High Protein",
+      "Lunch",
+      "Asian"
+    ],
+    "icon": "🍤",
+    "ingredients": [
+      {
+        "ingredient": "King prawns",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Peas",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Carrot",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Soy sauce",
+        "quantity": 15,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook rice. Stir-fry prawns and vegetables, add soy sauce and serve over rice."
+  },
+  {
+    "id": "salmon-rice",
+    "name": "Salmon Rice Bowl",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 600,
+    "protein": 42,
+    "carbs": 58,
+    "fat": 22,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Lunch"
+    ],
+    "icon": "🐟",
+    "ingredients": [
+      {
+        "ingredient": "Salmon fillet",
+        "quantity": 170,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cucumber",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Soy sauce",
+        "quantity": 15,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook rice and salmon. Serve with cucumber, broccoli and soy sauce."
+  },
+  {
+    "id": "protein-yogurt",
+    "name": "Protein Berry Yogurt Pot",
+    "category": "Snack",
+    "servings": 1,
+    "kcal": 220,
+    "protein": 27,
+    "carbs": 22,
+    "fat": 3,
+    "prepMinutes": 3,
+    "cookMinutes": 0,
+    "totalMinutes": 3,
+    "tags": [
+      "High Protein",
+      "Snack",
+      "Under 300 kcal"
+    ],
+    "icon": "🥛",
+    "ingredients": [
+      {
+        "ingredient": "Greek yoghurt",
+        "quantity": 250,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed berries",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Protein powder",
+        "quantity": 15,
+        "unit": "g"
+      }
+    ],
+    "method": "Stir protein powder through yoghurt and top with berries."
+  },
+  {
+    "id": "cottage-berries",
+    "name": "Cottage Cheese Berry Bowl",
+    "category": "Snack",
+    "servings": 1,
+    "kcal": 240,
+    "protein": 27,
+    "carbs": 20,
+    "fat": 6,
+    "prepMinutes": 3,
+    "cookMinutes": 0,
+    "totalMinutes": 3,
+    "tags": [
+      "High Protein",
+      "Snack"
+    ],
+    "icon": "🫐",
+    "ingredients": [
+      {
+        "ingredient": "Cottage cheese",
+        "quantity": 220,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed berries",
+        "quantity": 100,
+        "unit": "g"
+      }
+    ],
+    "method": "Combine cottage cheese and berries."
+  },
+  {
+    "id": "protein-pudding",
+    "name": "Chocolate Protein Yogurt",
+    "category": "Snack",
+    "servings": 1,
+    "kcal": 230,
+    "protein": 29,
+    "carbs": 18,
+    "fat": 5,
+    "prepMinutes": 3,
+    "cookMinutes": 0,
+    "totalMinutes": 3,
+    "tags": [
+      "High Protein",
+      "Snack"
+    ],
+    "icon": "🍫",
+    "ingredients": [
+      {
+        "ingredient": "Greek yoghurt",
+        "quantity": 250,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Protein powder",
+        "quantity": 20,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cocoa powder",
+        "quantity": 5,
+        "unit": "g"
+      }
+    ],
+    "method": "Mix until smooth and chill for a thicker texture."
+  },
+  {
+    "id": "egg-snack",
+    "name": "Boiled Eggs & Tomato",
+    "category": "Snack",
+    "servings": 1,
+    "kcal": 210,
+    "protein": 19,
+    "carbs": 7,
+    "fat": 12,
+    "prepMinutes": 2,
+    "cookMinutes": 8,
+    "totalMinutes": 10,
+    "tags": [
+      "High Protein",
+      "Snack"
+    ],
+    "icon": "🥚",
+    "ingredients": [
+      {
+        "ingredient": "Eggs",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 120,
+        "unit": "g"
+      }
+    ],
+    "method": "Boil eggs to preference, cool and serve with tomato."
+  },
+  {
+    "id": "banana-yogurt",
+    "name": "Banana Protein Yogurt",
+    "category": "Snack",
+    "servings": 1,
+    "kcal": 250,
+    "protein": 25,
+    "carbs": 31,
+    "fat": 3,
+    "prepMinutes": 3,
+    "cookMinutes": 0,
+    "totalMinutes": 3,
+    "tags": [
+      "High Protein",
+      "Snack"
+    ],
+    "icon": "🍌",
+    "ingredients": [
+      {
+        "ingredient": "Greek yoghurt",
+        "quantity": 220,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Banana",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cinnamon",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Slice banana and combine with yoghurt and cinnamon."
+  },
+  {
+    "id": "tuna-cucumber",
+    "name": "Tuna Cucumber Cups",
+    "category": "Snack",
+    "servings": 1,
+    "kcal": 180,
+    "protein": 27,
+    "carbs": 8,
+    "fat": 3,
+    "prepMinutes": 5,
+    "cookMinutes": 0,
+    "totalMinutes": 5,
+    "tags": [
+      "High Protein",
+      "Snack",
+      "Low Calorie"
+    ],
+    "icon": "🥒",
+    "ingredients": [
+      {
+        "ingredient": "Tuna",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cucumber",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Greek yoghurt",
+        "quantity": 40,
+        "unit": "g"
+      }
+    ],
+    "method": "Mix tuna with yoghurt and spoon into cucumber slices."
+  },
+  {
+    "id": "var-lemon-0",
+    "name": "Lemon & Herb Chicken Rice – Classic",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 849,
+    "protein": 71,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Meal Prep"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Lemon juice",
+        "quantity": 15,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-lemon-1",
+    "name": "Lemon & Herb Chicken Rice – Spicy",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 849,
+    "protein": 71,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Meal Prep"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Lemon juice",
+        "quantity": 15,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Chilli flakes",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-lemon-2",
+    "name": "Lemon & Herb Chicken Rice – Herb",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 849,
+    "protein": 71,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Meal Prep"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Lemon juice",
+        "quantity": 15,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Mixed herbs",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-garlic-0",
+    "name": "Garlic Chicken Tomato Pasta – Classic",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 916,
+    "protein": 75,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Italian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pasta",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Passata",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Garlic",
+        "quantity": 5,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-garlic-1",
+    "name": "Garlic Chicken Tomato Pasta – Spicy",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 916,
+    "protein": 75,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Italian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pasta",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Passata",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Garlic",
+        "quantity": 5,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chilli flakes",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-garlic-2",
+    "name": "Garlic Chicken Tomato Pasta – Herb",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 916,
+    "protein": 75,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Italian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pasta",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Passata",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Garlic",
+        "quantity": 5,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed herbs",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-mex-0",
+    "name": "Chicken Mexican Bean Bowl – Classic",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 882,
+    "protein": 69,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Mexican"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 55,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Kidney beans",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Sweetcorn",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-mex-1",
+    "name": "Chicken Mexican Bean Bowl – Spicy",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 882,
+    "protein": 69,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Mexican"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 55,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Kidney beans",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Sweetcorn",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chilli flakes",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-mex-2",
+    "name": "Chicken Mexican Bean Bowl – Herb",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 882,
+    "protein": 69,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Mexican"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 55,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Kidney beans",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Sweetcorn",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed herbs",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-med-0",
+    "name": "Mediterranean Chicken Couscous – Classic",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 876,
+    "protein": 68,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Mediterranean"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Couscous",
+        "quantity": 65,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cucumber",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-med-1",
+    "name": "Mediterranean Chicken Couscous – Spicy",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 876,
+    "protein": 68,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Mediterranean"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Couscous",
+        "quantity": 65,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cucumber",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chilli flakes",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-med-2",
+    "name": "Mediterranean Chicken Couscous – Herb",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 876,
+    "protein": 68,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Mediterranean"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Chicken breast",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Couscous",
+        "quantity": 65,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Tomato",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cucumber",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed herbs",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-pepper-0",
+    "name": "Pepper Beef Pasta – Classic",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 910,
+    "protein": 64,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Italian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "5% beef mince",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pasta",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Peppers",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Passata",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Onion",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-pepper-1",
+    "name": "Pepper Beef Pasta – Spicy",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 910,
+    "protein": 64,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Italian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "5% beef mince",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pasta",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Peppers",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Passata",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Onion",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chilli flakes",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-pepper-2",
+    "name": "Pepper Beef Pasta – Herb",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 910,
+    "protein": 64,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Italian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "5% beef mince",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pasta",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Peppers",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Passata",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Onion",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed herbs",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-curry-0",
+    "name": "Turkey Curry Rice Bowl – Classic",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 896,
+    "protein": 65,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Indian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Turkey mince",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chopped tomatoes",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Onion",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-curry-1",
+    "name": "Turkey Curry Rice Bowl – Spicy",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 896,
+    "protein": 65,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Indian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Turkey mince",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chopped tomatoes",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Onion",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chilli flakes",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-curry-2",
+    "name": "Turkey Curry Rice Bowl – Herb",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 896,
+    "protein": 65,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Indian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Turkey mince",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chopped tomatoes",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Onion",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed herbs",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-prawn-0",
+    "name": "Prawn Teriyaki Rice – Classic",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 815,
+    "protein": 56,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Asian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "King prawns",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Teriyaki sauce",
+        "quantity": 25,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Carrot",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-prawn-1",
+    "name": "Prawn Teriyaki Rice – Spicy",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 815,
+    "protein": 56,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Asian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "King prawns",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Teriyaki sauce",
+        "quantity": 25,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Carrot",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chilli flakes",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-prawn-2",
+    "name": "Prawn Teriyaki Rice – Herb",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 815,
+    "protein": 56,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Asian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "King prawns",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Teriyaki sauce",
+        "quantity": 25,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Carrot",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed herbs",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-tuna-0",
+    "name": "Tuna Pasta Tomato Bowl – Classic",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 793,
+    "protein": 52,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Italian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Tuna",
+        "quantity": 145,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pasta",
+        "quantity": 65,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Passata",
+        "quantity": 160,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cheddar",
+        "quantity": 20,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-tuna-1",
+    "name": "Tuna Pasta Tomato Bowl – Spicy",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 793,
+    "protein": 52,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Italian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Tuna",
+        "quantity": 145,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pasta",
+        "quantity": 65,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Passata",
+        "quantity": 160,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cheddar",
+        "quantity": 20,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chilli flakes",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-tuna-2",
+    "name": "Tuna Pasta Tomato Bowl – Herb",
+    "category": "Lunch",
+    "servings": 1,
+    "kcal": 793,
+    "protein": 52,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Italian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Tuna",
+        "quantity": 145,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Pasta",
+        "quantity": 65,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Passata",
+        "quantity": 160,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Spinach",
+        "quantity": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Cheddar",
+        "quantity": 20,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed herbs",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-salmon-0",
+    "name": "Salmon Broccoli Rice – Classic",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 752,
+    "protein": 47,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Meal Prep"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Salmon fillet",
+        "quantity": 170,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 55,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Soy sauce",
+        "quantity": 15,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-salmon-1",
+    "name": "Salmon Broccoli Rice – Spicy",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 752,
+    "protein": 47,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Meal Prep"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Salmon fillet",
+        "quantity": 170,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 55,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Soy sauce",
+        "quantity": 15,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Chilli flakes",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-salmon-2",
+    "name": "Salmon Broccoli Rice – Herb",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 752,
+    "protein": 47,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "High Protein",
+      "Meal Prep"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Salmon fillet",
+        "quantity": 170,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Rice",
+        "quantity": 55,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 180,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Soy sauce",
+        "quantity": 15,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Mixed herbs",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-tofu-0",
+    "name": "Tofu Teriyaki Noodles – Classic",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 777,
+    "protein": 43,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "Vegetarian",
+      "Asian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Tofu",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Noodles",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Teriyaki sauce",
+        "quantity": 25,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Carrot",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Olive oil",
+        "quantity": 5,
+        "unit": "ml"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-tofu-1",
+    "name": "Tofu Teriyaki Noodles – Spicy",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 777,
+    "protein": 43,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "Vegetarian",
+      "Asian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Tofu",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Noodles",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Teriyaki sauce",
+        "quantity": 25,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Carrot",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Chilli flakes",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  },
+  {
+    "id": "var-tofu-2",
+    "name": "Tofu Teriyaki Noodles – Herb",
+    "category": "Dinner",
+    "servings": 1,
+    "kcal": 777,
+    "protein": 43,
+    "carbs": 55,
+    "fat": 12,
+    "prepMinutes": 8,
+    "cookMinutes": 20,
+    "totalMinutes": 28,
+    "tags": [
+      "Vegetarian",
+      "Asian"
+    ],
+    "icon": "🍽️",
+    "ingredients": [
+      {
+        "ingredient": "Tofu",
+        "quantity": 200,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Noodles",
+        "quantity": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Broccoli",
+        "quantity": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Teriyaki sauce",
+        "quantity": 25,
+        "unit": "ml"
+      },
+      {
+        "ingredient": "Carrot",
+        "quantity": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient": "Mixed herbs",
+        "quantity": 2,
+        "unit": "g"
+      }
+    ],
+    "method": "Cook the main protein thoroughly. Prepare the grain or noodles, cook the vegetables, then combine with the sauce or seasoning and serve."
+  }
+]

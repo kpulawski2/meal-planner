@@ -1,0 +1,349 @@
+[
+  {
+    "name": "Chicken breast",
+    "unit": "g",
+    "aliases": [
+      "chicken",
+      "chicken breast"
+    ],
+    "category": "Protein"
+  },
+  {
+    "name": "5% beef mince",
+    "unit": "g",
+    "aliases": [
+      "beef mince",
+      "lean beef mince"
+    ],
+    "category": "Protein"
+  },
+  {
+    "name": "Turkey mince",
+    "unit": "g",
+    "aliases": [
+      "turkey mince"
+    ],
+    "category": "Protein"
+  },
+  {
+    "name": "Tuna",
+    "unit": "g",
+    "aliases": [
+      "tinned tuna",
+      "tuna"
+    ],
+    "category": "Protein"
+  },
+  {
+    "name": "Salmon fillet",
+    "unit": "g",
+    "aliases": [
+      "salmon"
+    ],
+    "category": "Protein"
+  },
+  {
+    "name": "King prawns",
+    "unit": "g",
+    "aliases": [
+      "prawns",
+      "king prawns"
+    ],
+    "category": "Protein"
+  },
+  {
+    "name": "Eggs",
+    "unit": "g",
+    "aliases": [
+      "egg",
+      "eggs"
+    ],
+    "category": "Protein"
+  },
+  {
+    "name": "Tofu",
+    "unit": "g",
+    "aliases": [
+      "tofu"
+    ],
+    "category": "Protein"
+  },
+  {
+    "name": "Greek yoghurt",
+    "unit": "g",
+    "aliases": [
+      "greek yoghurt",
+      "0% greek yoghurt",
+      "0% greek yogurt"
+    ],
+    "category": "Dairy"
+  },
+  {
+    "name": "0% Greek yoghurt",
+    "unit": "g",
+    "aliases": [
+      "0% greek yoghurt",
+      "greek yoghurt"
+    ],
+    "category": "Dairy"
+  },
+  {
+    "name": "Cottage cheese",
+    "unit": "g",
+    "aliases": [
+      "cottage cheese"
+    ],
+    "category": "Dairy"
+  },
+  {
+    "name": "Rice",
+    "unit": "g",
+    "aliases": [
+      "rice",
+      "long grain rice"
+    ],
+    "category": "Carbs"
+  },
+  {
+    "name": "Pasta",
+    "unit": "g",
+    "aliases": [
+      "pasta",
+      "spaghetti"
+    ],
+    "category": "Carbs"
+  },
+  {
+    "name": "Noodles",
+    "unit": "g",
+    "aliases": [
+      "noodles"
+    ],
+    "category": "Carbs"
+  },
+  {
+    "name": "Oats",
+    "unit": "g",
+    "aliases": [
+      "oats",
+      "porridge oats"
+    ],
+    "category": "Carbs"
+  },
+  {
+    "name": "Potato",
+    "unit": "g",
+    "aliases": [
+      "potato",
+      "potatoes"
+    ],
+    "category": "Carbs"
+  },
+  {
+    "name": "Wholemeal bread",
+    "unit": "g",
+    "aliases": [
+      "bread",
+      "wholemeal bread"
+    ],
+    "category": "Carbs"
+  },
+  {
+    "name": "Tortilla wrap",
+    "unit": "g",
+    "aliases": [
+      "wrap",
+      "tortilla"
+    ],
+    "category": "Carbs"
+  },
+  {
+    "name": "Broccoli",
+    "unit": "g",
+    "aliases": [
+      "broccoli"
+    ],
+    "category": "Vegetables"
+  },
+  {
+    "name": "Spinach",
+    "unit": "g",
+    "aliases": [
+      "spinach"
+    ],
+    "category": "Vegetables"
+  },
+  {
+    "name": "Mixed salad",
+    "unit": "g",
+    "aliases": [
+      "salad"
+    ],
+    "category": "Vegetables"
+  },
+  {
+    "name": "Tomato",
+    "unit": "g",
+    "aliases": [
+      "tomato",
+      "tomatoes"
+    ],
+    "category": "Vegetables"
+  },
+  {
+    "name": "Onion",
+    "unit": "g",
+    "aliases": [
+      "onion"
+    ],
+    "category": "Vegetables"
+  },
+  {
+    "name": "Peppers",
+    "unit": "g",
+    "aliases": [
+      "pepper",
+      "peppers",
+      "mixed peppers"
+    ],
+    "category": "Vegetables"
+  },
+  {
+    "name": "Carrot",
+    "unit": "g",
+    "aliases": [
+      "carrot",
+      "carrots"
+    ],
+    "category": "Vegetables"
+  },
+  {
+    "name": "Sweetcorn",
+    "unit": "g",
+    "aliases": [
+      "sweetcorn"
+    ],
+    "category": "Vegetables"
+  },
+  {
+    "name": "Peas",
+    "unit": "g",
+    "aliases": [
+      "peas"
+    ],
+    "category": "Vegetables"
+  },
+  {
+    "name": "Kidney beans",
+    "unit": "g",
+    "aliases": [
+      "kidney beans"
+    ],
+    "category": "Pulses"
+  },
+  {
+    "name": "Cannellini beans",
+    "unit": "g",
+    "aliases": [
+      "cannellini beans"
+    ],
+    "category": "Pulses"
+  },
+  {
+    "name": "Red lentils",
+    "unit": "g",
+    "aliases": [
+      "red lentils"
+    ],
+    "category": "Pulses"
+  },
+  {
+    "name": "Passata",
+    "unit": "g",
+    "aliases": [
+      "passata"
+    ],
+    "category": "Sauces"
+  },
+  {
+    "name": "Chopped tomatoes",
+    "unit": "g",
+    "aliases": [
+      "chopped tomatoes"
+    ],
+    "category": "Sauces"
+  },
+  {
+    "name": "Pesto",
+    "unit": "g",
+    "aliases": [
+      "pesto"
+    ],
+    "category": "Sauces"
+  },
+  {
+    "name": "Teriyaki sauce",
+    "unit": "ml",
+    "aliases": [
+      "teriyaki sauce"
+    ],
+    "category": "Sauces"
+  },
+  {
+    "name": "Soy sauce",
+    "unit": "ml",
+    "aliases": [
+      "soy sauce"
+    ],
+    "category": "Sauces"
+  },
+  {
+    "name": "Olive oil",
+    "unit": "ml",
+    "aliases": [
+      "olive oil"
+    ],
+    "category": "Fats"
+  },
+  {
+    "name": "Milk",
+    "unit": "ml",
+    "aliases": [
+      "milk"
+    ],
+    "category": "Dairy"
+  },
+  {
+    "name": "Mixed berries",
+    "unit": "g",
+    "aliases": [
+      "berries",
+      "mixed berries"
+    ],
+    "category": "Fruit"
+  },
+  {
+    "name": "Banana",
+    "unit": "g",
+    "aliases": [
+      "banana"
+    ],
+    "category": "Fruit"
+  },
+  {
+    "name": "Chia seeds",
+    "unit": "g",
+    "aliases": [
+      "chia"
+    ],
+    "category": "Seeds"
+  },
+  {
+    "name": "Protein powder",
+    "unit": "g",
+    "aliases": [
+      "protein powder"
+    ],
+    "category": "Supplements"
+  }
+]

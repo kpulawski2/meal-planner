@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: meal-planner-asda-catalogue
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: CATALOGUE_WORKERS
+        value: "8"
+      - key: REQUEST_TIMEOUT
+        value: "30"
+      - key: MAX_PRODUCTS
+        value: "0"

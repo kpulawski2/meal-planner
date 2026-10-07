@@ -1,0 +1,7 @@
+{
+  "checked": "2026-10-07T00:00:00Z",
+  "discovered_urls": 42,
+  "products_saved": 42,
+  "source": "ASDA official sitemap + official product pages",
+  "note": "Seed data only until the first full GitHub Actions/Render refresh runs."
+}
