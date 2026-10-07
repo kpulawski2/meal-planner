@@ -4,14 +4,8 @@ import { load } from 'cheerio';
 // Prices and pack sizes are extracted directly from the official retailer page;
 // Brave API response bodies/snippets are never cached or saved by this module.
 export const PRICE_LOOKUP_STORES = Object.freeze({
-  'Tesco': { domains: ['tesco.com'], searchHint: 'Tesco UK grocery product listings; prefer tesco.com/groceries' },
-  "Sainsbury's": { domains: ['sainsburys.co.uk'], searchHint: "Sainsbury's UK grocery product listings" },
-  'Asda': { domains: ['asda.com'], searchHint: 'ASDA UK grocery product listings; prefer groceries.asda.com' },
-  'Morrisons': { domains: ['morrisons.com'], searchHint: 'Morrisons UK grocery product listings; prefer groceries.morrisons.com' },
-  'Waitrose': { domains: ['waitrose.com'], searchHint: 'Waitrose UK grocery product listings' },
-  'Ocado': { domains: ['ocado.com'], searchHint: 'Ocado UK grocery product listings' },
-  'Aldi': { domains: ['aldi.co.uk'], searchHint: 'ALDI UK product pages and published price/offer listings; only return prices actually visible on the page' },
-  'M&S': { domains: ['marksandspencer.com'], searchHint: 'Marks & Spencer Food UK product pages; only return prices actually visible on the official page' }
+  'Asda': { domains: ['asda.com'], searchHint: 'ASDA UK grocery product listings; prefer asda.com/groceries' },
+  'Aldi': { domains: ['aldi.co.uk'], searchHint: 'ALDI UK product pages and published price/offer listings; only return prices actually visible on the page' }
 });
 
 const BRAVE_SEARCH_ENDPOINT = 'https://api.search.brave.com/res/v1/web/search';
@@ -284,7 +278,7 @@ export function parseOfficialProductPage(html, store, finalUrl) {
 
   // Be conservative with pages that mention loyalty/multibuy offers: require a human to review.
   const bodyText = $('main').text().replace(/\s+/g, ' ').trim().slice(0, 12000) || $('body').text().replace(/\s+/g, ' ').trim().slice(0, 12000);
-  const promotionMatch = bodyText.match(/.{0,35}(?:Lidl\s*Plus|Clubcard|Nectar|member price|loyalty price|multibuy|multi-buy|\d+\s+for\s+£).{0,70}/i);
+  const promotionMatch = bodyText.match(/.{0,35}(?:member price|loyalty price|multibuy|multi-buy|\d+\s+for\s+£).{0,70}/i);
   const productUrl = canonicalOfficialPage($, store, finalUrl, productNode);
   if (!productUrl) return null;
   const packLabel = `${pack.size} ${pack.unit}`;

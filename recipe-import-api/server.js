@@ -12,6 +12,7 @@ import multer from 'multer';
 import { chooseBestPackCandidate, summarizePriceBenchmark } from './price-adapter.js';
 import { GroqApiError, groqChatCompletion, groqTranscribe, evenlySampleFrames } from './groq-adapter.js';
 import { PRICE_LOOKUP_STORES, lookupStoreItem, splitBatches } from './price-search-adapter.js';
+import { searchCatalog, fetchProductPage, clearCatalogCache, catalogStoreInfo } from './catalog-adapter.js';
 
 const execFileAsync = promisify(execFile);
 const app = express();
@@ -19,7 +20,7 @@ const PORT = Number(process.env.PORT || 10000);
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 const GROQ_RECIPE_MODEL = process.env.GROQ_RECIPE_MODEL || 'qwen/qwen3.8-27b';
 const GROQ_TRANSCRIPTION_MODEL = process.env.GROQ_TRANSCRIPTION_MODEL || 'whisper-large-v3-turbo';
-const BRAVE_SEARCH_API_KEY = process.env.BRAVE_SEARCH_API_KEY || '';
+const BRAVE_SEARCH_API_KEY = ''; // Deliberately disabled: Shopping uses the manual product-reference catalogue.
 const IMPORT_API_TOKEN = process.env.IMPORT_API_TOKEN || '';
 const ALLOWED_ORIGINS = new Set((process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean));
 const AUDIO_MODEL = GROQ_TRANSCRIPTION_MODEL;
@@ -407,6 +408,19 @@ let braveLookupQueue = Promise.resolve();
 let lastBraveLookupStartedAt = 0;
 // Price jobs run in the background so the browser can poll for results without timing out.
 const priceLookupJobs = new Map();
+
+const catalogRequestLog = new Map();
+function catalogRateLimit(req, res, next) {
+  const key = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+  const now = Date.now();
+  const hit = catalogRequestLog.get(key) || { at: now, count: 0 };
+  if (now - hit.at > 60_000) { hit.at = now; hit.count = 0; }
+  hit.count += 1;
+  catalogRequestLog.set(key, hit);
+  if (hit.count > 30) return res.status(429).json({ error: 'Catalog search rate limit reached. Try again in a minute.' });
+  next();
+}
+
 const PRICE_JOB_TTL_MS = 20 * 60 * 1000;
 const PRICE_JOB_MAX_COUNT = 50;
 
@@ -808,39 +822,39 @@ async function runPriceLookupJob(jobId, store, items) {
 
 app.get('/api/connection-check', authenticated, (_req, res) => res.json({ ok: true, authenticated: true }));
 
-app.post('/api/prices/lookup', priceLookupAuthenticated, async (req, res) => {
-  const store = cleanString(req.body?.store, 50);
-  if (!PRICE_LOOKUP_STORES[store]) return res.status(400).json({ error: 'Select one of the supported UK supermarkets.' });
-  const incoming = Array.isArray(req.body?.items) ? req.body.items : [];
-  if (!incoming.length) return res.status(400).json({ error: 'No shopping ingredients were supplied.' });
-  if (incoming.length > PRICE_LOOKUP_MAX_ITEMS) return res.status(400).json({ error: `Price lookup supports up to ${PRICE_LOOKUP_MAX_ITEMS} ingredients per request.` });
-  const items = incoming.map(x => ({
-    key: cleanString(x?.key, 140), name: cleanString(x?.name, 140),
-    unknown: Boolean(x?.unknown),
-    groups: Array.isArray(x?.groups) ? x.groups.slice(0, 8).map(g => ({ dim: cleanString(g?.dim, 80), remaining: Number(g?.remaining) || 0, label: cleanString(g?.label, 30) })) : [],
-    knownProductUrl: cleanString(x?.knownProductUrl, 2000)
-  })).filter(x => x.key && x.name);
-  if (!items.length) return res.status(400).json({ error: 'No valid shopping ingredients were supplied.' });
-  prunePriceLookupJobs();
-  const jobId = crypto.randomUUID();
-  const job = { id: jobId, store, status: 'queued', progress: { stage: 'queued', message: `Brave Search price lookup queued for ${store}.`, currentBatch: 0, totalBatches: items.length }, createdAt: Date.now(), result: null, error: null };
-  priceLookupJobs.set(jobId, job);
-  // Price searches run in a background job so the UI can poll their progress.
-  res.status(202).json({ ok: true, async: true, jobId, status: job.status, progress: job.progress, pollAfterMs: 2000 });
-  setImmediate(() => { void runPriceLookupJob(jobId, store, items); });
-});
+// Automatic supermarket lookups are disabled in the direct-page catalogue build. Prices are stored as verified page snapshots or manually recorded by the user.
 
-app.get('/api/prices/lookup/:jobId', priceLookupAuthenticated, (req, res) => {
-  prunePriceLookupJobs();
-  const job = priceLookupJobs.get(cleanString(req.params?.jobId, 80));
-  if (!job) return res.status(404).json({ error: 'This price lookup job has expired or is no longer available. Please start a new lookup.' });
-  const response = { ok: true, jobId: job.id, status: job.status, progress: job.progress || null, pollAfterMs: 2500 };
-  if (job.status === 'completed') response.result = job.result;
-  if (job.status === 'failed') response.error = job.error;
-  return res.json(response);
+app.get('/api/catalog/stores', catalogRateLimit, (_req, res) => res.json({ ok: true, stores: catalogStoreInfo(), mode: 'official-retailer-sitemaps' }));
+app.get('/api/catalog/search', catalogRateLimit, async (req, res) => {
+  try {
+    const store = cleanString(req.query.store || '', 40);
+    const query = cleanString(req.query.q || '', 120);
+    if (!['Asda', 'Aldi'].includes(store)) return res.status(400).json({ error: 'Store must be Asda or Aldi.' });
+    if (!query || query.length < 2) return res.status(400).json({ error: 'Enter an ingredient or product name.' });
+    const result = await searchCatalog(store, query, Number(req.query.limit) || 8);
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(502).json({ error: `Could not load the ${cleanString(req.query.store || 'retailer', 40)} product catalogue: ${cleanString(e?.message || 'unknown error', 300)}` });
+  }
 });
+app.get('/api/catalog/product', catalogRateLimit, async (req, res) => {
+  try {
+    const store = cleanString(req.query.store || '', 40);
+    const url = cleanString(req.query.url || '', 800);
+    if (!['Asda', 'Aldi'].includes(store)) return res.status(400).json({ error: 'Store must be Asda or Aldi.' });
+    if (!url) return res.status(400).json({ error: 'Product URL is required.' });
+    const product = await fetchProductPage(store, url);
+    res.json({ ok: true, product });
+  } catch (e) {
+    res.status(502).json({ error: `Could not read that official product page: ${cleanString(e?.message || 'unknown error', 300)}` });
+  }
+});
+app.post('/api/catalog/refresh', catalogRateLimit, (req, res) => { const store = cleanString(req.body?.store || '', 40); if (store && !['Asda','Aldi'].includes(store)) return res.status(400).json({ error: 'Store must be Asda or Aldi.' }); clearCatalogCache(store || null); res.json({ ok: true, cleared: store || 'all' }); });
 
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner', aiProvider: 'Groq API (recipe/video features)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors for AI import', priceSearchProvider: 'Brave Search API + official retailer product pages', braveSearchConfigured: Boolean(BRAVE_SEARCH_API_KEY), priceSearchRetryPolicy: 'refresh saved official retailer URLs first; one Brave search request per ingredient when needed; partial results retained when provider fails', priceSearchMinimumIntervalMs: PRICE_SEARCH_MIN_INTERVAL_MS, videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, livePriceSearchConfigured: Boolean(BRAVE_SEARCH_API_KEY), livePriceStores: Object.keys(PRICE_LOOKUP_STORES), priceSearchModel: 'Brave Search API (no Groq tokens used for price lookups)', priceDataSource: 'Brave URLs are used transiently to locate official retailer pages; product price and pack size are extracted from retailer pages; search snippets are not stored', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
+app.post('/api/prices/lookup', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct ASDA/Aldi product-page references in the Shopping List.' }));
+app.get('/api/prices/lookup/:jobId', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct product-page reference catalogue.' }));
+
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner', aiProvider: 'Groq API (recipe/video features only)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors for AI import', priceSearchProvider: 'Manual product reference catalogue; no automated search API', braveSearchConfigured: false, priceSearchRetryPolicy: 'Not used by the manual price-reference UI', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: false, livePriceSearchConfigured: false, livePriceStores: ['Asda', 'Aldi'], priceSearchModel: null, priceDataSource: 'Direct official ASDA/Aldi product-detail URLs and dated price snapshots; missing direct pages/prices remain blank; no search-engine links or automatic price lookup', directProductPageCount: 93, priceSnapshotCount: 83, manualPriceReferenceMode: true, officialCatalogMode: true, officialCatalogSources: catalogStoreInfo(), priceReferenceCatalog: '/price-reference-catalog.json', priceReferenceCsv: '/price-reference-catalog.csv', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
 
 app.post('/api/import-recipe', authenticated, async (req, res) => {
   const url = cleanString(req.body?.url, 2000);
