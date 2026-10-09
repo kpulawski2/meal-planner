@@ -39,6 +39,7 @@ sampleProducts[2].name = 'ASDA Semi Skimmed Milk 2L';
 sampleProducts[2].category = 'Chilled Food > Milk';
 sampleProducts[2].packSize = '2 L';
 sampleProducts[2].packQuantity = 2000;
+sampleProducts[2].packUnit = 'ml';
 sampleProducts[2].price = 1.65;
 sampleProducts[2].pricesByRegion.EN.price = 1.65;
 sampleProducts[2].pricesByRegion.SC.price = 1.6;
@@ -118,7 +119,7 @@ await writeFile(process.env.ASDA_CATALOGUE_META_PATH, JSON.stringify({
   refreshed_at: '2000-01-01T06:00:00Z',
 }));
 
-const { searchCatalog, recommendCatalogItems, calculatePackPurchase, clearCatalogCache, fetchProductPage, catalogueStatus } = await import(`./catalog-adapter.js?catalogue-test=${Date.now()}`);
+const { searchCatalog, recommendCatalogItems, calculatePackPurchase, rankCatalogCandidates, clearCatalogCache, fetchProductPage, catalogueStatus } = await import(`./catalog-adapter.js?catalogue-test=${Date.now()}`);
 
 test('ASDA matching uses the validated full catalogue and returns saved product details', async () => {
   const result = await searchCatalog('Asda', 'chicken breast', 8);
@@ -166,15 +167,17 @@ test('automatic recommendations select plain cucumber and optimize chicken breas
   assert.equal(cucumber.match.productName, 'ASDA Cucumber');
   assert.equal(cucumber.match.priceGBP, 0.99);
   assert.equal(cucumber.match.packUnit, 'pieces');
-  assert.equal(cucumber.plan, null, 'do not convert a variable-weight cucumber sold by each into grams');
+  assert.equal(cucumber.plan.totalCostGBP, 0.99);
+  assert.equal(cucumber.plan.estimatedQuantity, true, 'variable produce weights must be an explicit cooking estimate');
+  assert.match(cucumber.plan.estimateNotes[0], /300 g.*actual weight varies/);
 
   const chicken = results.recommendations.find(row => row.key === 'chicken breast::mass');
   assert.equal(chicken.confidence, 'high');
-  assert.equal(chicken.plan.totalCostGBP, 13.25);
-  assert.equal(chicken.plan.totalQuantity, 2000);
-  assert.deepEqual(chicken.plan.products.map(product => [product.productName, product.packs]), [
-    ['ASDA British Chicken Breast Fillets 2kg', 1],
-  ]);
+  assert.equal(chicken.plan.totalCostGBP, 11.77);
+  assert.equal(chicken.plan.totalQuantity, 1600);
+  assert.deepEqual(new Set(chicken.plan.products.map(product => product.productName)), new Set([
+    'ASDA British Chicken Breast Fillets 1kg', 'ASDA British Chicken Breast Fillets 600g',
+  ]));
   assert.ok(!chicken.match.productName.includes('Thai'), 'plain chicken breast should not auto-select a flavoured ready-to-cook variant');
 });
 
@@ -188,6 +191,14 @@ test('pack optimization combines different sizes and preserves fractional reques
   const fraction = calculatePackPurchase([makePack(3, 1, 'pieces')], 2.5, 'count');
   assert.equal(fraction.requestedQuantity, 2.5);
   assert.equal(fraction.leftoverQuantity, 0.5);
+  const pint = calculatePackPurchase([makePack(568.26125, 0.85, 'ml')], 568.1, 'volume');
+  assert.equal(pint.products[0].packs, 1, 'a fractional UK pint capacity must not be rounded down to require two packs');
+  assert.equal(pint.totalCostGBP, 0.85);
+  assert.ok(pint.totalQuantity >= 568.1);
+  const twoPints = calculatePackPurchase([makePack(568.26125, 0.85, 'ml')], 1136.52, 'volume');
+  assert.equal(twoPints.products[0].packs, 2);
+  const almostFullPint = calculatePackPurchase([makePack(568.26125, 0.85, 'ml')], 568.26125, 'volume');
+  assert.equal(almostFullPint.products[0].packs, 1);
 });
 
 test('an old publication date does not reload the validated catalogue on every request', async () => {
@@ -202,6 +213,33 @@ test('an old publication date does not reload the validated catalogue on every r
     await writeFile(process.env.ASDA_CATALOGUE_PATH, saved);
     clearCatalogCache('Asda');
   }
+});
+
+test('count pack labels automatically price fractional fruit quantities', () => {
+  const apples = { name: 'ASDA Organic 6 Apples', url: 'https://www.asda.com/groceries/product/apples/6-apples/123',
+    category: 'Fresh Fruit, Vegetables & Flowers > Fresh Fruit > Apples', packSize: '6PK', packQuantity: null, packUnit: null, price: 1.8 };
+  const plan = calculatePackPurchase([apples], 0.5, 'count');
+  assert.equal(plan.products[0].packs, 1);
+  assert.equal(plan.products[0].packQuantity, 6);
+  assert.equal(plan.totalQuantity, 6);
+  assert.equal(plan.totalCostGBP, 1.8);
+  assert.equal(plan.estimatedQuantity, false, 'the pack itself explicitly declares the item count');
+});
+
+test('explicitly unavailable products do not claim an automatic ingredient match', () => {
+  const milk = { name: 'ASDA Semi Skimmed Milk 2L', category: 'Chilled Food > Fresh Milk > Semi Skimmed Milk',
+    url: 'https://www.asda.com/groceries/product/milk/123', packQuantity: 2000, packUnit: 'ml', price: 1.65 };
+  for (const status of [{ available: false }, { availability: 'out_of_stock' }, { availability: 'https://schema.org/OutOfStock' }, { availability: 'unavailable' }]) {
+    assert.equal(rankCatalogCandidates('Milk', [{ ...milk, ...status }]).length, 0);
+    assert.equal(calculatePackPurchase([{ ...milk, ...status }], 100, 'volume'), null);
+  }
+  assert.equal(rankCatalogCandidates('Milk', [{ ...milk, availability: 'listed_online' }]).length, 1,
+    'online-listed products remain usable when store-specific stock is unknown');
+});
+
+test('invalid sub-penny product prices cannot create a zero-cost optimisation step', () => {
+  const plan = calculatePackPurchase([{ name: 'Invalid price', packQuantity: 568.26125, packUnit: 'ml', price: 0.001 }], 100, 'volume');
+  assert.equal(plan, null);
 });
 
 test.after(async () => {

@@ -18,7 +18,7 @@ const CATALOG_STORES = {
 
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 12000;
-const PRODUCE_TERMS = new Set(['apple', 'avocado', 'banana', 'berry', 'blueberry', 'broccoli', 'carrot', 'cucumber', 'garlic', 'grape', 'lemon', 'lettuce', 'mango', 'mushroom', 'onion', 'orange', 'potato', 'spinach', 'strawberry', 'tomato', 'courgette', 'salad']);
+const PRODUCE_TERMS = new Set(['apple', 'avocado', 'banana', 'berry', 'blueberry', 'broccoli', 'carrot', 'celery', 'cucumber', 'garlic', 'grape', 'kiwi', 'lemon', 'lime', 'lettuce', 'mandarin', 'mango', 'melon', 'mushroom', 'onion', 'orange', 'pea', 'pear', 'potato', 'spinach', 'strawberry', 'tomato', 'vegetable', 'courgette', 'salad']);
 const SPICE_TERMS = new Set(['basil', 'chilli', 'chili', 'cinnamon', 'clove', 'coriander', 'cumin', 'herb', 'nutmeg', 'oregano', 'paprika', 'pepper', 'seasoning', 'spice', 'thyme', 'turmeric']);
 const catalogCache = new Map();
 const catalogLoads = new Map();
@@ -194,14 +194,188 @@ function tokens(value) {
 }
 
 function productTokens(value) {
-  return tokens(String(value || '').replace(/&nbsp;|&amp;/gi, ' ')).map((token) => {
+  // Apply the same food vocabulary to the index, search and confidence checks.
+  // Retailers call cream cheese "soft cheese" and use both light and lighter.
+  const text = String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/&nbsp;|&amp;/gi, ' ')
+    .replace(/\b(?:soft\s+)?cream\s+cheese\b|\bsoft\s+cheese\b/gi, 'creamcheese')
+    .replace(/\b(?:parmigiano(?:\s+reggiano)?|parmesan)\b/gi, 'parmesan')
+    .replace(/\b(?:easy\s+peelers?|clementines?|satsumas?)\b/gi, 'mandarin')
+    .replace(/\b(?:summer|forest)\s+fruits?\b/gi, 'berry')
+    .replace(/\bcooking\s+oil\b/gi, 'oil')
+    .replace(/\bcocoa\s+powder\b/gi, 'cocoa')
+    .replace(/\b(tikka)\s+(?:curry\s+powder|spice\s+mix)\b/gi, '$1 seasoning')
+    .replace(/\bhigh[-\s]+protein\b/gi, 'highprotein')
+    .replace(/\b(?:reduced|low)[-\s]+fat\b/gi, 'light')
+    .replace(/\blactose[-\s]*free\b|\blactofree\b/gi, 'lactosefree')
+    .replace(/\bdairy[-\s]*free\b/gi, 'dairyfree');
+  return tokens(text).map((token) => {
     if (token === 'yogurt' || token === 'yogurts') return 'yoghurt';
     if (token === 'chili') return 'chilli';
+    if (token === 'lighter' || token === 'lite') return 'light';
+    if (token === 'natural') return 'plain';
     if (token.length > 4 && token.endsWith('ies')) return token.slice(0, -3) + 'y';
     if (token.length > 4 && token.endsWith('oes')) return token.slice(0, -2);
     if (token.length > 3 && token.endsWith('s')) return token.slice(0, -1);
     return token;
   });
+}
+
+const OPTIONAL_INGREDIENT_WORDS = new Set(['fresh', 'frozen', 'dried', 'raw', 'lean', 'regular']);
+const DAIRY_FLAVOURS = new Set(['banana', 'strawberry', 'raspberry', 'blueberry', 'berry', 'superberry', 'peach', 'passionfruit', 'passion', 'mango', 'papaya', 'coconut', 'lemon', 'apple', 'vanilla', 'chocolate', 'cocoa', 'caramel', 'toffee', 'coffee', 'honey', 'cherry', 'flavour', 'flavored', 'flavoured', 'shake', 'milkshake', 'cheesecake']);
+const PLANT_DAIRY_WORDS = new Set(['vegan', 'plant', 'dairyfree', 'almond', 'oat', 'soya', 'soy', 'coconut', 'cashew', 'hemp']);
+const COMPOSITE_FOODS = new Set(['soup', 'sandwich', 'wrap', 'pizza', 'medley', 'dinner', 'meal', 'risotto', 'stirfry', 'skewer', 'kebab', 'casserole', 'bake', 'burger', 'nugget', 'croquette', 'pie', 'dip', 'spread', 'cocktail']);
+
+function ingredientWords(query) {
+  const words = [...new Set(productTokens(query))].filter(word => !OPTIONAL_INGREDIENT_WORDS.has(word));
+  return words.filter(word => word !== 'cheese' || !words.some(item => ['feta', 'cheddar', 'halloumi', 'parmesan', 'quark'].includes(item)));
+}
+
+function ingredientCompatible(query, product, preparedWords = ingredientWords(query)) {
+  if (product?.available === false || /out[ _-]*of[ _-]*stock|sold[ _-]*out|unavailable|discontinued|not[ _-]*available/i.test(String(product?.availability || ''))) return false;
+  const words = new Set(preparedWords);
+  const fullWords = new Set(productTokens(query));
+  const name = new Set(productTokens(product?.name));
+  const title = String(product?.name || '');
+  const category = [product?.category, ...(product?.categoryPath || [])].filter(Boolean).join(' ');
+  const asked = word => words.has(word);
+  const unrequested = set => [...set].some(word => name.has(word) && !asked(word));
+  // A token hit in candles, pet food or cosmetics is never an ingredient match.
+  if (/\b(?:home & entertainment|toys?|pets?|pet food|laundry|household|toiletries|beauty|garden|furniture|electrical|stationery|craft|baby|toddler)\b/i.test(category)) return false;
+  const frozenRequested = fullWords.has('frozen');
+  const driedRequested = fullWords.has('dried');
+  if (frozenRequested && !/frozen/i.test(category) && !/\bfrozen\b/i.test(title)) return false;
+  if (driedRequested && !/dried|dry herbs|herbs & spices|spices/i.test(category) && !/\bdried\b/i.test(title)) return false;
+
+  if (asked('milk')) {
+    if (!name.has('milk')) return false;
+    const plantRequested = [...PLANT_DAIRY_WORDS].some(asked);
+    if (!plantRequested && (unrequested(PLANT_DAIRY_WORDS) || /dairy free|oat & nut/i.test(category))) return false;
+    if (!asked('lactosefree') && (name.has('lactosefree') || /lactose free milk/i.test(category))) return false;
+    if (unrequested(DAIRY_FLAVOURS)) return false;
+    for (const word of ['condensed', 'evaporated', 'powder', 'powdered', 'formula', 'infant', 'toddler', 'protein']) if (name.has(word) && !asked(word)) return false;
+    if (/flavoured milk|milkshakes|chocolates|biscuits|desserts|ice lollies/i.test(category) && ![...DAIRY_FLAVOURS].some(asked)) return false;
+    if (asked('whole') && !name.has('whole')) return false;
+    if (asked('semi') && !name.has('semi')) return false;
+    if (asked('skimmed') && !asked('semi') && (name.has('semi') || name.has('whole'))) return false;
+  }
+
+  if (asked('yoghurt') || asked('skyr')) {
+    if (!(name.has('yoghurt') || name.has('skyr'))) return false;
+    if (asked('skyr') && !name.has('skyr')) return false;
+    if (unrequested(DAIRY_FLAVOURS) || unrequested(PLANT_DAIRY_WORDS)) return false;
+    if (/yogurt drinks|(?:^|>)\s*desserts\s*>|ice cream/i.test(category)) return false;
+  }
+
+  const cheese = ['creamcheese', 'cottage', 'cheddar', 'feta', 'halloumi', 'parmesan', 'quark'].find(asked);
+  if (cheese) {
+    if (!name.has(cheese)) return false;
+    if (cheese !== 'quark' && !/\bcheeses?\b/i.test(category)) return false;
+    if (unrequested(PLANT_DAIRY_WORDS) || /vegan|dairy free|alternative/i.test(category)) return false;
+    if (/ready meals|prepared vegetables|pizza|pasta|potatoes/i.test(category)) return false;
+    if (unrequested(COMPOSITE_FOODS)) return false;
+    if (cheese === 'creamcheese') {
+      if (asked('light') && !name.has('light')) return false;
+      for (const word of ['garlic', 'herb', 'chive', 'chilli', 'salmon', 'sweet']) if (name.has(word) && !asked(word)) return false;
+    }
+  }
+
+  const produce = preparedWords.some(word => PRODUCE_TERMS.has(word)) || (asked('pepper') && (asked('bell') || asked('sweet') || frozenRequested));
+  const preparedProduce = ['juice', 'sauce', 'paste', 'powder', 'chopped', 'tinned', 'dried', 'canned', 'stock'].some(word => fullWords.has(word));
+  if (produce && !preparedProduce) {
+    if (!(frozenRequested ? /frozen.*(?:vegetable|fruit|pea|bean)/i.test(category) : /fresh (?:fruit|salad|vegetable)|vegetables & flowers/i.test(category))) return false;
+    if (unrequested(COMPOSITE_FOODS)) return false;
+    for (const word of ['mini', 'portion', 'pickled', 'pickle', 'mushy', 'mashed', 'smoothie', 'juice', 'dip', 'sauce', 'seasoned']) if (name.has(word) && !asked(word)) return false;
+    if (!asked('mixed') && !asked('salad') && !asked('berry') && [...PRODUCE_TERMS].some(word => name.has(word) && !asked(word))) return false;
+  }
+
+  const meat = ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'salmon', 'cod', 'fish', 'prawn', 'tuna'].find(asked);
+  if (meat && !['stock', 'sauce', 'paste', 'soup'].some(asked)) {
+    if (!/meat|poultry|fish|seafood|prawn|chicken|turkey|beef|pork|lamb|cod|salmon|tuna/i.test(category)) return false;
+    for (const word of ['breaded', 'breadcrumb', 'crumb', 'battered', 'cooked', 'marinated', 'flavour', 'flavoured', 'seasoned', 'sizzle', 'tikka', 'thai', 'peri', 'spicy', 'garlic', 'lemon', 'honey', 'sweet', 'pepper', 'teriyaki', 'chargrill', 'chargrilled', 'bbq', 'barbecue', 'crispy', 'smoked', 'sausage', 'chipotle']) if (name.has(word) && !asked(word)) return false;
+    if (unrequested(COMPOSITE_FOODS)) return false;
+    if (/prepared|ready meals|marinated|ready to cook/i.test(category)) return false;
+    if (['chicken', 'beef', 'pork', 'lamb', 'turkey'].includes(meat) && /tinned|pies|party food|cooked meat|continental meat|charcuterie/i.test(category)) return false;
+    if (!frozenRequested && /frozen/i.test(category) && ['chicken', 'beef', 'pork', 'lamb', 'turkey'].includes(meat)) return false;
+    if (fullWords.has('lean') && ['belly', 'rib'].some(word => name.has(word))) return false;
+    if (fullWords.has('lean') && meat === 'pork' && !['lean', 'loin', 'fillet', 'medallion'].some(word => name.has(word))) return false;
+    if (fullWords.has('lean') && meat === 'pork' && !asked('mince') && name.has('mince')) return false;
+    if (['crunch', 'scratchings', 'crisp', 'snack'].some(word => name.has(word) && !asked(word))) return false;
+  }
+
+  if (['pasta', 'rice', 'noodle', 'couscou', 'orzo', 'lentil', 'bean', 'chickpea'].some(asked) && !['sauce', 'paste', 'soup'].some(asked)) {
+    if (unrequested(COMPOSITE_FOODS) || /ready meals|soups|cooking sauces|pasta sauces|pot noodles/i.test(category)) return false;
+    for (const word of ['sauce', 'curry', 'flavour', 'flavor', 'flavoured', 'flavored', 'seasoned', 'salad']) if (name.has(word) && !asked(word)) return false;
+    if (['pasta', 'rice', 'noodle', 'couscou', 'orzo'].some(asked) && /\bmicro\b|microwav|straight to wok|wok[ -]*ready|ready[ -]*(?:to[ -]*)?wok|instant|ready.*noodles|filled pasta|fresh pasta|\bcooked\b/i.test(category + ' ' + title)) return false;
+    if (['pasta', 'rice', 'noodle', 'couscou', 'orzo'].some(asked) && /dessert|pudding|cake|biscuit|snack|cereal|baby/i.test(category + ' ' + title)) return false;
+    if (['pasta', 'rice', 'noodle', 'couscou', 'orzo'].some(asked) && /fresh fruit|chilled food|fresh noodle/i.test(category)) return false;
+    // Udon and 7Moon packs are hydrated ready noodles; dry recipe weights are
+    // not interchangeable with their pack weights. Explicit queries retain them.
+    if (asked('noodle') && !asked('udon') && name.has('udon')) return false;
+    if (asked('noodle') && !asked('7moon') && name.has('7moon')) return false;
+    if (asked('couscou') && !asked('pearl') && !asked('israeli') && (name.has('pearl') || name.has('israeli'))) return false;
+    if (asked('black') && asked('bean') && !asked('eye') && name.has('eye')) return false;
+  }
+  if (preparedWords.some(word => SPICE_TERMS.has(word)) || asked('dill')) {
+    if (!/spice|seasoning|dry herbs|herbs|condiment/i.test(category) && !(asked('seasoning') && name.has('seasoning') && /food cupboard/i.test(category))) return false;
+    if (!asked('seasoning') && !asked('curry') && /recipe mix|seasoning|sauce|chicken|fish|marinade|rub/i.test(title)) return false;
+    if (asked('cinnamon') && !asked('stick') && name.has('stick')) return false;
+  }
+  if (asked('cocoa') && (asked('powder') || preparedWords.length === 1)) {
+    if (!name.has('cocoa') || /hot (?:chocolate|cocoa)|drinking chocolate|instant|mix|sachet/i.test(title)) return false;
+    if (/bakery|bread|croissant|pastr|dessert|chocolate bars|biscuits|cakes|cereal|spreads|snacks/i.test(category + ' ' + title)) return false;
+    if (!/(?:^|>)\s*cocoa\s*(?:>|$)|baking aids & cocoa|baking ingredients/i.test(category)) return false;
+  }
+  if (asked('dark') && asked('chocolate') && /biscuits|cookies|cakes|cereal|fruit & nuts/i.test(category)) return false;
+  if (asked('dark') && asked('chocolate') && /biscuit|digestive|cookie|cake|rice cake|wafer|nut bar/i.test(title)) return false;
+  if (asked('honey') && !asked('roast')) {
+    if (!/honey|jam|preserve|spread/i.test(category) || /whisky|whiskey|gin|rum|bourbon|wine|cider|beer/i.test(title)) return false;
+  }
+  if (asked('oil')) {
+    if (!/oil & vinegar|olive oil|cooking oil|food cupboard.*condiment/i.test(category)) return false;
+    if (/spray|dressing|infused|spread|alternative|tuna|anchov|mackerel|crouton|sardine/i.test(title + ' ' + category)) return false;
+    if (asked('olive') && /blend|with olive|pomace/i.test(title)) return false;
+  }
+  if (asked('walnut')) {
+    for (const word of ['cashew', 'almond', 'peanut', 'hazelnut', 'pistachio', 'pecan', 'mixed']) if (name.has(word) && !asked(word)) return false;
+  }
+  if (asked('stock') && !/pot|cube|powder|concentrat/i.test(query) && /stock pots?|cubes?|powder|concentrat/i.test(title)) return false;
+  if (asked('light') && (asked('sauce') || asked('dressing')) && !name.has('light')) return false;
+  if (['sauce', 'dressing', 'seasoning', 'paste'].some(asked) && !preparedWords.every(word => name.has(word))) return false;
+  if (asked('whey') && asked('protein') && !asked('clear')) {
+    if (name.has('clear')) return false;
+    if (!['vanilla', 'plain', 'unflavoured', 'unflavored'].some(asked) && /strawberry|raspberry|banoffee|cookie|chocolate|coconut/i.test(title)) return false;
+  }
+  if (asked('butter') && !['peanut', 'almond', 'cashew', 'coconut', 'cocoa'].some(asked)) {
+    if (!/butter|spreads/i.test(category) || /bean|peanut|almond|cashew|garlic|herb|sauce|biscuit|chocolate|cake/i.test(title)) return false;
+    if (unrequested(PLANT_DAIRY_WORDS) || /dairy free|vegan|alternative/i.test(category)) return false;
+    if (/alternative|margarine/i.test(title) && !asked('alternative')) return false;
+  }
+  if (asked('sugar')) {
+    if (!/sugar|sweetener|home baking/i.test(category) || /no added|free|reduced|syrup|biscuit|bar|cereal|cake/i.test(title)) return false;
+  }
+  if (asked('salt') && !asked('sauce')) {
+    if (!/salt|pepper|spice|seasoning/i.test(category) || /crisp|snack|nut|sauce|stock|chocolate|biscuit/i.test(title)) return false;
+  }
+  if (asked('flour') && !asked('tortilla')) {
+    if (!/flour|home baking|cooking ingredient/i.test(category) || /bread|wrap|tortilla|cake|biscuit/i.test(title)) return false;
+  }
+  if (asked('oat') && !['biscuit', 'milk', 'drink', 'bar'].some(asked)) {
+    if (!/porridge|oats|cereal/i.test(category) || /biscuit|bar|muesli|granola|flapjack|yoghurt|overnight/i.test(title)) return false;
+  }
+  if (asked('egg')) {
+    if (!/eggs?|egg whites?/i.test(category) || /custard|tart|scotch|salad|sandwich|fried|omelette|mayonnaise|cake|biscuit/i.test(title)) return false;
+    if (/party food|pork pies|scotch eggs|tapas|prepared/i.test(category)) return false;
+  }
+  if (asked('peanut') && asked('butter')) {
+    if (!/peanut butter|nut butter|jams?|spreads/i.test(category) || /chocolate|snicker|wafer|biscuit|cookie|cake|bar/i.test(title)) return false;
+  }
+  if (asked('ham')) {
+    if (!/cooked meat|continental meat|charcuterie|hams?\b/i.test(category) || /soup|sandwich|pie|pizza|salad|sauce|pasta/i.test(title)) return false;
+    if (fullWords.has('lean') && /continental meat|charcuterie/i.test(category)) return false;
+    if (/snack/i.test(title)) return false;
+  }
+  return true;
 }
 
 function productDimension(unit) {
@@ -225,9 +399,10 @@ function scoreCandidate(query, url) {
 }
 
 function scoreProduct(query, product, dimension = '', preparedQuery = null) {
-  const queryTokens = preparedQuery || productTokens(query);
+  const queryTokens = preparedQuery || ingredientWords(query);
   const nameTokens = productTokens(product?.name);
   if (!queryTokens.length || !nameTokens.length) return 0;
+  if (!ingredientCompatible(query, product, queryTokens)) return 0;
 
   const name = new Set(nameTokens);
   const brand = new Set(productTokens(product.brand));
@@ -258,6 +433,12 @@ function scoreProduct(query, product, dimension = '', preparedQuery = null) {
   if (queryTokens.length === 1 && queryTokens[0] === 'milk') {
     if (/\b(?:fresh milk|semi skimmed milk|skimmed milk|whole milk|milk, butter, cream & eggs)\b/i.test(categoryText)) score += 5;
     if (/\b(?:coconut|almond|oat|soy|soya|condensed|evaporated) milk\b|\bmilk chocolate\b/i.test(product.name)) score -= 4;
+    if (/fresh milk/i.test(categoryText)) score += 3;
+    if (name.has('semi') && name.has('skimmed')) score += 2;
+  }
+  if (queryTokens.includes('yoghurt') || queryTokens.includes('skyr')) {
+    if (name.has('plain')) score += 4;
+    if (/natural|greek|skyr|high in protein/i.test(categoryText)) score += 2;
   }
   if (queryTokens.some(token => ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'salmon', 'cod', 'fish'].includes(token))) {
     if (/meat, poultry & fish/i.test(categoryText)) score += 4;
@@ -296,16 +477,23 @@ function canonicalDimension(value) {
 }
 
 function packUnitMeta(product) {
-  const explicit = clean(product?.packUnit, 30).toLowerCase();
+  const explicit = clean(product?.packUnit, 30).toLowerCase().replace(/^(?:pk|packs?)$/, 'pieces');
   const sizeText = clean(product?.packSize, 50).toLowerCase();
   let quantity = Number(product?.packQuantity);
   let unit = explicit;
   if (!(quantity > 0) || !Number.isFinite(quantity) || !unit) {
-    const match = sizeText.match(/(\d+(?:\.\d+)?)\s*(kg|g|ml|l|pieces?|pcs|each|ea)\b/i);
-    if (match) {
+    const multiple = sizeText.match(/(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(kg|g|ml|l)\b/i);
+    const match = sizeText.match(/(\d+(?:\.\d+)?)\s*(kg|g|ml|l|pieces?|pcs|each|ea|pk|packs?)\b/i);
+    if (multiple) {
+      quantity = Number(multiple[1]) * Number(multiple[2]);
+      unit = multiple[3].toLowerCase();
+    } else if (match) {
       quantity = Number(match[1]);
-      unit = match[2].toLowerCase();
+      unit = match[2].toLowerCase().replace(/^(?:pk|packs?)$/, 'pieces');
     } else if (/^(?:each|ea|1\s*ea)$/.test(sizeText)) {
+      quantity = 1;
+      unit = 'each';
+    } else if (/^(?:large|medium|small)$/.test(sizeText) && /fresh.*(?:fruit|vegetable|salad)|vegetables & flowers/i.test(product?.category || '')) {
       quantity = 1;
       unit = 'each';
     }
@@ -316,6 +504,63 @@ function packUnitMeta(product) {
   if (['l', 'litre', 'litres', 'liter', 'liters'].includes(unit)) return { dimension: 'volume', capacity: quantity * 1000, quantity, unit: 'l' };
   if (['ml', 'millilitre', 'millilitres', 'milliliter', 'milliliters'].includes(unit)) return { dimension: 'volume', capacity: quantity, quantity, unit: 'ml' };
   if (['piece', 'pieces', 'pcs', 'pc', 'each', 'ea', 'unit', 'units'].includes(unit)) return { dimension: 'count', capacity: quantity, quantity, unit: 'pieces' };
+  return null;
+}
+
+// Recipe quantities and retailer packs are often different units. These are
+// explicitly labelled cooking assumptions; they do not change the saved ASDA pack.
+const PRODUCE_ITEM_GRAMS = { cucumber: 300, banana: 120, apple: 180, pear: 170, lemon: 60, lime: 45, onion: 150, avocado: 150, orange: 150, mandarin: 80, carrot: 80, potato: 175, kiwi: 75, garlic: 50, lettuce: 250, melon: 700 };
+const SPICE_GRAMS_PER_TSP = { cinnamon: 2.6, paprika: 2.3, cumin: 2.1, chilli: 1.8, curry: 2, herb: 1, dill: 1, seasoning: 2.5, cocoa: 2.5 };
+
+function purchasePackMeta(product, wantedDimension) {
+  let meta = packUnitMeta(product);
+  if (!meta) return null;
+  if (meta.dimension === wantedDimension) return meta;
+  const words = new Set(productTokens(product?.name));
+  const category = [product?.category, ...(product?.categoryPath || [])].filter(Boolean).join(' ');
+  const title = String(product?.name || '');
+  const declaredAmount = title.match(/\b(\d+(?:\.\d+)?)\s*(ml|kg|g|litres?|liters?|l)\b/i);
+  if (declaredAmount && meta.dimension !== wantedDimension) {
+    const declaredMeta = packUnitMeta({ packQuantity: Number(declaredAmount[1]), packUnit: declaredAmount[2] });
+    if (declaredMeta?.dimension === wantedDimension) return { ...declaredMeta, estimatedQuantity: true, quantityBasis: `Using ${declaredAmount[1]} ${declaredAmount[2]} stated in the product name; the catalogue pack label uses ${product.packSize}.` };
+  }
+  const estimated = (capacity, note) => ({ ...meta, dimension: wantedDimension, capacity, estimatedQuantity: true, quantityBasis: note });
+  const declaredCount = title.match(/\b(\d+)\s+(?:(?:\w+[ -]){0,5})(?:wraps?|pittas?|sausages?|bagels?|slices?|eggs?)\b/i);
+  if (wantedDimension === 'count' && declaredCount && meta.dimension === 'mass') {
+    return { ...meta, dimension: 'count', capacity: Number(declaredCount[1]), quantityBasis: `${declaredCount[1]} items declared in the product name.` };
+  }
+  if (/fresh (?:fruit|salad|vegetable)|vegetables & flowers/i.test(category)) {
+    const ingredient = Object.keys(PRODUCE_ITEM_GRAMS).find(word => words.has(word));
+    if (ingredient) {
+      const grams = PRODUCE_ITEM_GRAMS[ingredient];
+      if (wantedDimension === 'mass' && meta.dimension === 'count') return estimated(meta.capacity * grams, `${ingredient[0].toUpperCase() + ingredient.slice(1)} sold by each: estimated ${grams} g per item; actual weight varies.`);
+      if (wantedDimension === 'count' && meta.dimension === 'mass') return estimated(meta.capacity / grams, `${ingredient[0].toUpperCase() + ingredient.slice(1)}: estimated ${grams} g per item; actual weight varies.`);
+    }
+  }
+  const oil = words.has('oil') && /oil|food cupboard/i.test(category);
+  const honey = words.has('honey') && /honey|preserve|spread/i.test(category);
+  const dressing = /sauce|dressing|stock|milk|juice/i.test(title) && !/powder|cube|concentrat/i.test(title);
+  const density = oil ? 0.92 : honey ? 1.42 : dressing ? 1 : null;
+  if (density && wantedDimension === 'mass' && meta.dimension === 'volume') return estimated(meta.capacity * density, `Estimated density ${density} g/ml for ${oil ? 'cooking oil' : honey ? 'honey' : 'sauce or liquid'}; actual density varies.`);
+  if (density && wantedDimension === 'volume' && meta.dimension === 'mass') return estimated(meta.capacity / density, `Estimated density ${density} g/ml for ${oil ? 'cooking oil' : honey ? 'honey' : 'sauce or liquid'}; actual density varies.`);
+  if (wantedDimension === 'slice' && meta.dimension === 'mass' && words.has('bread')) return estimated(meta.capacity / 36, 'Bread slices estimated at 36 g each; slice weights vary by loaf.');
+  if (['tsp', 'tbsp'].includes(wantedDimension)) {
+    const ml = wantedDimension === 'tbsp' ? 15 : 5;
+    if (meta.dimension === 'volume') return estimated(meta.capacity / ml, `Recipe ${wantedDimension} estimated as ${ml} ml.`);
+    if (meta.dimension === 'mass') {
+      const spice = Object.keys(SPICE_GRAMS_PER_TSP).find(word => words.has(word));
+      const grams = spice ? SPICE_GRAMS_PER_TSP[spice] * (wantedDimension === 'tbsp' ? 3 : 1) : density ? density * ml : null;
+      if (grams) return estimated(meta.capacity / grams, `Recipe ${wantedDimension} estimated as ${Number(grams.toFixed(2))} g for this ingredient; spoon weights vary.`);
+    }
+  }
+  if (wantedDimension === 'portion' && meta.dimension === 'mass') {
+    if (words.has('sweetener') && words.has('tablet')) {
+      const tablets = title.match(/\b(\d+)\s+(?:[a-z-]+\s+){0,5}(?:sweeteners?\s+)?tablets?\b/i);
+      if (tablets) return estimated(Number(tablets[1]), 'Recipe portion estimated as one sweetener tablet; adjust for the desired sweetness.');
+    }
+    const grams = words.has('seasoning') || (words.has('curry') && words.has('powder')) ? 5 : words.has('sweetener') ? 1 : null;
+    if (grams) return estimated(meta.capacity / grams, `Recipe portion estimated as ${grams} g for ${words.has('sweetener') ? 'sweetener' : 'seasoning'}; adjust recipe quantities if needed.`);
+  }
   return null;
 }
 
@@ -341,7 +586,7 @@ function productSummary(product, score) {
 }
 
 export function rankCatalogCandidates(query, products, dimension = '', limit = 36) {
-  const queryTokens = productTokens(query);
+  const queryTokens = ingredientWords(query);
   const rows = (Array.isArray(products) ? products : [])
     .map(product => ({ product, score: scoreProduct(query, product, dimension, queryTokens), nameTokens: productTokens(product?.name) }))
     .filter(row => row.score > 0)
@@ -349,12 +594,12 @@ export function rankCatalogCandidates(query, products, dimension = '', limit = 3
   const strict = rows.filter(row => queryTokens.every(token => row.nameTokens.includes(token)));
   const ranked = strict.length ? strict : rows;
   if (!ranked.length) return [];
-  const floor = ranked[0].score - (strict.length ? 8 : 5);
-  return ranked.filter(row => row.score >= floor).slice(0, Math.max(1, Math.min(Number(limit) || 36, 60)));
+  const floor = ranked[0].score - 5;
+  return (strict.length ? ranked : ranked.filter(row => row.score >= floor)).slice(0, limit === Infinity ? ranked.length : Math.max(1, Math.min(Number(limit) || 36, 60)));
 }
 
 function indexedProducts(index, query, strict = false) {
-  const words = [...new Set(productTokens(query))];
+  const words = ingredientWords(query);
   if (!words.length) return [];
   const lists = words.map(word => index.nameIndex.get(word) || []);
   if (strict) {
@@ -369,12 +614,12 @@ function indexedProducts(index, query, strict = false) {
 }
 
 function indexedCandidates(index, query, dimension) {
-  const cacheKey = JSON.stringify([productTokens(query), productDimension(dimension)]);
+  const cacheKey = JSON.stringify([productTokens(query), canonicalDimension(dimension)]);
   if (index.candidateCache.has(cacheKey)) return index.candidateCache.get(cacheKey);
   // The scorer requires a name-token hit. Full-name matches have priority, so only
   // score their intersection; use the union when no suitable strict match exists.
-  let ranked = rankCatalogCandidates(query, indexedProducts(index, query, true), dimension, 36);
-  if (!ranked.length) ranked = rankCatalogCandidates(query, indexedProducts(index, query), dimension, 36);
+  let ranked = rankCatalogCandidates(query, indexedProducts(index, query, true), dimension, Infinity);
+  if (!ranked.length) ranked = rankCatalogCandidates(query, indexedProducts(index, query), dimension, Infinity);
   if (index.candidateCache.size >= 300) index.candidateCache.delete(index.candidateCache.keys().next().value);
   index.candidateCache.set(cacheKey, ranked);
   return ranked;
@@ -391,12 +636,18 @@ export function calculatePackPurchase(candidates, requestedQuantity, dimension) 
   if (!(requested > 0) || !Number.isFinite(requested) || !wantedDimension) return null;
   const offers = (Array.isArray(candidates) ? candidates : []).map(candidate => {
     const product = candidate.product || candidate;
-    const meta = packUnitMeta(product);
+    const meta = purchasePackMeta(product, wantedDimension);
     const price = Number(product.price);
-    if (!meta || !Number.isFinite(meta.capacity) || meta.capacity <= 0 || meta.dimension !== wantedDimension || !Number.isFinite(price) || price <= 0 || product.available === false) return null;
+    if (!meta || !Number.isFinite(meta.capacity) || meta.capacity <= 0 || meta.dimension !== wantedDimension || !Number.isFinite(price) || Math.round(price * 100) < 1 || product.available === false || /out[ _-]*of[ _-]*stock|sold[ _-]*out|unavailable|discontinued|not[ _-]*available/i.test(String(product.availability || ''))) return null;
     return { product, score: Number(candidate.score) || 0, meta, priceCents: Math.round(price * 100) };
   }).filter(Boolean).sort((a, b) => b.score - a.score || a.priceCents - b.priceCents);
   if (!offers.length) return null;
+
+  // UK pint packs and kitchen conversions have fractional capacities. Optimise
+  // these by integer pence instead of rounding an almost-full pint up to two packs.
+  if (!Number.isInteger(requested) || offers.some(offer => !Number.isInteger(offer.meta.capacity))) {
+    return fractionalPackPurchase(offers, requested);
+  }
 
   const target = Math.ceil(requested - 1e-8);
   const capacities = offers.map(offer => Math.max(1, Math.floor(offer.meta.capacity + 1e-8)));
@@ -452,6 +703,45 @@ export function calculatePackPurchase(candidates, requestedQuantity, dimension) 
   return makePurchasePlan(counts, offers, requested);
 }
 
+function fractionalPackPurchase(offers, requested) {
+  const singles = offers.map((offer, index) => ({ offer, index, packs: Math.ceil((requested - 1e-8) / offer.meta.capacity) }))
+    .map(row => ({ ...row, cents: row.packs * row.offer.priceCents, over: row.packs * row.offer.meta.capacity - requested }))
+    .sort((a, b) => a.cents - b.cents || a.over - b.over || b.offer.score - a.offer.score);
+  const costQuantum = offers.map(offer => offer.priceCents).reduce(greatestCommonDivisor);
+  const upperBound = singles[0].cents / costQuantum;
+  if (upperBound > 250000) {
+    const counts = new Array(offers.length).fill(0);
+    counts[singles[0].index] = singles[0].packs;
+    return makePurchasePlan(counts, offers, requested);
+  }
+  const capacities = new Float64Array(upperBound + 1);
+  capacities.fill(-Infinity);
+  capacities[0] = 0;
+  const previousOffer = new Int16Array(upperBound + 1);
+  previousOffer.fill(-1);
+  for (let cost = 1; cost <= upperBound; cost++) {
+    for (let index = 0; index < offers.length; index++) {
+      const earlier = cost - offers[index].priceCents / costQuantum;
+      if (earlier < 0 || !Number.isFinite(capacities[earlier])) continue;
+      const capacity = capacities[earlier] + offers[index].meta.capacity;
+      if (capacity > capacities[cost]) {
+        capacities[cost] = capacity;
+        previousOffer[cost] = index;
+      }
+    }
+    if (capacities[cost] + 1e-8 < requested) continue;
+    const counts = new Array(offers.length).fill(0);
+    for (let cursor = cost; cursor > 0;) {
+      const index = previousOffer[cursor];
+      if (index < 0) return null;
+      counts[index]++;
+      cursor -= offers[index].priceCents / costQuantum;
+    }
+    return makePurchasePlan(counts, offers, requested);
+  }
+  return null;
+}
+
 function makePurchasePlan(counts, offers, requested) {
   const products = offers.flatMap((offer, index) => {
     const packs = counts[index];
@@ -459,15 +749,17 @@ function makePurchasePlan(counts, offers, requested) {
     return [{
       ...productSummary(offer.product, offer.score),
       packs,
-      totalQuantity: Number((packs * offer.meta.capacity).toFixed(3)),
+      estimatedQuantity: !!offer.meta.estimatedQuantity,
+      quantityBasis: offer.meta.quantityBasis || null,
+      totalQuantity: Number((packs * offer.meta.capacity).toFixed(6)),
       costGBP: Number((packs * offer.priceCents / 100).toFixed(2)),
     }];
   });
   if (!products.length) return null;
-  const totalQuantity = Number(products.reduce((sum, row) => sum + row.totalQuantity, 0).toFixed(3));
+  const totalQuantity = Number(products.reduce((sum, row) => sum + row.totalQuantity, 0).toFixed(6));
   const totalCostGBP = Number(products.reduce((sum, row) => sum + row.costGBP, 0).toFixed(2));
-  if (!Number.isFinite(totalQuantity) || !Number.isFinite(totalCostGBP) || totalQuantity < requested) return null;
-  return { requestedQuantity: requested, totalQuantity, leftoverQuantity: Number(Math.max(0, totalQuantity - requested).toFixed(3)), totalCostGBP, products };
+  if (!Number.isFinite(totalQuantity) || !Number.isFinite(totalCostGBP) || totalQuantity + 1e-6 < requested) return null;
+  return { requestedQuantity: requested, totalQuantity, leftoverQuantity: Number(Math.max(0, totalQuantity - requested).toFixed(6)), totalCostGBP, estimatedQuantity: products.some(product => product.estimatedQuantity), estimateNotes: [...new Set(products.filter(product => product.estimatedQuantity).map(product => product.quantityBasis))], products };
 }
 
 export async function recommendCatalogItems(storeName, items, { signal } = {}) {
@@ -482,9 +774,9 @@ export async function recommendCatalogItems(storeName, items, { signal } = {}) {
       const dimension = clean(item?.dimension, 30);
       const candidates = indexedCandidates(index, query, dimension);
       const bestScore = candidates[0]?.score || 0;
-      const relevant = candidates.filter(candidate => candidate.score >= bestScore - 4);
+      const relevant = candidates;
       const quantity = Number(item?.quantity);
-      const queryTokens = productTokens(query);
+      const queryTokens = ingredientWords(query);
       const bestNameTokens = productTokens(candidates[0]?.product?.name);
       const confidence = candidates.length && bestScore >= 9 && queryTokens.every(token => bestNameTokens.includes(token))
         ? 'high'
@@ -515,7 +807,7 @@ export async function searchCatalog(storeName, query, limit = 8, dimension = '')
   const index = await getIndex(storeName);
   const q = clean(query, 120);
   const maxRows = Math.max(1, Math.min(Number(limit) || 8, 12));
-  const queryTokens = productTokens(q);
+  const queryTokens = ingredientWords(q);
   const rows = (index.products ? indexedProducts(index, q) : index.urls.map(url => ({ url })))
     .map(product => ({
       product,

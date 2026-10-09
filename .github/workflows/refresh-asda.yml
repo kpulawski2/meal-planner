@@ -9,6 +9,7 @@ on:
       - '.github/workflows/refresh-asda.yml'
       - 'backend/**'
       - 'recipe-import-api/**'
+      - 'public/**'
       - 'Dockerfile'
       - 'package.json'
   push:
@@ -16,6 +17,7 @@ on:
       - '.github/workflows/refresh-asda.yml'
       - 'backend/**'
       - 'recipe-import-api/**'
+      - 'public/**'
       - 'Dockerfile'
       - 'package.json'
 

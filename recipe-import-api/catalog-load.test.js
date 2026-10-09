@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { once } from 'node:events';
 import { monitorEventLoopDelay, performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
 import { setTimeout as pause } from 'node:timers/promises';
 
 const cataloguePath = fileURLToPath(new URL('../data/products.json', import.meta.url));
@@ -27,9 +28,10 @@ test('a cold full-catalogue shopping request keeps health checks responsive and 
   const metadata = JSON.parse(metadataText);
   assert.equal(metadata.status, 'complete', 'This load regression requires the complete checked-in catalogue');
   assert.ok(metadata.products_saved >= 10_000, 'Exercise the actual large catalogue, rather than a small seed fixture');
-  const ingredientsMatch = html.match(/const PRICE_REFERENCE_INGREDIENTS\s*=\s*(\[[^;]+\]);/);
-  assert.ok(ingredientsMatch, 'The app must expose its shopping ingredient names');
-  const ingredientNames = [...new Set(JSON.parse(ingredientsMatch[1]))];
+  const recipesMatch = html.match(/const builtInRecipes\s*=\s*(\[[\s\S]*?\n\]);/);
+  assert.ok(recipesMatch, 'Exercise the ingredients used by the actual built-in recipes');
+  const recipes = vm.runInNewContext(recipesMatch[1], {}, { timeout: 1000 });
+  const ingredientNames = [...new Set(recipes.flatMap(recipe => recipe.ings.map(([name]) => name)))];
   assert.ok(ingredientNames.length >= 100, 'Exercise a real full shopping list, rather than just one ingredient');
   const items = ingredientNames.map(name => ({
     key: name,
