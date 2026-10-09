@@ -7,9 +7,21 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = await readFile(path.join(ROOT, 'index.html'), 'utf8');
+const appHtml = await readFile(path.join(ROOT, 'public', 'index.html'), 'utf8');
 const start = html.indexOf('const productMatchCache = new Map();');
 const end = html.indexOf('function mealCard(', start);
 assert.ok(start >= 0 && end > start, 'the Pages catalogue matcher is present');
+
+test('phone shopping app includes automatic catalogue recommendations and valid inline scripts', () => {
+  assert.match(appHtml, /requestAutomaticCatalogMatches\(entries,store\)/);
+  assert.match(appHtml, /\/api\/catalog\/recommend/);
+  const scripts = [...appHtml.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+    .filter(match => !/\bsrc\s*=/i.test(match[1]) && !/application\/ld\+json/i.test(match[1]))
+    .map(match => match[2])
+    .filter(source => source.trim());
+  assert.ok(scripts.length, 'the phone app has inline JavaScript');
+  for (const source of scripts) assert.doesNotThrow(() => new vm.Script(source));
+});
 
 const products = [
   { name: 'ASDA Baby Plum Tomatoes 300g', category: 'Fresh Fruit, Vegetables & Flowers > Fresh Salad & Stir Fry > Tomatoes', availability: 'listed_online', packQuantity: 300, packUnit: 'g', price: 1 },

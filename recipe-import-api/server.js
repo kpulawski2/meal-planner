@@ -12,7 +12,7 @@ import multer from 'multer';
 import { chooseBestPackCandidate, summarizePriceBenchmark } from './price-adapter.js';
 import { GroqApiError, groqChatCompletion, groqTranscribe, evenlySampleFrames } from './groq-adapter.js';
 import { PRICE_LOOKUP_STORES, lookupStoreItem, splitBatches } from './price-search-adapter.js';
-import { searchCatalog, fetchProductPage, clearCatalogCache, catalogStoreInfo, catalogueStatus } from './catalog-adapter.js';
+import { searchCatalog, recommendCatalogItems, fetchProductPage, clearCatalogCache, catalogStoreInfo, catalogueStatus } from './catalog-adapter.js';
 
 const execFileAsync = promisify(execFile);
 const app = express();
@@ -837,6 +837,27 @@ app.get('/api/catalog/search', catalogRateLimit, async (req, res) => {
     res.json({ ok: true, ...result });
   } catch (e) {
     res.status(502).json({ error: `Could not load the ${cleanString(req.query.store || 'retailer', 40)} product catalogue: ${cleanString(e?.message || 'unknown error', 300)}` });
+  }
+});
+app.post('/api/catalog/recommend', catalogRateLimit, async (req, res) => {
+  try {
+    const store = cleanString(req.body?.store || '', 40);
+    const rawItems = req.body?.items;
+    if (store !== 'Asda') return res.status(400).json({ error: 'Automatic pack recommendations are currently available for Asda.' });
+    if (!Array.isArray(rawItems) || rawItems.length < 1 || rawItems.length > 200) {
+      return res.status(400).json({ error: 'Send between 1 and 200 shopping-list ingredients.' });
+    }
+    const items = rawItems.map(item => ({
+      key: cleanString(item?.key, 180),
+      name: cleanString(item?.name, 120),
+      dimension: cleanString(item?.dimension, 30),
+      quantity: Number(item?.quantity) || 0,
+    }));
+    if (items.some(item => !item.key || !item.name)) return res.status(400).json({ error: 'Each ingredient needs a key and name.' });
+    const result = await recommendCatalogItems(store, items);
+    res.json({ ok: true, ...result });
+  } catch (e) {
+    res.status(502).json({ error: `Could not build automatic ASDA pack recommendations: ${cleanString(e?.message || 'unknown error', 300)}` });
   }
 });
 app.get('/api/catalog/product', catalogRateLimit, async (req, res) => {

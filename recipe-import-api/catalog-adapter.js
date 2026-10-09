@@ -150,6 +150,8 @@ function tokens(value) {
 
 function productTokens(value) {
   return tokens(String(value || '').replace(/&nbsp;|&amp;/gi, ' ')).map((token) => {
+    if (token === 'yogurt' || token === 'yogurts') return 'yoghurt';
+    if (token === 'chili') return 'chilli';
     if (token.length > 4 && token.endsWith('ies')) return token.slice(0, -3) + 'y';
     if (token.length > 4 && token.endsWith('oes')) return token.slice(0, -2);
     if (token.length > 3 && token.endsWith('s')) return token.slice(0, -1);
@@ -202,6 +204,12 @@ function scoreProduct(query, product, dimension = '') {
   if (nameHits === queryTokens.length) score += 3;
   score += queryTokens.filter(token => category.has(token)).length * 2;
   score -= Math.min(Math.max(0, nameTokens.length - nameHits) * 0.1, 1.5);
+  if (nameHits === queryTokens.length) score += 2;
+  if (queryTokens.length === 1 && nameHits === 1) {
+    const query = new Set(queryTokens);
+    const extras = nameTokens.filter(token => !query.has(token) && !brand.has(token));
+    if (extras.length === 0) score += 5;
+  }
   if (queryTokens.length === 1 && queryTokens[0] === 'milk') {
     if (/\b(?:fresh milk|semi skimmed milk|skimmed milk|whole milk|milk, butter, cream & eggs)\b/i.test(categoryText)) score += 5;
     if (/\b(?:coconut|almond|oat|soy|soya|condensed|evaporated) milk\b|\bmilk chocolate\b/i.test(product.name)) score -= 4;
@@ -209,10 +217,18 @@ function scoreProduct(query, product, dimension = '') {
   if (queryTokens.some(token => ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'salmon', 'cod', 'fish'].includes(token))) {
     if (/meat, poultry & fish/i.test(categoryText)) score += 4;
     if (/frozen food/i.test(categoryText)) score -= 1;
+    if (/chicken breasts|chicken breast/i.test(categoryText) && queryTokens.includes('chicken')) score += 2;
+    for (const token of ['breaded', 'cooked', 'sliced', 'slice', 'skewer', 'kebab', 'marinated', 'flavoured', 'flavour', 'flavor', 'seasoned', 'seasoning', 'sizzle', 'steak', 'thai', 'tikka', 'peri', 'spicy', 'hot', 'garlic', 'lemon', 'honey', 'smoky', 'sweet', 'pepper', 'sticky', 'teriyaki', 'chargrill', 'chargrilled', 'bbq', 'barbecue', 'sandwich', 'wrap', 'crispy']) {
+      if (name.has(token) && !queryTokens.includes(token)) score -= ['sandwich', 'wrap'].includes(token) ? 16 : 9;
+    }
+    if (/prepared|marinated|flavoured|flavored|seasoned|sizzle|ready to cook/i.test(categoryText) && !queryTokens.some(token => ['marinated', 'flavoured', 'flavor', 'seasoned'].includes(token))) score -= 7;
   }
   if (queryTokens.some(token => PRODUCE_TERMS.has(token)) || (queryTokens.includes('pepper') && queryTokens.some(token => ['bell', 'sweet'].includes(token)))) {
     if (/fresh fruit|fresh salad|vegetables & flowers|fresh vegetables/i.test(categoryText)) score += 6;
     if (/dried fruit|raw nuts|tinned|ketchup|sauce|sweets|snacks|desserts/i.test(categoryText)) score -= 6;
+    for (const token of ['mini', 'portion', 'pickled', 'pickle', 'sour', 'brine', 'smoothie', 'juice', 'dip', 'seed', 'seeds', 'wipes', 'mask', 'fragrance']) {
+      if (name.has(token) && !queryTokens.includes(token)) score -= ['wipes', 'mask', 'fragrance'].includes(token) ? 20 : ['pickled', 'pickle', 'sour', 'brine', 'smoothie', 'juice', 'dip', 'seed', 'seeds'].includes(token) ? 12 : 7;
+    }
   }
   if (queryTokens.some(token => SPICE_TERMS.has(token))) {
     if (/herbs? & spices|spices|seasonings/i.test(categoryText)) score += 6;
@@ -224,6 +240,190 @@ function scoreProduct(query, product, dimension = '') {
   if (/\b(?:food|fruit|vegetable|meat|fish|dairy|bakery|frozen|chilled|drink|cupboard|snack|sweets|world)\b/i.test(categoryText)) score += 0.5;
   if (/\b(?:home & entertainment|toys?|pets?|laundry|household|toiletries|beauty|wellness|garden|furniture|electrical|stationery|craft)\b/i.test(categoryText)) score -= 6;
   return score > 0 ? score : 0;
+}
+
+function canonicalDimension(value) {
+  const normalized = clean(value, 30).toLowerCase();
+  if (['mass', 'g', 'gram', 'grams', 'kg', 'kilogram', 'kilograms'].includes(normalized)) return 'mass';
+  if (['volume', 'ml', 'millilitre', 'millilitres', 'milliliter', 'milliliters', 'l', 'litre', 'litres', 'liter', 'liters'].includes(normalized)) return 'volume';
+  if (['each', 'count', 'piece', 'pieces', 'pcs', 'pc', 'ea', 'unit', 'units'].includes(normalized)) return 'count';
+  return normalized;
+}
+
+function packUnitMeta(product) {
+  const explicit = clean(product?.packUnit, 30).toLowerCase();
+  const sizeText = clean(product?.packSize, 50).toLowerCase();
+  let quantity = Number(product?.packQuantity);
+  let unit = explicit;
+  if (!(quantity > 0) || !Number.isFinite(quantity) || !unit) {
+    const match = sizeText.match(/(\d+(?:\.\d+)?)\s*(kg|g|ml|l|pieces?|pcs|each|ea)\b/i);
+    if (match) {
+      quantity = Number(match[1]);
+      unit = match[2].toLowerCase();
+    } else if (/^(?:each|ea|1\s*ea)$/.test(sizeText)) {
+      quantity = 1;
+      unit = 'each';
+    }
+  }
+  if (!(quantity > 0) || !Number.isFinite(quantity)) return null;
+  if (['kg', 'kilogram', 'kilograms'].includes(unit)) return { dimension: 'mass', capacity: quantity * 1000, quantity, unit: 'kg' };
+  if (['g', 'gram', 'grams'].includes(unit)) return { dimension: 'mass', capacity: quantity, quantity, unit: 'g' };
+  if (['l', 'litre', 'litres', 'liter', 'liters'].includes(unit)) return { dimension: 'volume', capacity: quantity * 1000, quantity, unit: 'l' };
+  if (['ml', 'millilitre', 'millilitres', 'milliliter', 'milliliters'].includes(unit)) return { dimension: 'volume', capacity: quantity, quantity, unit: 'ml' };
+  if (['piece', 'pieces', 'pcs', 'pc', 'each', 'ea', 'unit', 'units'].includes(unit)) return { dimension: 'count', capacity: quantity, quantity, unit: 'pieces' };
+  return null;
+}
+
+function productSummary(product, score) {
+  const inferredPack = packUnitMeta(product);
+  return {
+    url: product.url,
+    productName: product.name,
+    score,
+    brand: product.brand || null,
+    packSize: product.packSize || null,
+    packQuantity: product.packQuantity ?? inferredPack?.quantity ?? null,
+    packUnit: product.packUnit || inferredPack?.unit || null,
+    priceGBP: product.price == null || !Number.isFinite(Number(product.price)) ? null : Number(product.price),
+    priceRegion: product.priceRegion || null,
+    pricesByRegion: product.pricesByRegion || {},
+    category: product.category || null,
+    availability: product.availability || 'unknown',
+    available: product.available ?? null,
+    image: product.image || null,
+    checkedAt: product.checkedAt || product.checked || null,
+  };
+}
+
+export function rankCatalogCandidates(query, products, dimension = '', limit = 36) {
+  const queryTokens = productTokens(query);
+  const rows = (Array.isArray(products) ? products : [])
+    .map(product => ({ product, score: scoreProduct(query, product, dimension), nameTokens: productTokens(product?.name) }))
+    .filter(row => row.score > 0)
+    .sort((a, b) => b.score - a.score || String(a.product.url || '').localeCompare(String(b.product.url || '')));
+  const strict = rows.filter(row => queryTokens.every(token => row.nameTokens.includes(token)));
+  const ranked = strict.length ? strict : rows;
+  if (!ranked.length) return [];
+  const floor = ranked[0].score - (strict.length ? 8 : 5);
+  return ranked.filter(row => row.score >= floor).slice(0, Math.max(1, Math.min(Number(limit) || 36, 60)));
+}
+
+export function calculatePackPurchase(candidates, requestedQuantity, dimension) {
+  const requested = Number(requestedQuantity);
+  const wantedDimension = canonicalDimension(dimension);
+  if (!(requested > 0) || !Number.isFinite(requested) || !wantedDimension) return null;
+  const offers = (Array.isArray(candidates) ? candidates : []).map(candidate => {
+    const product = candidate.product || candidate;
+    const meta = packUnitMeta(product);
+    const price = Number(product.price);
+    if (!meta || meta.dimension !== wantedDimension || !Number.isFinite(price) || price <= 0 || product.available === false) return null;
+    return { product, score: Number(candidate.score) || 0, meta, priceCents: Math.round(price * 100) };
+  }).filter(Boolean).sort((a, b) => b.score - a.score || a.priceCents - b.priceCents);
+  if (!offers.length) return null;
+
+  const target = Math.ceil(requested - 1e-8);
+  const targetSteps = target;
+  const stepsByOffer = offers.map(offer => Math.max(1, Math.floor(offer.meta.capacity + 1e-8)));
+  const largestPack = Math.max(...stepsByOffer);
+  const maxStep = targetSteps + largestPack - 1;
+  if (maxStep > 250000) {
+    const single = offers.map((offer, index) => ({ offer, index, packs: Math.ceil(target / offer.meta.capacity) }))
+      .map(row => ({ ...row, cents: row.packs * row.offer.priceCents, over: row.packs * row.offer.meta.capacity - target }))
+      .sort((a, b) => a.cents - b.cents || a.over - b.over || b.offer.score - a.offer.score)[0];
+    const counts = new Array(offers.length).fill(0);
+    counts[single.index] = single.packs;
+    return makePurchasePlan(counts, offers, target);
+  }
+
+  const bestCost = new Float64Array(maxStep + 1);
+  bestCost.fill(Infinity);
+  const previousStep = new Int32Array(maxStep + 1);
+  previousStep.fill(-1);
+  const previousOffer = new Int16Array(maxStep + 1);
+  previousOffer.fill(-1);
+  bestCost[0] = 0;
+  for (let amount = 1; amount <= maxStep; amount++) {
+    for (let i = 0; i < offers.length; i++) {
+      const packSteps = stepsByOffer[i];
+      if (amount < packSteps) continue;
+      const previous = amount - packSteps;
+      if (!Number.isFinite(bestCost[previous])) continue;
+      const cost = bestCost[previous] + offers[i].priceCents;
+      if (cost < bestCost[amount]) {
+        bestCost[amount] = cost;
+        previousStep[amount] = previous;
+        previousOffer[amount] = i;
+      }
+    }
+  }
+
+  let chosen = -1;
+  for (let amount = targetSteps; amount <= maxStep; amount++) {
+    if (!Number.isFinite(bestCost[amount])) continue;
+    if (chosen < 0 || bestCost[amount] < bestCost[chosen] || (bestCost[amount] === bestCost[chosen] && amount < chosen)) chosen = amount;
+  }
+  if (chosen < 0) return null;
+  const counts = new Array(offers.length).fill(0);
+  for (let cursor = chosen; cursor > 0;) {
+    const offerIndex = previousOffer[cursor];
+    if (offerIndex < 0) return null;
+    counts[offerIndex] += 1;
+    cursor = previousStep[cursor];
+  }
+  return makePurchasePlan(counts, offers, target);
+}
+
+function makePurchasePlan(counts, offers, requested) {
+  const products = offers.flatMap((offer, index) => {
+    const packs = counts[index];
+    if (!packs) return [];
+    return [{
+      ...productSummary(offer.product, offer.score),
+      packs,
+      totalQuantity: Number((packs * offer.meta.capacity).toFixed(3)),
+      costGBP: Number((packs * offer.priceCents / 100).toFixed(2)),
+    }];
+  });
+  if (!products.length) return null;
+  const totalQuantity = Number(products.reduce((sum, row) => sum + row.totalQuantity, 0).toFixed(3));
+  const totalCostGBP = Number(products.reduce((sum, row) => sum + row.costGBP, 0).toFixed(2));
+  return { requestedQuantity: requested, totalQuantity, leftoverQuantity: Number(Math.max(0, totalQuantity - requested).toFixed(3)), totalCostGBP, products };
+}
+
+export async function recommendCatalogItems(storeName, items) {
+  if (storeName !== 'Asda') throw new Error('Automatic pack recommendations currently require the complete ASDA catalogue.');
+  const index = await getIndex(storeName);
+  if (index.snapshotStatus !== 'complete' || !Array.isArray(index.products)) throw new Error('A complete ASDA catalogue snapshot is required for automatic recommendations.');
+  const rows = Array.isArray(items) ? items.slice(0, 200) : [];
+  return {
+    store: storeName,
+    indexSize: index.urls.length,
+    refreshedAt: new Date(index.createdAt).toISOString(),
+    recommendations: rows.map(item => {
+      const query = clean(item?.name, 120);
+      const dimension = clean(item?.dimension, 30);
+      const candidates = rankCatalogCandidates(query, index.products, dimension, 36);
+      const bestScore = candidates[0]?.score || 0;
+      const relevant = candidates.filter(candidate => candidate.score >= bestScore - 4);
+      const quantity = Number(item?.quantity);
+      const queryTokens = productTokens(query);
+      const bestNameTokens = productTokens(candidates[0]?.product?.name);
+      const confidence = candidates.length && bestScore >= 9 && queryTokens.every(token => bestNameTokens.includes(token))
+        ? 'high'
+        : candidates.length ? 'review' : 'none';
+      const plan = confidence === 'high' ? calculatePackPurchase(relevant, quantity, dimension) : null;
+      const selectedProduct = plan?.products?.[0] || (candidates[0] ? productSummary(candidates[0].product, candidates[0].score) : null);
+      return {
+        key: clean(item?.key, 180),
+        dimension,
+        query,
+        match: selectedProduct,
+        plan,
+        candidateCount: relevant.length,
+        confidence,
+      };
+    }),
+  };
 }
 
 export async function searchCatalog(storeName, query, limit = 8, dimension = '') {
