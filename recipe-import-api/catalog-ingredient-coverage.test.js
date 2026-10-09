@@ -70,7 +70,7 @@ test('ingredient prices exclude ready meals, desserts and substitutes from every
     'Grapes': { allow: /grape/i, reject: /apple|juice|raisins|dried|mixed/i },
     'Black beans': { allow: /black.*bean/i, reject: /black.?eye|black.?eyed/i },
     'Rice': { allow: /rice/i, reject: /micro|cooked|pudding|cake|snack|crisps|cracker|sauce|seasoned/i },
-    'Noodles': { allow: /noodle/i, reject: /straight to wok|7Moon|flavou?r|seasoned|instant|sauce|pot noodle/i,
+    'Noodles': { allow: /noodle/i, reject: /straight to wok|wok[ -]*ready|ready[ -]*(?:to[ -]*)?wok|7Moon|flavou?r|seasoned|instant|sauce|pot noodle/i,
       rejectCategory: /fresh fruit|stir fry vegetables/i },
     'Couscous': { allow: /couscous/i, reject: /pearl|israeli|salad|soup|flavou?r|seasoned/i },
   };

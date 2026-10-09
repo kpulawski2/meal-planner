@@ -306,7 +306,7 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   if (['pasta', 'rice', 'noodle', 'couscou', 'orzo', 'lentil', 'bean', 'chickpea'].some(asked) && !['sauce', 'paste', 'soup'].some(asked)) {
     if (unrequested(COMPOSITE_FOODS) || /ready meals|soups|cooking sauces|pasta sauces|pot noodles/i.test(category)) return false;
     for (const word of ['sauce', 'curry', 'flavour', 'flavor', 'flavoured', 'flavored', 'seasoned', 'salad']) if (name.has(word) && !asked(word)) return false;
-    if (['pasta', 'rice', 'noodle', 'couscou', 'orzo'].some(asked) && /\bmicro\b|microwav|straight to wok|instant|ready.*noodles|filled pasta|fresh pasta|\bcooked\b/i.test(category + ' ' + title)) return false;
+    if (['pasta', 'rice', 'noodle', 'couscou', 'orzo'].some(asked) && /\bmicro\b|microwav|straight to wok|wok[ -]*ready|ready[ -]*(?:to[ -]*)?wok|instant|ready.*noodles|filled pasta|fresh pasta|\bcooked\b/i.test(category + ' ' + title)) return false;
     if (['pasta', 'rice', 'noodle', 'couscou', 'orzo'].some(asked) && /dessert|pudding|cake|biscuit|snack|cereal|baby/i.test(category + ' ' + title)) return false;
     if (['pasta', 'rice', 'noodle', 'couscou', 'orzo'].some(asked) && /fresh fruit|chilled food|fresh noodle/i.test(category)) return false;
     // Udon and 7Moon packs are hydrated ready noodles; dry recipe weights are
