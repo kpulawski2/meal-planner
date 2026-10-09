@@ -23,6 +23,9 @@ const sampleProducts = Array.from({ length: 120 }, (_, index) => {
     price: chicken ? 7.25 : 1.25,
     sku,
     gtin: null,
+    priceRegion: 'EN',
+    pricesByRegion: { EN: { price: chicken ? 7.25 : 1.25 }, SC: { price: chicken ? 7.1 : 1.2 } },
+    nutritionClaims: chicken ? ['High protein'] : [],
     availability: 'in_stock',
     available: true,
     image: chicken ? 'https://images.asda.com/chicken.jpg' : null,
@@ -36,7 +39,9 @@ await writeFile(process.env.ASDA_CATALOGUE_PATH, JSON.stringify(sampleProducts))
 await writeFile(process.env.ASDA_CATALOGUE_META_PATH, JSON.stringify({
   status: 'complete',
   products_saved: sampleProducts.length,
-  discovered_sitemaps: 4,
+  products_expected: sampleProducts.length,
+  coverage: 1,
+  category_count: 10,
   refreshed_at: '2026-10-07T06:00:00Z',
 }));
 
@@ -50,6 +55,9 @@ test('ASDA matching uses the validated full catalogue and returns saved product 
   assert.equal(result.results[0].priceGBP, 7.25);
   assert.equal(result.results[0].packSize, '1 kg');
   assert.equal(result.results[0].gtin, null);
+  assert.equal(result.results[0].priceRegion, 'EN');
+  assert.equal(result.results[0].pricesByRegion.SC.price, 7.1);
+  assert.deepEqual(result.results[0].nutritionClaims, ['High protein']);
   assert.equal(result.results[0].nutrition.protein, '23g');
 
   const product = await fetchProductPage('Asda', result.results[0].url);

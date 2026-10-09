@@ -1,8 +1,14 @@
-"""Build a validated, complete snapshot of ASDA's published grocery catalogue."""
+"""Build a complete ASDA catalogue from the public search index used by ASDA.com.
+
+ASDA currently publishes its grocery and George-in-groceries products through a
+read-only Algolia search index. The search key below is the public search-only
+key shipped to every visitor's browser; it cannot write to the index. We use
+the same category filters as the website and fail closed if any category or
+page is missing.
+"""
 
 from __future__ import annotations
 
-import gzip
 import hashlib
 import json
 import logging
@@ -11,37 +17,49 @@ import re
 import tempfile
 import threading
 import time
-import xml.etree.ElementTree as ET
-from collections import deque
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 
 import requests
-from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 ASDA = "https://www.asda.com"
-SITEMAP_INDEX = f"{ASDA}/sitemap-index.xml"
+ALGOLIA_APP_ID = os.environ.get("ASDA_ALGOLIA_APP_ID") or "8I6WSKCCNV"
+# This public key is delivered by ASDA's site configuration and is search-only.
+ALGOLIA_SEARCH_KEY = os.environ.get("ASDA_ALGOLIA_SEARCH_KEY") or "03e4272048dd17f771da37b57ff8a75e"
+ALGOLIA_INDEX = os.environ.get("ASDA_ALGOLIA_INDEX") or "ASDA_PRODUCTS"
+ALGOLIA_QUERY_URL = f"https://{ALGOLIA_APP_ID.lower()}-dsn.algolia.net/1/indexes/{ALGOLIA_INDEX}/query"
+BASE_FILTER = "STATUS:A AND DISPLAY_ONLINE:true"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PRODUCTS_PATH = REPO_ROOT / "data" / "products.json"
-USER_AGENT = os.environ.get(
-    "ASDA_USER_AGENT",
-    "MealPlannerCatalogue/4.0 (+https://github.com/kpulawski2/meal-planner)",
-)
 TIMEOUT = max(5, int(os.environ.get("REQUEST_TIMEOUT", "30")))
-WORKERS = max(1, min(16, int(os.environ.get("CATALOGUE_WORKERS", "8"))))
-MIN_CATALOGUE_PRODUCTS = max(1, int(os.environ.get("MIN_CATALOGUE_PRODUCTS", "100")))
+WORKERS = max(1, min(12, int(os.environ.get("CATALOGUE_WORKERS", "6"))))
 RETRY_TOTAL = max(1, int(os.environ.get("REQUEST_RETRIES", "4")))
+HITS_PER_PAGE = 1000
+MAX_RETRIEVABLE_HITS = 20_000
+MIN_CATALOGUE_PRODUCTS = max(1, int(os.environ.get("MIN_CATALOGUE_PRODUCTS", "100")))
+FACET_FIELDS = (
+    "PRIMARY_TAXONOMY.DEPT_NAME",
+    "PRIMARY_TAXONOMY.AISLE_NAME",
+    "PRIMARY_TAXONOMY.SHELF_NAME",
+)
+ATTRIBUTES = [
+    "objectID", "ID", "CIN", "NAME", "BRAND", "IMAGE_ID", "PACK_SIZE", "PRICES",
+    "PRIMARY_TAXONOMY", "NUTRITIONAL_INFO", "LIFESTYLES", "STATUS", "DISPLAY_ONLINE",
+    "PRODUCT_TYPE", "SKU_TYPE_IDENTIFIER", "GTIN", "EAN", "BARCODE",
+]
 LOG = logging.getLogger(__name__)
 _thread_local = threading.local()
+_status_cache: dict[str, Any] | None = None
 
 
 class CatalogueRefreshError(RuntimeError):
-    """Raised when discovery or validation indicates an incomplete catalogue."""
+    """Raised when the public product index is unavailable or incomplete."""
 
 
 def _new_session() -> requests.Session:
@@ -50,174 +68,138 @@ def _new_session() -> requests.Session:
         connect=RETRY_TOTAL,
         read=RETRY_TOTAL,
         status=RETRY_TOTAL,
-        backoff_factor=0.6,
+        backoff_factor=0.7,
         status_forcelist=(429, 500, 502, 503, 504),
-        allowed_methods=frozenset({"GET", "HEAD"}),
+        allowed_methods=frozenset({"POST"}),
         respect_retry_after_header=True,
         raise_on_status=False,
     )
     adapter = HTTPAdapter(max_retries=retry, pool_connections=WORKERS, pool_maxsize=WORKERS)
     session = requests.Session()
     session.mount("https://", adapter)
-    session.mount("http://", adapter)
     session.headers.update(
         {
-            "User-Agent": USER_AGENT,
-            "Accept-Language": "en-GB,en;q=0.9",
-            "Accept": "text/html,application/xml,text/xml,application/xhtml+xml,*/*;q=0.8",
+            "X-Algolia-Application-Id": ALGOLIA_APP_ID,
+            "X-Algolia-API-Key": ALGOLIA_SEARCH_KEY,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "MealPlannerCatalogue/5.0 (+https://github.com/kpulawski2/meal-planner)",
         }
     )
     return session
 
 
-def get(url: str) -> bytes:
-    """Fetch a URL with bounded retries, timeouts, and per-thread sessions."""
+def search_index(
+    *,
+    filters: str | None = None,
+    page: int = 0,
+    hits_per_page: int = HITS_PER_PAGE,
+    facets: list[str] | None = None,
+    max_values_per_facet: int = 1000,
+) -> dict[str, Any]:
+    """Issue a bounded, retryable read against ASDA's public search index."""
     session = getattr(_thread_local, "session", None)
     if session is None:
         session = _new_session()
         _thread_local.session = session
-    response = session.get(url, timeout=(10, TIMEOUT), allow_redirects=True)
-    if not _is_asda_url(response.url):
-        raise CatalogueRefreshError(f"ASDA URL redirected off the official domain: {url}")
-    if "/groceries/product/" in urlsplit(url).path.lower() and "/groceries/product/" not in urlsplit(response.url).path.lower():
-        raise CatalogueRefreshError(f"ASDA product URL redirected away from a product page: {url}")
-    response.raise_for_status()
-    return response.content
 
+    body: dict[str, Any] = {
+        "query": "",
+        "page": page,
+        "hitsPerPage": hits_per_page,
+        "attributesToRetrieve": ATTRIBUTES if not facets else ["objectID"],
+    }
+    if filters:
+        body["filters"] = filters
+    if facets is not None:
+        body["facets"] = facets
+        body["maxValuesPerFacet"] = max_values_per_facet
 
-def _is_asda_url(url: str) -> bool:
     try:
-        parsed = urlsplit(url)
-    except ValueError:
-        return False
-    return parsed.scheme == "https" and (parsed.hostname or "").lower() in {"asda.com", "www.asda.com"}
+        response = session.post(ALGOLIA_QUERY_URL, json=body, timeout=(10, TIMEOUT))
+        response.raise_for_status()
+        result = response.json()
+    except (requests.RequestException, ValueError) as exc:
+        raise CatalogueRefreshError(f"ASDA product search request failed: {exc}") from exc
+    if not isinstance(result, dict) or not isinstance(result.get("hits"), list):
+        raise CatalogueRefreshError("ASDA returned an invalid product search response.")
+    return result
 
 
-def _canonical_url(url: str) -> str:
-    parsed = urlsplit(url.strip())
-    if not _is_asda_url(url):
-        raise CatalogueRefreshError(f"Non-ASDA URL found in sitemap: {url}")
-    path = parsed.path or "/"
-    return urlunsplit(("https", (parsed.hostname or "www.asda.com").lower(), path, "", ""))
+def _filter_value(attribute: str, value: str) -> str:
+    escaped = str(value).replace("\\", "\\\\").replace('"', '\\"')
+    return f'{attribute}:"{escaped}"'
 
 
-def xml_locs(content: bytes) -> list[str]:
-    if content[:2] == b"\x1f\x8b":
-        content = gzip.decompress(content)
-    root = ET.fromstring(content)
-    return [
-        element.text.strip()
-        for element in root.iter()
-        if element.tag.rsplit("}", 1)[-1].lower() == "loc" and element.text and element.text.strip()
-    ]
+def _combine_filters(*parts: str) -> str:
+    return " AND ".join(f"({part})" for part in parts if part)
 
 
-def _is_sitemap_url(url: str) -> bool:
-    path = urlsplit(url).path.lower()
-    return path.endswith((".xml", ".xml.gz")) or "sitemap" in Path(path).name
-
-
-def discover_product_urls() -> tuple[list[str], int]:
-    """Recursively follow every sitemap published by ASDA and collect grocery PDPs.
-
-    Sitemap fetch or parse failures abort discovery. Returning an apparently valid
-    but incomplete set after skipping a failed child sitemap would risk replacing
-    the healthy catalogue with a partial one.
-    """
-    queue: deque[str] = deque([SITEMAP_INDEX])
-    visited: set[str] = set()
-    products: set[str] = set()
-
-    while queue:
-        sitemap_url = _canonical_url(queue.popleft())
-        if sitemap_url in visited:
-            continue
-        visited.add(sitemap_url)
-        try:
-            locations = xml_locs(get(sitemap_url))
-        except Exception as exc:
-            raise CatalogueRefreshError(f"Could not read sitemap {sitemap_url}: {exc}") from exc
-
-        for location in locations:
-            if not _is_asda_url(location):
-                LOG.warning("Ignoring non-ASDA sitemap location: %s", location)
-                continue
-            canonical = _canonical_url(location)
-            path = urlsplit(canonical).path.lower()
-            if "/groceries/product/" in path:
-                products.add(canonical)
-            elif _is_sitemap_url(canonical) and canonical not in visited:
-                queue.append(canonical)
-
-    if not products:
-        raise CatalogueRefreshError("ASDA's sitemap tree contained no /groceries/product/ URLs.")
-    return sorted(products), len(visited)
-
-
-def walk_jsonld(value: Any):
-    if isinstance(value, dict):
-        yield value
-        for child in value.values():
-            yield from walk_jsonld(child)
-    elif isinstance(value, list):
-        for child in value:
-            yield from walk_jsonld(child)
-
-
-def _schema_objects(soup: BeautifulSoup) -> list[dict[str, Any]]:
-    objects: list[dict[str, Any]] = []
-    for script in soup.select('script[type="application/ld+json"]'):
-        raw = script.string or script.get_text()
-        if not raw:
-            continue
-        try:
-            objects.extend(item for item in walk_jsonld(json.loads(raw)) if isinstance(item, dict))
-        except (json.JSONDecodeError, TypeError):
-            LOG.debug("Ignoring malformed JSON-LD block")
-    return objects
-
-
-def _is_product_object(value: dict[str, Any]) -> bool:
-    kind = value.get("@type", [])
-    kinds = kind if isinstance(kind, list) else [kind]
-    return "Product" in kinds or ("offers" in value and bool(value.get("name")))
-
-
-def _meta(soup: BeautifulSoup, *selectors: str) -> str | None:
-    for selector in selectors:
-        node = soup.select_one(selector)
-        if node:
-            value = node.get("content") or node.get_text(" ", strip=True)
-            if value:
-                return str(value).strip()
-    return None
-
-
-def _first_offer(product: dict[str, Any]) -> dict[str, Any]:
-    offers = product.get("offers")
-    if isinstance(offers, list):
-        offers = next((offer for offer in offers if isinstance(offer, dict)), {})
-    return offers if isinstance(offers, dict) else {}
-
-
-def _price_value(value: Any) -> float | None:
-    if value is None:
-        return None
-    match = re.search(r"\d+(?:[.,]\d{1,2})?", str(value).replace(",", ""))
-    if not match:
-        return None
+def _exact_count(result: dict[str, Any], context: str) -> int:
+    if result.get("exhaustiveNbHits") is not True:
+        raise CatalogueRefreshError(f"ASDA did not confirm an exact result count for {context}.")
     try:
-        price = float(match.group(0))
-        return price if price >= 0 else None
-    except ValueError:
-        return None
+        count = int(result["nbHits"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise CatalogueRefreshError(f"ASDA returned no valid result count for {context}.") from exc
+    if count < 0:
+        raise CatalogueRefreshError(f"ASDA returned a negative result count for {context}.")
+    return count
+
+
+def _facet_counts(result: dict[str, Any], field: str, context: str) -> dict[str, int]:
+    raw = result.get("facets", {}).get(field)
+    if not isinstance(raw, dict):
+        raise CatalogueRefreshError(f"ASDA omitted the {field} categories for {context}.")
+    try:
+        return {str(name): int(count) for name, count in raw.items() if int(count) > 0}
+    except (TypeError, ValueError) as exc:
+        raise CatalogueRefreshError(f"ASDA returned invalid {field} counts for {context}.") from exc
+
+
+def _discover_partitions(
+    category_counts: dict[str, int],
+    search_fn: Callable[..., dict[str, Any]],
+) -> list[tuple[str, int]]:
+    """Partition each primary category below Algolia's 20,000-hit page ceiling."""
+    partitions: list[tuple[str, int]] = []
+
+    def expand(filters: str, count: int, level: int, context: str) -> None:
+        if count <= 0:
+            return
+        if count <= MAX_RETRIEVABLE_HITS:
+            partitions.append((filters, count))
+            return
+        if level >= len(FACET_FIELDS):
+            raise CatalogueRefreshError(
+                f"ASDA category {context} has {count} products and cannot be safely split below 20,000."
+            )
+        field = FACET_FIELDS[level]
+        result = search_fn(filters=filters, page=0, hits_per_page=1, facets=[field], max_values_per_facet=1000)
+        exact_count = _exact_count(result, context)
+        if exact_count != count:
+            raise CatalogueRefreshError(f"ASDA changed the {context} count while catalogue discovery was running.")
+        children = _facet_counts(result, field, context)
+        if not children or sum(children.values()) != count:
+            raise CatalogueRefreshError(
+                f"ASDA's {field} facet covers {sum(children.values())} of {count} products in {context}."
+            )
+        for name, child_count in sorted(children.items(), key=lambda item: item[0].casefold()):
+            child_filter = _combine_filters(filters, _filter_value(field, name))
+            expand(child_filter, child_count, level + 1, f"{context} / {name}")
+
+    for category, count in sorted(category_counts.items(), key=lambda item: item[0].casefold()):
+        category_filter = _combine_filters(BASE_FILTER, _filter_value("PRIMARY_TAXONOMY.CAT_NAME", category))
+        expand(category_filter, count, 0, category)
+    return partitions
 
 
 def parse_quantity(value: Any) -> tuple[float | None, str | None]:
+    """Parse common customer-facing pack sizes into a base-unit quantity."""
     if value is None:
         return None, None
     text = str(value).strip().lower().replace(",", "").replace("×", "x")
-    units = r"kg|kilograms?|g|grams?|l|litres?|liters?|ml|millilitres?|milliliters?|cl"
+    units = r"kilograms?|kg|grams?|g|litres?|liters?|litre|liter|l|millilitres?|milliliters?|ml|cl|pints?|pt|ounces?|oz"
     multi = re.search(rf"(\d+)\s*x\s*(\d+(?:\.\d+)?)\s*({units})\b", text)
     if multi:
         multiplier, amount, unit = multi.groups()
@@ -228,17 +210,19 @@ def parse_quantity(value: Any) -> tuple[float | None, str | None]:
             amount, unit = single.groups()
             quantity = float(amount)
         else:
-            pieces = re.search(r"(\d+)\s*(?:pieces?|each|pack|pk|count|ct)\b", text)
-            if pieces:
-                return float(pieces.group(1)), "pieces"
-            return None, None
+            count = re.search(r"(\d+)\s*(?:pieces?|each|pack|pk|count|ct)\b", text)
+            return (float(count.group(1)), "pieces") if count else (None, None)
 
     if unit in {"kg", "kilogram", "kilograms"}:
         return quantity * 1000, "g"
     if unit in {"l", "litre", "litres", "liter", "liters"}:
         return quantity * 1000, "ml"
-    if unit == "cl":
+    if unit in {"cl"}:
         return quantity * 10, "ml"
+    if unit in {"pint", "pints", "pt"}:
+        return quantity * 568.26125, "ml"
+    if unit in {"oz", "ounce", "ounces"}:
+        return quantity * 28.349523125, "g"
     if unit in {"gram", "grams"}:
         unit = "g"
     if unit in {"millilitre", "millilitres", "milliliter", "milliliters"}:
@@ -246,199 +230,113 @@ def parse_quantity(value: Any) -> tuple[float | None, str | None]:
     return quantity, unit
 
 
-def _pack_text(soup: BeautifulSoup, product: dict[str, Any], text: str) -> str | None:
-    for key in ("weight", "size"):
-        value = product.get(key)
-        if isinstance(value, dict):
-            value = value.get("value") or value.get("name")
-        if value:
-            return str(value)
-    value = _meta(soup, 'meta[property="product:weight"]', 'meta[property="product:size"]')
-    if value:
-        return value
-    match = re.search(
-        r"net content\s*(?:net content\s*)?(\d+(?:[.,]\d+)?\s*(?:kg|kilograms?|g|grams?|l|litres?|liters?|ml|millilitres?|milliliters?|cl|pieces?|each|pack|pk|count|ct))\b",
-        text,
-        re.IGNORECASE,
-    )
-    if match:
-        return match.group(1)
-    # ASDA's product title commonly carries the customer-facing pack size.
-    match = re.search(
-        r"(\d+\s*x\s*\d+(?:[.,]\d+)?\s*(?:kg|g|l|ml|cl)|\d+(?:[.,]\d+)?\s*(?:kg|g|l|ml|cl)|\d+\s*(?:pieces?|each|pack|pk|count|ct))\b",
-        text[:1200],
-        re.IGNORECASE,
-    )
-    return match.group(1) if match else None
+def _slug(value: str) -> str:
+    ascii_value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii").lower()
+    # Keep a trailing dash for terminal punctuation (e.g. the site's "1+" slug).
+    return re.sub(r"[^a-z0-9]+", "-", ascii_value).lstrip("-")
 
 
-def _nutrition_from_schema(product: dict[str, Any]) -> dict[str, Any] | None:
-    nutrition = product.get("nutrition")
-    if not isinstance(nutrition, dict):
+def _number(value: Any) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
         return None
-    aliases = {
-        "energyKcal": ("calories", "energyKcal"),
-        "energyKj": ("energy", "energyKj"),
-        "protein": ("proteinContent", "protein"),
-        "fat": ("fatContent", "fat"),
-        "saturates": ("saturatedFatContent", "saturatedFat", "saturates"),
-        "carbohydrate": ("carbohydrateContent", "carbohydrate"),
-        "sugars": ("sugarContent", "sugars", "sugar"),
-        "fibre": ("fiberContent", "fibreContent", "fiber", "fibre"),
-        "salt": ("saltContent", "salt"),
-        "sodium": ("sodiumContent", "sodium"),
-    }
-    result: dict[str, Any] = {}
-    for target, keys in aliases.items():
-        for key in keys:
-            if nutrition.get(key) is not None:
-                result[target] = nutrition[key]
-                break
-    return result or None
+    return number if number >= 0 else None
 
 
-def _nutrition_from_tables(soup: BeautifulSoup) -> dict[str, str] | None:
-    patterns = {
-        "energyKcal": re.compile(r"^energy\s*kcal$", re.I),
-        "energyKj": re.compile(r"^energy\s*kJ$", re.I),
-        "fat": re.compile(r"^fat$", re.I),
-        "saturates": re.compile(r"saturates|saturated fat", re.I),
-        "carbohydrate": re.compile(r"^carbohydrate$", re.I),
-        "sugars": re.compile(r"sugars?", re.I),
-        "fibre": re.compile(r"fibre|fiber", re.I),
-        "protein": re.compile(r"^protein$", re.I),
-        "salt": re.compile(r"^salt$", re.I),
-        "sodium": re.compile(r"^sodium$", re.I),
-    }
-    values: dict[str, str] = {}
-    for row in soup.find_all("tr"):
-        cells = row.find_all(["th", "td"])
-        if len(cells) < 2:
-            continue
-        label = re.sub(r"\s+", " ", cells[0].get_text(" ", strip=True)).strip(" :")
-        value = re.sub(r"\s+", " ", cells[1].get_text(" ", strip=True))
-        for key, pattern in patterns.items():
-            if pattern.search(label) and value:
-                values[key] = value
-                break
-    return values or None
+def _display_name(brand: str | None, name: str) -> str:
+    if not brand or name.casefold().startswith(brand.casefold()):
+        return name.strip()
+    return f"{brand.strip()} {name.strip()}"
 
 
-def _availability(product: dict[str, Any], offers: dict[str, Any], text: str) -> tuple[str, bool | None]:
-    raw = str(offers.get("availability") or product.get("availability") or "").lower()
-    if "outofstock" in raw or "out of stock" in raw:
-        return "out_of_stock", False
-    if "instock" in raw or "in stock" in raw:
-        return "in_stock", True
-    if "preorder" in raw or "pre-order" in raw:
-        return "preorder", False
-    lower_text = text.lower()
-    if re.search(r"\b(out of stock|currently unavailable|not available online)\b", lower_text):
-        return "out_of_stock", False
-    return "unknown", None
+def _taxonomy(hit: dict[str, Any]) -> tuple[list[str], str]:
+    taxonomy = hit.get("PRIMARY_TAXONOMY")
+    if not isinstance(taxonomy, dict):
+        taxonomy = {}
+    values = []
+    for key in ("CAT_NAME", "DEPT_NAME", "AISLE_NAME", "SHELF_NAME"):
+        value = str(taxonomy.get(key) or "").strip()
+        if value and (not values or value.casefold() != values[-1].casefold()):
+            values.append(value)
+    category = " > ".join(values) if values else "ASDA Groceries"
+    return values, category
 
 
-def _product_name(soup: BeautifulSoup, product: dict[str, Any]) -> str:
-    h1 = soup.find("h1")
-    return str((h1.get_text(" ", strip=True) if h1 else "") or product.get("name") or _meta(soup, 'meta[property="og:title"]') or "").strip()
+def product_from_hit(hit: dict[str, Any], checked_at: str) -> dict[str, Any]:
+    """Convert one official search-index record into the app's product schema."""
+    object_id = str(hit.get("objectID") or hit.get("CIN") or "").strip()
+    raw_name = str(hit.get("NAME") or "").strip()
+    if not object_id or not raw_name:
+        raise CatalogueRefreshError("ASDA returned a product without a stable ID or name.")
+    brand = str(hit.get("BRAND") or "").strip() or None
+    name = _display_name(brand, raw_name)
+    taxonomy_values, category = _taxonomy(hit)
+    route_category = taxonomy_values[-1] if taxonomy_values else "ASDA Groceries"
+    url = f"{ASDA}/groceries/product/{_slug(route_category)}/{_slug(name)}/{object_id}"
 
+    price_rows: dict[str, dict[str, Any]] = {}
+    raw_prices = hit.get("PRICES")
+    if isinstance(raw_prices, dict):
+        for region in ("EN", "NI", "SC", "WA"):
+            row = raw_prices.get(region)
+            if not isinstance(row, dict):
+                continue
+            price = _number(row.get("PRICE"))
+            if price is None:
+                continue
+            unit_price = _number(row.get("PRICEPERUOM"))
+            price_rows[region] = {
+                "price": price,
+                "unitPrice": unit_price,
+                "unitPriceLabel": str(row.get("PRICEPERUOMFORMATTED") or "").strip() or None,
+                "offer": str(row.get("OFFER") or "").strip() or None,
+            }
 
-def parse_product(url: str, content: bytes | str, checked_at: str | None = None) -> dict[str, Any] | None:
-    """Extract a product record from an official ASDA product page."""
-    canonical = _canonical_url(url)
-    html = content.decode("utf-8", errors="replace") if isinstance(content, bytes) else content
-    soup = BeautifulSoup(html, "html.parser")
-    objects = _schema_objects(soup)
-    product = next((obj for obj in objects if _is_product_object(obj)), {})
-    offers = _first_offer(product)
-    name = _product_name(soup, product)
-    if not name or re.search(r"(page not found|404|access denied|verify you are human)", name, re.I):
-        return None
+    chosen_region = "EN" if "EN" in price_rows else next(iter(price_rows), None)
+    chosen_price = price_rows.get(chosen_region, {}) if chosen_region else {}
+    pack_size = str(hit.get("PACK_SIZE") or "").strip() or None
+    pack_quantity, pack_unit = parse_quantity(pack_size)
+    image_id = str(hit.get("IMAGE_ID") or "").strip() or None
+    image = (
+        f"https://asdagroceries.scene7.com/is/image/asdagroceries/{image_id}?$ProdListProd$&dpr=on,1"
+        if image_id
+        else None
+    )
+    nutrition_flags = hit.get("NUTRITIONAL_INFO") if isinstance(hit.get("NUTRITIONAL_INFO"), dict) else {}
+    dietary_attributes = [key for key, value in nutrition_flags.items() if value in (1, True, "1", "true")]
+    lifestyles = hit.get("LIFESTYLES")
+    if isinstance(lifestyles, list):
+        dietary_attributes.extend(str(value).strip() for value in lifestyles if str(value).strip())
+    dietary_attributes = list(dict.fromkeys(dietary_attributes))
+    gtin = next((str(hit[key]).strip() for key in ("GTIN", "EAN", "BARCODE") if hit.get(key)), None)
+    sku = str(hit.get("CIN") or object_id).strip()
+    price = chosen_price.get("price")
+    quantity_base_unit = price / pack_quantity if price is not None and pack_quantity else None
 
-    text = soup.get_text(" ", strip=True)
-    price: float | None = None
-    currency = str(offers.get("priceCurrency", "GBP")).upper()
-    if currency == "GBP":
-        price = _price_value(offers.get("price") or offers.get("lowPrice"))
-    price_meta = _meta(soup, 'meta[property="product:price:amount"]', 'meta[itemprop="price"]')
-    if price is None and price_meta and str(_meta(soup, 'meta[property="product:price:currency"]') or "GBP").upper() == "GBP":
-        price = _price_value(price_meta)
-    if price is None:
-        match = re.search(r"actual price\s*£\s*(\d+(?:\.\d{1,2})?)", text, re.I)
-        if match:
-            price = float(match.group(1))
-    if price is None:
-        match = re.search(r"£\s*(\d+(?:\.\d{1,2})?)", text)
-        if match:
-            price = float(match.group(1))
-
-    pack_size = _pack_text(soup, product, text)
-    quantity, unit = parse_quantity(pack_size)
-    brand = product.get("brand")
-    if isinstance(brand, dict):
-        brand = brand.get("name")
-    brand = brand or _meta(soup, 'meta[property="product:brand"]', '[itemprop="brand"]')
-
-    image = product.get("image")
-    if isinstance(image, list):
-        image = next((item for item in image if item), None)
-    if isinstance(image, dict):
-        image = image.get("url") or image.get("contentUrl")
-    image = image or _meta(soup, 'meta[property="og:image"]', 'meta[itemprop="image"]')
-
-    path_parts = [part for part in urlsplit(canonical).path.split("/") if part]
-    route_code = path_parts[-1] if path_parts else ""
-    sku = product.get("sku") or (route_code if re.fullmatch(r"\d{5,}", route_code) else None)
-    gtin = next((product.get(key) for key in ("gtin14", "gtin13", "gtin12", "gtin8", "gtin") if product.get(key)), None)
-    category = product.get("category") or _meta(soup, 'meta[property="product:category"]')
-    if isinstance(category, list):
-        category = " > ".join(str(value) for value in category if value)
-    if not category:
-        crumbs = [item.get_text(" ", strip=True) for item in soup.select('nav[aria-label*="breadcrumb" i] a, [aria-label*="breadcrumb" i] a')]
-        category = " > ".join(item for item in crumbs if item and item.lower() not in {"home", "groceries"}) or (path_parts[2] if len(path_parts) > 2 else None)
-
-    availability, available = _availability(product, offers, text)
-    nutrition = _nutrition_from_schema(product) or _nutrition_from_tables(soup)
-    ingredients = None
-    for node in soup.find_all(string=re.compile(r"^\s*ingredients\s*$", re.I)):
-        parent = node.parent
-        sibling = parent.find_next_sibling() if parent else None
-        if sibling:
-            ingredients = sibling.get_text(" ", strip=True) or None
-            if ingredients:
-                break
-
-    checked = checked_at or datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-    stable_code = str(gtin or sku or hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16])
-    identifier = f"asda-{stable_code}"
     return {
-        "id": identifier,
-        "ingredient": name.lower(),
+        "id": f"asda-{object_id}",
         "name": name,
-        "brand": str(brand).strip() if brand else None,
+        "brand": brand,
         "packSize": pack_size,
-        "packQuantity": quantity,
-        "packUnit": unit,
+        "packQuantity": pack_quantity,
+        "packUnit": pack_unit,
         "price": price,
-        "pricePerBaseUnit": round(price / quantity, 6) if price is not None and quantity else None,
-        "url": canonical,
+        "priceRegion": chosen_region,
+        "pricesByRegion": price_rows,
+        "pricePerBaseUnit": round(quantity_base_unit, 8) if quantity_base_unit is not None else None,
+        "pricePerUnit": chosen_price.get("unitPrice"),
+        "pricePerUnitLabel": chosen_price.get("unitPriceLabel"),
+        "offer": chosen_price.get("offer"),
+        "url": url,
         "image": image,
         "category": category,
-        "sku": str(sku) if sku else None,
-        "gtin": str(gtin) if gtin else None,
-        "availability": availability,
-        "available": available,
-        "nutrition": nutrition,
-        "ingredients": ingredients,
-        "retailer": "ASDA",
-        "checked": checked[:10],
-        "checkedAt": checked,
-        "source": "asda_official_sitemap_product_page",
+        "sku": sku,
+        "availability": "listed_online",
+        "nutritionClaims": dietary_attributes,
+        "checkedAt": checked_at,
+        **({"gtin": gtin} if gtin else {}),
     }
-
-
-def fetch_product(url: str) -> dict[str, Any] | None:
-    return parse_product(url, get(url))
 
 
 def _read_json(path: Path) -> Any:
@@ -455,7 +353,8 @@ def _healthy_previous_count(products_path: Path, metadata_path: Path) -> int:
         isinstance(metadata, dict)
         and metadata.get("status") == "complete"
         and isinstance(products, list)
-        and len(products) == metadata.get("products_saved")
+        and len(products) == metadata.get("products_saved") == metadata.get("products_expected")
+        and metadata.get("coverage") == 1.0
     ):
         return len(products)
     return 0
@@ -463,24 +362,18 @@ def _healthy_previous_count(products_path: Path, metadata_path: Path) -> int:
 
 def validate_catalogue(
     products: list[dict[str, Any]],
-    discovered_urls: list[str],
-    failures: list[tuple[str, str]],
+    expected_count: int,
     previous_count: int = 0,
     minimum_products: int = MIN_CATALOGUE_PRODUCTS,
 ) -> None:
-    if failures:
-        sample = "; ".join(f"{url}: {error}" for url, error in failures[:8])
+    if expected_count < minimum_products or len(products) < minimum_products:
         raise CatalogueRefreshError(
-            f"Incomplete scrape: {len(failures)}/{len(discovered_urls)} product pages failed or could not be parsed. {sample}"
-        )
-    if len(discovered_urls) < minimum_products or len(products) < minimum_products:
-        raise CatalogueRefreshError(
-            f"Catalogue validation rejected {len(products)} products from {len(discovered_urls)} URLs; "
+            f"Catalogue validation rejected {len(products)} of {expected_count} products; "
             f"at least {minimum_products} are required."
         )
-    if len(products) != len(discovered_urls):
+    if len(products) != expected_count:
         raise CatalogueRefreshError(
-            f"Incomplete scrape: parsed {len(products)} of {len(discovered_urls)} discovered product URLs."
+            f"Incomplete catalogue: received {len(products)} of {expected_count} active online products."
         )
     ids = [product.get("id") for product in products]
     urls = [product.get("url") for product in products]
@@ -489,13 +382,17 @@ def validate_catalogue(
     if any(not value for value in urls) or len(set(urls)) != len(urls):
         raise CatalogueRefreshError("Catalogue contains missing or duplicate product URLs.")
     for product in products:
-        if not _is_asda_url(str(product.get("url", ""))) or "/groceries/product/" not in urlsplit(str(product.get("url"))).path.lower():
-            raise CatalogueRefreshError(f"Catalogue contains a non-product or non-ASDA URL: {product.get('url')}")
+        url = str(product.get("url", ""))
+        parsed = urlsplit(url)
+        if parsed.scheme != "https" or parsed.hostname != "www.asda.com" or "/groceries/product/" not in parsed.path:
+            raise CatalogueRefreshError(f"Catalogue contains a non-ASDA product URL: {url}")
         if not str(product.get("name", "")).strip():
-            raise CatalogueRefreshError(f"Catalogue contains a product without a name: {product.get('url')}")
+            raise CatalogueRefreshError(f"Catalogue contains a product without a name: {url}")
         price = product.get("price")
         if price is not None and (not isinstance(price, (int, float)) or price < 0):
-            raise CatalogueRefreshError(f"Catalogue contains an invalid price: {product.get('url')}")
+            raise CatalogueRefreshError(f"Catalogue contains an invalid price: {url}")
+        if product.get("availability") != "listed_online":
+            raise CatalogueRefreshError(f"Catalogue contains a product not marked active and online: {url}")
     if previous_count >= minimum_products and len(products) < int(previous_count * 0.8):
         raise CatalogueRefreshError(
             f"Catalogue validation rejected a drop from {previous_count} to {len(products)} products (below the 80% safety threshold)."
@@ -510,7 +407,7 @@ def _atomic_json(path: Path, value: Any) -> None:
             mode="w", encoding="utf-8", dir=path.parent, prefix=f".{path.name}.", suffix=".tmp", delete=False
         ) as handle:
             temp_path = Path(handle.name)
-            json.dump(value, handle, ensure_ascii=False, indent=2)
+            json.dump(value, handle, ensure_ascii=False, separators=(",", ":"))
             handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
@@ -524,92 +421,175 @@ def crawl(
     *,
     output_path: str | Path | None = None,
     metadata_path: str | Path | None = None,
-    discover_fn: Callable[[], tuple[list[str], int]] | None = None,
-    fetch_fn: Callable[[str], dict[str, Any] | None] | None = None,
+    search_fn: Callable[..., dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
+    """Fetch every active, online ASDA product and publish only a full snapshot."""
     products_path = Path(output_path or os.environ.get("PRODUCT_OUT", str(DEFAULT_PRODUCTS_PATH))).resolve()
     meta_path = Path(metadata_path or products_path.with_name("catalogue-meta.json")).resolve()
-    discovered, sitemap_count = (discover_fn or discover_product_urls)()
-    urls = sorted(set(discovered))
-    if not urls:
-        raise CatalogueRefreshError("ASDA sitemap discovery returned no product URLs.")
-
-    previous_count = _healthy_previous_count(products_path, meta_path)
-    LOG.info("Discovered %d product URLs across %d sitemaps; fetching with %d workers", len(urls), sitemap_count, WORKERS)
+    search = search_fn or search_index
     started = time.monotonic()
-    records: list[dict[str, Any]] = []
-    failures: list[tuple[str, str]] = []
-    worker = fetch_fn or fetch_product
+
+    root = search(
+        filters=BASE_FILTER,
+        page=0,
+        hits_per_page=1,
+        facets=["PRIMARY_TAXONOMY.CAT_NAME"],
+        max_values_per_facet=1000,
+    )
+    expected_count = _exact_count(root, "the full active online ASDA catalogue")
+    category_counts = _facet_counts(root, "PRIMARY_TAXONOMY.CAT_NAME", "the full active online ASDA catalogue")
+    if not category_counts or sum(category_counts.values()) != expected_count:
+        raise CatalogueRefreshError(
+            f"ASDA category facets cover {sum(category_counts.values())} of {expected_count} active online products."
+        )
+    partitions = _discover_partitions(category_counts, search)
+    if sum(count for _, count in partitions) != expected_count:
+        raise CatalogueRefreshError("Category partitions do not add up to ASDA's exhaustive product count.")
+
+    page_jobs: list[tuple[str, int, int]] = []
+    for filters, count in partitions:
+        if count > MAX_RETRIEVABLE_HITS:
+            raise CatalogueRefreshError(f"A category query still exceeds Algolia's page limit: {count} products.")
+        for page in range((count + HITS_PER_PAGE - 1) // HITS_PER_PAGE):
+            expected_page_size = min(HITS_PER_PAGE, count - page * HITS_PER_PAGE)
+            page_jobs.append((filters, page, expected_page_size))
+
+    LOG.info(
+        "ASDA reports %d active online products in %d primary categories; fetching %d pages with %d workers",
+        expected_count,
+        len(category_counts),
+        len(page_jobs),
+        WORKERS,
+    )
+    hits: list[dict[str, Any]] = []
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
-        futures = {pool.submit(worker, url): url for url in urls}
+        futures = {
+            pool.submit(search, filters=filters, page=page, hits_per_page=HITS_PER_PAGE):
+                (filters, page, expected_size)
+            for filters, page, expected_size in page_jobs
+        }
         for processed, future in enumerate(as_completed(futures), start=1):
-            url = futures[future]
+            filters, page, expected_size = futures[future]
             try:
-                product = future.result()
-                if product is None:
-                    failures.append((url, "page did not contain a parseable product name"))
-                else:
-                    records.append(product)
+                response = future.result()
             except Exception as exc:
-                failures.append((url, str(exc)[:500]))
-            if processed % 250 == 0:
-                LOG.info("Processed %d/%d pages; parsed %d", processed, len(urls), len(records))
+                raise CatalogueRefreshError(f"ASDA catalogue page {page} failed: {exc}") from exc
+            page_hits = response.get("hits")
+            if not isinstance(page_hits, list) or len(page_hits) != expected_size:
+                count = len(page_hits) if isinstance(page_hits, list) else "invalid"
+                raise CatalogueRefreshError(
+                    f"Incomplete ASDA catalogue page {page}: received {count} records, expected {expected_size}."
+                )
+            hits.extend(page_hits)
+            if processed % 10 == 0 or processed == len(page_jobs):
+                LOG.info("Fetched %d/%d ASDA result pages (%d products)", processed, len(page_jobs), len(hits))
 
-    records.sort(key=lambda product: str(product.get("name", "")).casefold())
-    ids: dict[str, int] = {}
-    for product in records:
-        ids[product["id"]] = ids.get(product["id"], 0) + 1
-    for product in records:
-        if ids[product["id"]] > 1:
-            suffix = hashlib.sha256(product["url"].encode("utf-8")).hexdigest()[:8]
-            product["id"] = f"{product['id']}-{suffix}"
-    validate_catalogue(records, urls, failures, previous_count=previous_count)
+    if len(hits) != expected_count:
+        raise CatalogueRefreshError(f"ASDA returned {len(hits)} products; its exact category count was {expected_count}.")
+    for hit in hits:
+        if hit.get("STATUS") != "A" or hit.get("DISPLAY_ONLINE") is not True:
+            raise CatalogueRefreshError("ASDA returned an inactive or non-online product in the active catalogue query.")
+    final_root = search(
+        filters=BASE_FILTER,
+        page=0,
+        hits_per_page=1,
+        facets=["PRIMARY_TAXONOMY.CAT_NAME"],
+        max_values_per_facet=1000,
+    )
+    final_count = _exact_count(final_root, "the final active online ASDA catalogue check")
+    final_categories = _facet_counts(final_root, "PRIMARY_TAXONOMY.CAT_NAME", "the final active online ASDA catalogue check")
+    if final_count != expected_count or final_categories != category_counts:
+        raise CatalogueRefreshError("ASDA's active product counts changed during refresh; the previous snapshot was kept.")
+    checked_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    records = [product_from_hit(hit, checked_at) for hit in hits]
+    records.sort(key=lambda product: (str(product.get("name", "")).casefold(), str(product.get("id", ""))))
 
-    completed_at = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    # Duplicate IDs could arise if ASDA assigns a product to multiple categories;
+    # dedupe only when the underlying official object is identical.
+    by_id: dict[str, dict[str, Any]] = {}
+    for product in records:
+        previous = by_id.get(product["id"])
+        if previous and previous != product:
+            raise CatalogueRefreshError(f"ASDA returned conflicting product data for {product['id']}.")
+        by_id[product["id"]] = product
+    records = list(by_id.values())
+    previous_count = _healthy_previous_count(products_path, meta_path)
+    validate_catalogue(records, expected_count, previous_count=previous_count)
+
     elapsed = round(time.monotonic() - started, 2)
     metadata = {
-        "schema_version": 2,
+        "schema_version": 3,
         "status": "complete",
-        "source": "ASDA official sitemap and official product pages",
-        "sitemap_index": SITEMAP_INDEX,
-        "refreshed_at": completed_at,
-        "last_successful_at": completed_at,
+        "source": "ASDA official ASDA_PRODUCTS public search index",
+        "source_url": "https://www.asda.com/groceries/search",
+        "refreshed_at": checked_at,
+        "last_successful_at": checked_at,
         "duration_seconds": elapsed,
-        "discovered_sitemaps": sitemap_count,
-        "discovered_urls": len(urls),
-        "pages_fetched": len(urls),
+        "index_hits": int(root["nbHits"]),
+        "products_expected": expected_count,
         "products_saved": len(records),
-        "product_page_failures": 0,
+        "pages_fetched": len(page_jobs),
+        "category_count": len(category_counts),
+        "category_counts": category_counts,
+        "category_partitions": len(partitions),
         "coverage": 1.0,
         "with_price": sum(product.get("price") is not None for product in records),
+        "with_regional_prices": sum(bool(product.get("pricesByRegion")) for product in records),
         "with_pack_size": sum(product.get("packSize") is not None for product in records),
         "with_sku": sum(product.get("sku") is not None for product in records),
         "with_gtin": sum(product.get("gtin") is not None for product in records),
         "with_brand": sum(product.get("brand") is not None for product in records),
         "with_category": sum(product.get("category") is not None for product in records),
-        "with_availability": sum(product.get("availability") != "unknown" for product in records),
+        "with_availability": len(records),
         "with_image": sum(product.get("image") is not None for product in records),
-        "with_nutrition": sum(product.get("nutrition") is not None for product in records),
+        "with_nutrition": sum(bool(product.get("nutrition")) for product in records),
+        "with_nutrition_claims": sum(bool(product.get("nutritionClaims")) for product in records),
+        "availability_note": "Listed online in ASDA's catalogue; store stock varies by location.",
+        "nutrition_note": "ASDA's public search index includes dietary claims; full nutrition tables remain on product pages.",
+        "price_note": "Prices are shown by ASDA region; the app defaults to England when available.",
     }
 
-    # Both files are staged only after all pages and validation succeed. Products
-    # are atomically replaced first; metadata acts as the published snapshot marker.
+    # Files are replaced only after discovery, every page, deduplication, and
+    # validation have all succeeded. A transient/partial result never publishes.
     _atomic_json(products_path, records)
     _atomic_json(meta_path, metadata)
-    LOG.info("Published %d validated products in %.2fs", len(records), elapsed)
+    LOG.info("Published %d validated ASDA products in %.2fs", len(records), elapsed)
     return records
 
 
-def read_catalogue_status(products_path: str | Path | None = None, metadata_path: str | Path | None = None) -> dict[str, Any]:
+def read_catalogue_status(
+    products_path: str | Path | None = None,
+    metadata_path: str | Path | None = None,
+) -> dict[str, Any]:
+    global _status_cache
     product_file = Path(products_path or os.environ.get("PRODUCT_OUT", str(DEFAULT_PRODUCTS_PATH))).resolve()
     meta_file = Path(metadata_path or product_file.with_name("catalogue-meta.json")).resolve()
     metadata = _read_json(meta_file)
+    try:
+        product_stat = product_file.stat()
+        metadata_stat = meta_file.stat()
+        fingerprint = (
+            str(product_file), product_stat.st_mtime_ns, product_stat.st_size,
+            str(meta_file), metadata_stat.st_mtime_ns, metadata_stat.st_size,
+        )
+    except OSError:
+        fingerprint = None
+    if fingerprint is not None and _status_cache and _status_cache.get("fingerprint") == fingerprint:
+        return dict(_status_cache["status"])
+
     products = _read_json(product_file)
     if not isinstance(metadata, dict):
-        metadata = {"status": "unavailable", "source": "ASDA official sitemap and official product pages"}
+        metadata = {"status": "unavailable", "source": "ASDA official product search index"}
     metadata = dict(metadata)
     recorded_count = metadata.get("products_saved")
     actual_count = len(products) if isinstance(products, list) else 0
     metadata["products_saved"] = actual_count
-    metadata["healthy"] = metadata.get("status") == "complete" and isinstance(products, list) and actual_count == recorded_count
+    metadata["healthy"] = (
+        metadata.get("status") == "complete"
+        and isinstance(products, list)
+        and actual_count == recorded_count == metadata.get("products_expected")
+        and metadata.get("coverage") == 1.0
+    )
+    if fingerprint is not None:
+        _status_cache = {"fingerprint": fingerprint, "status": metadata}
     return metadata

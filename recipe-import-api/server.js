@@ -824,7 +824,7 @@ app.get('/api/connection-check', authenticated, (_req, res) => res.json({ ok: tr
 
 // Automatic supermarket lookups are disabled in the direct-page catalogue build. Prices are stored as verified page snapshots or manually recorded by the user.
 
-app.get('/api/catalog/stores', catalogRateLimit, (_req, res) => res.json({ ok: true, stores: catalogStoreInfo(), mode: 'official-retailer-sitemaps' }));
+app.get('/api/catalog/stores', catalogRateLimit, (_req, res) => res.json({ ok: true, stores: catalogStoreInfo(), mode: 'official-retailer-catalogue-snapshots' }));
 app.get('/api/catalog/status', async (_req, res) => res.json({ ok: true, catalogue: await catalogueStatus() }));
 app.get('/api/catalog/search', catalogRateLimit, async (req, res) => {
   try {
@@ -855,7 +855,7 @@ app.post('/api/catalog/refresh', catalogRateLimit, (req, res) => { const store =
 app.post('/api/prices/lookup', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct ASDA/Aldi product-page references in the Shopping List.' }));
 app.get('/api/prices/lookup/:jobId', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct product-page reference catalogue.' }));
 
-app.get('/health', async (_req, res) => res.json({ ok: true, service: 'meal-planner', aiProvider: 'Groq API (recipe/video features only)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors for AI import', priceSearchProvider: 'Manual product reference catalogue; no automated search API', braveSearchConfigured: false, priceSearchRetryPolicy: 'Not used by the manual price-reference UI', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: false, livePriceSearchConfigured: false, livePriceStores: ['Asda', 'Aldi'], priceSearchModel: null, priceDataSource: 'Direct official ASDA/Aldi product-detail URLs and dated price snapshots; missing direct pages/prices remain blank; no search-engine links or automatic price lookup', directProductPageCount: 93, priceSnapshotCount: 83, manualPriceReferenceMode: true, officialCatalogMode: true, officialCatalogSources: catalogStoreInfo(), asdaCatalogue: await catalogueStatus(), priceReferenceCatalog: '/price-reference-catalog.json', priceReferenceCsv: '/price-reference-catalog.csv', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
+app.get('/health', async (_req, res) => res.json({ ok: true, service: 'meal-planner', aiProvider: 'Groq API (recipe/video features only)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors for AI import', priceSearchProvider: 'ASDA official full-catalogue snapshot; no paid search API', braveSearchConfigured: false, priceSearchRetryPolicy: 'Not used by the manual price-reference UI', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: false, livePriceSearchConfigured: false, livePriceStores: ['Asda', 'Aldi'], priceSearchModel: null, priceDataSource: 'Complete ASDA official product-index snapshot with regional prices and direct product links; Aldi remains a sitemap URL index; no paid search API', directProductPageCount: 93, priceSnapshotCount: 83, manualPriceReferenceMode: true, officialCatalogMode: true, officialCatalogSources: catalogStoreInfo(), asdaCatalogue: await catalogueStatus(), priceReferenceCatalog: '/price-reference-catalog.json', priceReferenceCsv: '/price-reference-catalog.csv', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
 
 app.post('/api/import-recipe', authenticated, async (req, res) => {
   const url = cleanString(req.body?.url, 2000);
@@ -949,4 +949,4 @@ app.use((err, _req, res, _next) => {
   if (err?.type === 'entity.too.large') return res.status(413).json({ error: 'The submitted caption/transcript is too large.' });
   return res.status(400).json({ error: 'The request could not be read. Please check the input and retry.' });
 });
-app.listen(PORT, '0.0.0.0', () => console.log(`Meal Planner recipe importer listening on ${PORT}`));
+export const httpServer = app.listen(PORT, '0.0.0.0', () => console.log(`Meal Planner recipe importer listening on ${PORT}`));

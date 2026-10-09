@@ -1,11 +1,11 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const CATALOG_STORES = {
   Asda: {
     name: 'Asda',
-    sitemap: 'https://www.asda.com/sitemap-index.xml',
+    catalogue: 'https://www.asda.com/groceries/search',
     allowedProduct: (url) => /^https:\/\/www\.asda\.com\/groceries\/product\//i.test(url),
   },
   Aldi: {
@@ -18,6 +18,7 @@ const CATALOG_STORES = {
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 12000;
 const catalogCache = new Map();
+let catalogueStatusCache = null;
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ASDA_CATALOGUE_PATH = process.env.ASDA_CATALOGUE_PATH || path.resolve(MODULE_DIR, '../data/products.json');
 const ASDA_METADATA_PATH = process.env.ASDA_CATALOGUE_META_PATH || path.resolve(MODULE_DIR, '../data/catalogue-meta.json');
@@ -57,34 +58,43 @@ async function buildUrlIndex(storeName) {
   if (!config) throw new Error(`Unsupported catalog store: ${storeName}`);
 
   if (storeName === 'Asda') {
+    let products;
+    let metadata;
     try {
       const [catalogueText, metadataText] = await Promise.all([
         readFile(ASDA_CATALOGUE_PATH, 'utf8'),
         readFile(ASDA_METADATA_PATH, 'utf8'),
       ]);
-      const products = JSON.parse(catalogueText);
-      const metadata = JSON.parse(metadataText);
+      products = JSON.parse(catalogueText);
+      metadata = JSON.parse(metadataText);
+    } catch (error) {
+      if (error?.code === 'ENOENT' || error instanceof SyntaxError) {
+        throw new Error('No complete ASDA catalogue snapshot is available yet.');
+      }
+      throw error;
+    }
+
+    if (Array.isArray(products) && metadata && typeof metadata === 'object') {
       const productCount = Array.isArray(products) ? products.length : 0;
-      const complete = metadata.status === 'complete' && productCount >= 100;
-      const seed = metadata.status === 'seed' || (!metadata.status && productCount > 0);
-      if ((complete || seed) && Array.isArray(products) &&
-          products.length === Number(metadata.products_saved) &&
-          products.every(product => product && /^https:\/\/www\.asda\.com\/groceries\/product\//i.test(product.url))) {
+      const complete = metadata.status === 'complete' && productCount >= 100 &&
+        productCount === Number(metadata.products_saved) &&
+        productCount === Number(metadata.products_expected) && Number(metadata.coverage) === 1;
+      if (complete && products.every(product => product && config.allowedProduct(product.url))) {
         const createdAt = Date.parse(metadata.refreshed_at) || Date.now();
         const index = {
           createdAt,
           urls: products.map(product => product.url),
           products,
-          sitemapCount: Number(metadata.discovered_sitemaps) || 0,
-          snapshotStatus: complete ? 'complete' : 'seed',
-          source: complete ? 'validated ASDA catalogue snapshot' : 'ASDA seed snapshot',
+          categoryCount: Number(metadata.category_count) || 0,
+          snapshotStatus: 'complete',
+          source: 'validated ASDA catalogue snapshot',
         };
         catalogCache.set(storeName, index);
         return index;
       }
-    } catch (error) {
-      if (error?.code !== 'ENOENT' && !(error instanceof SyntaxError)) throw error;
     }
+
+    throw new Error('The ASDA catalogue snapshot is incomplete; it was not used for product matching.');
   }
 
   const seen = new Set();
@@ -151,6 +161,7 @@ function scoreCandidate(query, url) {
 function productSearchText(product) {
   return [
     product.name, product.ingredient, product.brand, product.category,
+    ...(product.categoryPath || []), ...(product.nutritionClaims || []),
     product.packSize, product.sku, product.gtin,
   ].filter(Boolean).join(' ');
 }
@@ -172,7 +183,7 @@ export async function searchCatalog(storeName, query, limit = 8) {
     store: storeName,
     query: q,
     indexSize: index.urls.length,
-    sitemapCount: index.sitemapCount,
+    categoryCount: index.categoryCount || 0,
     refreshedAt: new Date(index.createdAt).toISOString(),
     source: index.source || 'official retailer sitemap',
     snapshotStatus: index.snapshotStatus || 'live_sitemap',
@@ -185,6 +196,11 @@ export async function searchCatalog(storeName, query, limit = 8) {
       packQuantity: product.packQuantity ?? null,
       packUnit: product.packUnit || null,
       priceGBP: product.price ?? null,
+      priceRegion: product.priceRegion || null,
+      pricesByRegion: product.pricesByRegion || {},
+      pricePerUnitGBP: product.pricePerUnit ?? null,
+      pricePerUnitLabel: product.pricePerUnitLabel || null,
+      offer: product.offer || null,
       sku: product.sku || null,
       gtin: product.gtin || null,
       availability: product.availability || 'unknown',
@@ -192,6 +208,8 @@ export async function searchCatalog(storeName, query, limit = 8) {
       image: product.image || null,
       category: product.category || null,
       nutrition: product.nutrition || null,
+      nutritionClaims: product.nutritionClaims || [],
+      categoryPath: product.categoryPath || [],
       checkedAt: product.checkedAt || product.checked || null,
       verified: index.snapshotStatus === 'complete' && Number(product.price) > 0 && Number(product.packQuantity) > 0,
     }) : ({ url, score })),
@@ -230,14 +248,22 @@ export async function fetchProductPage(storeName, url) {
       size: saved.packQuantity ?? null,
       unit: saved.packUnit || null,
       packSize: saved.packSize || null,
+      pricePerBaseUnitGBP: saved.pricePerBaseUnit ?? null,
       sku: saved.sku || null,
       gtin: saved.gtin || null,
       brand: saved.brand || null,
       category: saved.category || null,
+      categoryPath: saved.categoryPath || [],
       availability: saved.availability || 'unknown',
       available: saved.available ?? null,
       image: saved.image || null,
       nutrition: saved.nutrition || null,
+      nutritionClaims: saved.nutritionClaims || [],
+      pricesByRegion: saved.pricesByRegion || {},
+      priceRegion: saved.priceRegion || null,
+      pricePerUnitGBP: saved.pricePerUnit ?? null,
+      pricePerUnitLabel: saved.pricePerUnitLabel || null,
+      offer: saved.offer || null,
       checkedAt: saved.checkedAt || saved.checked || null,
       source: 'validated ASDA catalogue snapshot',
       verified: Number(saved.price) > 0 && Number(saved.packQuantity) > 0,
@@ -275,25 +301,47 @@ export function clearCatalogCache(storeName = null) {
 }
 
 export function catalogStoreInfo() {
-  return Object.values(CATALOG_STORES).map((x) => ({ name: x.name, sitemap: x.sitemap }));
+  return Object.values(CATALOG_STORES).map((x) => ({
+    name: x.name,
+    source: x.catalogue || x.sitemap,
+  }));
 }
 
 export async function catalogueStatus() {
   try {
-    const [catalogueText, metadataText] = await Promise.all([
-      readFile(ASDA_CATALOGUE_PATH, 'utf8'),
+    const [catalogueStat, metadataStat, metadataText] = await Promise.all([
+      stat(ASDA_CATALOGUE_PATH),
+      stat(ASDA_METADATA_PATH),
       readFile(ASDA_METADATA_PATH, 'utf8'),
     ]);
-    const products = JSON.parse(catalogueText);
     const metadata = JSON.parse(metadataText);
+    const sameSnapshot = catalogueStatusCache &&
+      catalogueStatusCache.catalogueMtime === catalogueStat.mtimeMs &&
+      catalogueStatusCache.catalogueSize === catalogueStat.size &&
+      catalogueStatusCache.metadataMtime === metadataStat.mtimeMs &&
+      catalogueStatusCache.metadataSize === metadataStat.size;
+    if (sameSnapshot) return { ...catalogueStatusCache.status };
+
+    const products = JSON.parse(await readFile(ASDA_CATALOGUE_PATH, 'utf8'));
     const catalogueCount = Array.isArray(products) ? products.length : 0;
-    return {
+    const status = {
       ...metadata,
       status: metadata.status || (catalogueCount ? 'seed' : 'unavailable'),
       products_saved: catalogueCount,
-      healthy: metadata.status === 'complete' && catalogueCount >= 100 && catalogueCount === Number(metadata.products_saved),
+      healthy: metadata.status === 'complete' && catalogueCount >= 100 &&
+        catalogueCount === Number(metadata.products_saved) &&
+        catalogueCount === Number(metadata.products_expected) && Number(metadata.coverage) === 1,
     };
+    catalogueStatusCache = {
+      catalogueMtime: catalogueStat.mtimeMs,
+      catalogueSize: catalogueStat.size,
+      metadataMtime: metadataStat.mtimeMs,
+      metadataSize: metadataStat.size,
+      status,
+    };
+    return status;
   } catch {
-    return { status: 'unavailable', healthy: false, products_saved: 0, source: 'ASDA official sitemap' };
+    catalogueStatusCache = null;
+    return { status: 'unavailable', healthy: false, products_saved: 0, source: 'ASDA official product search index' };
   }
 }
