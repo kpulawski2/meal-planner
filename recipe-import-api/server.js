@@ -12,7 +12,8 @@ import multer from 'multer';
 import { chooseBestPackCandidate, summarizePriceBenchmark } from './price-adapter.js';
 import { GroqApiError, groqChatCompletion, groqTranscribe, evenlySampleFrames } from './groq-adapter.js';
 import { PRICE_LOOKUP_STORES, lookupStoreItem, splitBatches } from './price-search-adapter.js';
-import { searchCatalog, recommendCatalogItems, fetchProductPage, clearCatalogCache, catalogStoreInfo, catalogueStatus, cachedCatalogueStatus } from './catalog-adapter.js';
+import { catalogStoreInfo } from './catalog-adapter.js';
+import { searchCatalog, recommendCatalogItems, fetchProductPage, clearCatalogCache, catalogueStatus, cachedCatalogueStatus } from './catalog-service.js';
 
 const execFileAsync = promisify(execFile);
 const app = express();
@@ -889,7 +890,16 @@ app.get('/api/catalog/product', catalogRateLimit, async (req, res) => {
     res.status(502).json({ error: `Could not read that official product page: ${cleanString(e?.message || 'unknown error', 300)}` });
   }
 });
-app.post('/api/catalog/refresh', catalogRateLimit, (req, res) => { const store = cleanString(req.body?.store || '', 40); if (store && !['Asda','Aldi'].includes(store)) return res.status(400).json({ error: 'Store must be Asda or Aldi.' }); clearCatalogCache(store || null); res.json({ ok: true, cleared: store || 'all' }); });
+app.post('/api/catalog/refresh', catalogRateLimit, async (req, res) => {
+  const store = cleanString(req.body?.store || '', 40);
+  if (store && !['Asda','Aldi'].includes(store)) return res.status(400).json({ error: 'Store must be Asda or Aldi.' });
+  try {
+    await clearCatalogCache(store || null);
+    res.json({ ok: true, cleared: store || 'all' });
+  } catch {
+    res.status(503).json({ error: 'The catalogue service is restarting. Please retry shortly.' });
+  }
+});
 
 app.post('/api/prices/lookup', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct ASDA/Aldi product-page references in the Shopping List.' }));
 app.get('/api/prices/lookup/:jobId', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct product-page reference catalogue.' }));
