@@ -17,6 +17,8 @@ const CATALOG_STORES = {
 
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 12000;
+const PRODUCE_TERMS = new Set(['apple', 'avocado', 'banana', 'berry', 'blueberry', 'broccoli', 'carrot', 'cucumber', 'garlic', 'grape', 'lemon', 'lettuce', 'mango', 'mushroom', 'onion', 'orange', 'potato', 'spinach', 'strawberry', 'tomato', 'courgette', 'salad']);
+const SPICE_TERMS = new Set(['basil', 'chilli', 'chili', 'cinnamon', 'clove', 'coriander', 'cumin', 'herb', 'nutmeg', 'oregano', 'paprika', 'pepper', 'seasoning', 'spice', 'thyme', 'turmeric']);
 const catalogCache = new Map();
 let catalogueStatusCache = null;
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -149,9 +151,18 @@ function tokens(value) {
 function productTokens(value) {
   return tokens(String(value || '').replace(/&nbsp;|&amp;/gi, ' ')).map((token) => {
     if (token.length > 4 && token.endsWith('ies')) return token.slice(0, -3) + 'y';
+    if (token.length > 4 && token.endsWith('oes')) return token.slice(0, -2);
     if (token.length > 3 && token.endsWith('s')) return token.slice(0, -1);
     return token;
   });
+}
+
+function productDimension(unit) {
+  const normalized = clean(unit, 20).toLowerCase();
+  if (['g', 'kg', 'gram', 'grams', 'mass'].includes(normalized)) return 'mass';
+  if (['ml', 'l', 'litre', 'litres', 'liter', 'liters', 'volume'].includes(normalized)) return 'volume';
+  if (['each', 'ea', 'piece', 'pieces', 'count'].includes(normalized)) return 'count';
+  return '';
 }
 
 function scoreCandidate(query, url) {
@@ -166,7 +177,7 @@ function scoreCandidate(query, url) {
   return score;
 }
 
-function scoreProduct(query, product) {
+function scoreProduct(query, product, dimension = '') {
   const queryTokens = productTokens(query);
   const nameTokens = productTokens(product?.name);
   if (!queryTokens.length || !nameTokens.length) return 0;
@@ -199,12 +210,23 @@ function scoreProduct(query, product) {
     if (/meat, poultry & fish/i.test(categoryText)) score += 4;
     if (/frozen food/i.test(categoryText)) score -= 1;
   }
+  if (queryTokens.some(token => PRODUCE_TERMS.has(token)) || (queryTokens.includes('pepper') && queryTokens.some(token => ['bell', 'sweet'].includes(token)))) {
+    if (/fresh fruit|fresh salad|vegetables & flowers|fresh vegetables/i.test(categoryText)) score += 6;
+    if (/dried fruit|raw nuts|tinned|ketchup|sauce|sweets|snacks|desserts/i.test(categoryText)) score -= 6;
+  }
+  if (queryTokens.some(token => SPICE_TERMS.has(token))) {
+    if (/herbs? & spices|spices|seasonings/i.test(categoryText)) score += 6;
+    if (/sweets|chocolates|desserts|bakery|toys|household/i.test(categoryText)) score -= 4;
+  }
+  const wantedDimension = productDimension(dimension);
+  const offeredDimension = productDimension(product.packUnit);
+  if (wantedDimension && offeredDimension) score += wantedDimension === offeredDimension ? 1 : -2;
   if (/\b(?:food|fruit|vegetable|meat|fish|dairy|bakery|frozen|chilled|drink|cupboard|snack|sweets|world)\b/i.test(categoryText)) score += 0.5;
   if (/\b(?:home & entertainment|toys?|pets?|laundry|household|toiletries|beauty|wellness|garden|furniture|electrical|stationery|craft)\b/i.test(categoryText)) score -= 6;
   return score > 0 ? score : 0;
 }
 
-export async function searchCatalog(storeName, query, limit = 8) {
+export async function searchCatalog(storeName, query, limit = 8, dimension = '') {
   const index = await getIndex(storeName);
   const q = clean(query, 120);
   const maxRows = Math.max(1, Math.min(Number(limit) || 8, 12));
@@ -212,7 +234,7 @@ export async function searchCatalog(storeName, query, limit = 8) {
     .map(product => ({
       product,
       url: product.url,
-      score: index.products ? scoreProduct(q, product) : scoreCandidate(q, product.url),
+      score: index.products ? scoreProduct(q, product, dimension) : scoreCandidate(q, product.url),
     }))
     .filter(row => row.score > 0)
     .sort((a, b) => b.score - a.score || a.url.localeCompare(b.url))

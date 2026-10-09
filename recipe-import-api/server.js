@@ -830,9 +830,10 @@ app.get('/api/catalog/search', catalogRateLimit, async (req, res) => {
   try {
     const store = cleanString(req.query.store || '', 40);
     const query = cleanString(req.query.q || '', 120);
+    const dimension = cleanString(req.query.dim || '', 20);
     if (!['Asda', 'Aldi'].includes(store)) return res.status(400).json({ error: 'Store must be Asda or Aldi.' });
     if (!query || query.length < 2) return res.status(400).json({ error: 'Enter an ingredient or product name.' });
-    const result = await searchCatalog(store, query, Number(req.query.limit) || 8);
+    const result = await searchCatalog(store, query, Number(req.query.limit) || 8, dimension);
     res.json({ ok: true, ...result });
   } catch (e) {
     res.status(502).json({ error: `Could not load the ${cleanString(req.query.store || 'retailer', 40)} product catalogue: ${cleanString(e?.message || 'unknown error', 300)}` });
