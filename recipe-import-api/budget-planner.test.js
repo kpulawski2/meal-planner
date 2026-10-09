@@ -1,0 +1,238 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import '../public/budget-core.js';
+
+const core = globalThis.MealBudgetCore;
+
+test('shopping cost inputs combine a shared ingredient across recipes, scaled yields and people', () => {
+  const recipes = [
+    { id: 'one', servings: 2, ings: [['Rice', 400, 'g']] },
+    { id: 'two', servings: 1, ings: [['rice', .1, 'kg']] },
+  ];
+  const map = core.buildShopping({ recipes, week: [{ day: 'Monday', meals: ['one', 'two'] }], people: 2 });
+  assert.equal(Object.keys(map).length, 1);
+  assert.equal(map.rice.groups.mass.need, 600);
+  assert.equal(map.rice.groups.mass.remaining, 600);
+});
+
+test('pantry deductions use the same mixed-unit conversion as recipe quantities', () => {
+  const recipes = [{ id: 'one', servings: 1, ings: [['Cinnamon', 1, 'tsp'], ['Cinnamon', 5, 'g'], ['Rice', 750, 'g']] }];
+  const map = core.buildShopping({ recipes, week: [{ day: 'Monday', meals: ['one'] }],
+    pantry: [{ name: 'cinnamon', qty: 2, unit: 'g' }, { name: 'RICE', qty: .5, unit: 'kg' }] });
+  assert.equal(Object.keys(map.cinnamon.groups).length, 1);
+  assert.ok(Math.abs(map.cinnamon.groups.mass.need - 7.6) < 1e-6);
+  assert.ok(Math.abs(map.cinnamon.groups.mass.remaining - 5.6) < 1e-6);
+  assert.equal(map.rice.groups.mass.remaining, 250);
+  assert.ok(map.cinnamon.quantityNotes.length);
+});
+
+test('a produce item and a mass portion share one purchase requirement, without counting inventory twice', () => {
+  const recipes = [{ id: 'one', ings: [['Cucumber', 1, ''], ['Cucumber', 100, 'g']] }];
+  const map = core.buildShopping({ recipes, week: [{ day: 'Monday', meals: ['one'] }],
+    pantry: [{ name: 'Cucumber', qty: 1, unit: 'pieces' }] });
+  assert.equal(Object.keys(map.cucumber.groups).length, 1);
+  assert.equal(map.cucumber.groups.mass.need, 400);
+  assert.equal(map.cucumber.groups.mass.pantryUsed, 300);
+  assert.equal(map.cucumber.groups.mass.remaining, 100);
+});
+
+test('explicit fractional meal portions scale shopping quantities without rounding to whole people', () => {
+  const map = core.buildShopping({ recipes: [{ id: 'one', servings: 2, ings: [['Chicken breast', 400, 'g']] }],
+    week: [{ day: 'Monday', meals: ['one'] }], people: 3, mealServings: { 'Monday::0': 1.25 } });
+  assert.equal(map['chicken breast'].groups.mass.remaining, 250);
+});
+
+test('missing quantities and unknown recipes remain explicit unpriced requirements', () => {
+  const map = core.buildShopping({ recipes: [{ id: 'one', ings: [['Mystery sauce', 0, 'quantity to confirm']] }],
+    week: [{ day: 'Monday', meals: ['one', 'missing'] }] });
+  assert.equal(map['mystery sauce'].unknown, true);
+  assert.equal(map['unknown recipe missing'].unknown, true);
+});
+
+test('ingredient names that resemble object properties remain normal shopping entries', () => {
+  const map = core.buildShopping({ recipes: [{ id: 'one', ings: [['__proto__', 50, 'g'], ['constructor', 10, 'g']] }],
+    week: [{ day: 'Monday', meals: ['one'] }] });
+  assert.equal(map.__proto__.groups.mass.remaining, 50);
+  assert.equal(map.constructor.groups.mass.remaining, 10);
+});
+
+const directory = await mkdtemp(path.join(os.tmpdir(), 'meal-budget-test-'));
+process.env.ASDA_CATALOGUE_PATH = path.join(directory, 'products.json');
+process.env.ASDA_CATALOGUE_META_PATH = path.join(directory, 'catalogue-meta.json');
+const products = Array.from({ length: 110 }, (_, index) => ({ id: `asda-${8000000 + index}`,
+  sku: String(8000000 + index), name: `ASDA Fixture Grocery ${index}`, category: 'Food cupboard',
+  packQuantity: 500, packUnit: 'g', packSize: '500g', price: 2, availability: 'in_stock', available: true,
+  url: `https://www.asda.com/groceries/product/fixture/${8000000 + index}` }));
+Object.assign(products[0], { name: 'ASDA Porridge Oats 500g', category: 'Food cupboard > Breakfast cereal > Porridge', price: 1 });
+Object.assign(products[1], { name: 'ASDA Chicken Breast Fillets 500g', category: 'Meat & Poultry > Chicken breasts', price: 3 });
+Object.assign(products[2], { name: 'ASDA Long Grain Rice 1kg', category: 'Food cupboard > Rice', packQuantity: 1000, packSize: '1kg', price: 1 });
+Object.assign(products[3], { name: 'ASDA Semi Skimmed Milk 1L', category: 'Chilled Food > Milk', packQuantity: 1000, packUnit: 'ml', packSize: '1L', price: 1 });
+Object.assign(products[4], { name: 'ASDA Ground Cinnamon 100g', category: 'Food cupboard > Herbs & Spices > Cinnamon', packQuantity: 100, packSize: '100g', price: 1 });
+Object.assign(products[5], { name: 'ASDA Chicken Breast Fillets 300g', category: 'Meat & Poultry > Chicken breasts', packQuantity: 300, packSize: '300g', price: 1.5 });
+await Promise.all([
+  writeFile(process.env.ASDA_CATALOGUE_PATH, JSON.stringify(products)),
+  writeFile(process.env.ASDA_CATALOGUE_META_PATH, JSON.stringify({ status: 'complete', products_saved: products.length,
+    products_expected: products.length, coverage: 1, refreshed_at: '2026-10-09T00:00:00Z' })),
+]);
+const recipe = (id, cat, ingredient, quantity = 100, unit = 'g') => ({ id, name: id, cat, servings: 2,
+  ings: [[ingredient, quantity * 2, unit]], nutrition: { kcal: 500, p: 50, complete: true, source: 'verified' } });
+const fixtureRecipes = [recipe('breakfast', 'Breakfast', 'Oats'), recipe('lunch', 'Lunch', 'Chicken breast'),
+  recipe('dinner', 'Dinner', 'Rice'), recipe('snack', 'Snack', 'Milk', 100, 'ml')];
+const profile = { calories: 2000, protein: 200, budget: 45, days: 7, meals: 4, people: 1, cookTime: 45 };
+let optimizeMealPlan;
+async function optimize(request) {
+  if (!optimizeMealPlan) ({ optimizeMealPlan } = await import('./budget-planner.js'));
+  return optimizeMealPlan({ profile, recipes: fixtureRecipes, pantry: [], ...request });
+}
+test.after(() => rm(directory, { recursive: true, force: true }));
+
+function assertCompleteBudget(result) {
+  assert.equal(result.status, 'feasible', JSON.stringify(result.diagnostics));
+  assert.equal(result.basket.complete, true);
+  assert.ok(result.basket.totalCostGBP <= result.budget.planGBP + .001);
+  assert.ok(result.nutrition.days.length > 0);
+  for (const day of result.nutrition.days) {
+    assert.equal(day.complete, true);
+    assert.equal(day.meetsTargets, true, JSON.stringify(day));
+    assert.ok(day.kcal >= result.nutrition.calorieMin - .01);
+    assert.ok(day.kcal <= result.nutrition.calorieMax + .01);
+    assert.ok(day.p >= result.nutrition.proteinTarget - .01);
+  }
+  const recommendations = result.basket.recommendations || [];
+  const sum = recommendations.reduce((total, row) => total + (row.plan?.totalCostGBP || 0), 0);
+  assert.ok(Math.abs(sum - result.basket.totalCostGBP) < .01);
+  for (const row of recommendations) {
+    assert.ok(row.plan, JSON.stringify(row));
+    assert.ok(row.plan.totalQuantity + 1e-6 >= row.plan.requestedQuantity);
+    for (const product of row.plan.products) assert.ok(Number.isInteger(product.packs) && product.packs >= 1);
+  }
+}
+
+test('optimizer prices whole packs from catalogue and checks every day against unchanged nutrition targets', async () => {
+  const result = await optimize({});
+  assertCompleteBudget(result);
+  assert.equal(result.week.length, 7);
+  assert.ok(result.week.every(day => day.meals.length === 4));
+  assert.equal(result.budget.weeklyGBP, 45);
+  assert.equal(result.budget.planGBP, 45);
+  assert.equal(result.budget.overGBP, 0);
+});
+
+test('fourteen days double the weekly household budget and scale real required quantities', async () => {
+  const one = await optimize({});
+  const two = await optimize({ profile: { ...profile, days: 14, people: 2 } });
+  assertCompleteBudget(two);
+  assert.equal(two.week.length, 14);
+  assert.equal(two.budget.planGBP, 90);
+  assert.equal(two.budget.weeklyGBP, 45);
+  assert.ok(two.basket.totalCostGBP > one.basket.totalCostGBP * 2);
+});
+
+test('fully stocked pantry reduces the new shop cost without reducing food quantities or nutrition', async () => {
+  const result = await optimize({ profile: { ...profile, budget: .01 }, pantry: [
+    { name: 'Oats', qty: 20, unit: 'kg' }, { name: 'Chicken breast', qty: 20, unit: 'kg' },
+    { name: 'Rice', qty: 20, unit: 'kg' }, { name: 'Milk', qty: 20, unit: 'l' },
+  ] });
+  assertCompleteBudget(result);
+  assert.equal(result.basket.totalCostGBP, 0);
+  assert.ok(result.week.length === 7);
+});
+
+test('an infeasible penny budget cannot be reported as successful or silently lower the user protein target', async () => {
+  const result = await optimize({ profile: { ...profile, budget: .01 } });
+  assert.equal(result.status, 'no_feasible_plan');
+  assert.equal(result.nutrition.proteinTarget, 200);
+  assert.equal(result.budget.weeklyGBP, .01);
+  if (result.basket.complete) assert.ok(result.basket.totalCostGBP > result.budget.planGBP);
+});
+
+test('missing ingredient prices prevent a false feasible status', async () => {
+  const recipes = fixtureRecipes.map(row => row.cat === 'Dinner' ? { ...row, ings: [['Uncatalogued ingredient zzz', 100, 'g']] } : row);
+  const result = await optimize({ recipes });
+  assert.notEqual(result.status, 'feasible');
+});
+
+test('locked slots preserve recipe and exact portions while the other slots are optimized', async () => {
+  const week = core.dayNames(7).map(day => ({ day, meals: fixtureRecipes.map(r => r.id) }));
+  const result = await optimize({ week, mealServings: { 'Monday::0': 1.5 }, locked: { 'Monday::0': true } });
+  assertCompleteBudget(result);
+  assert.equal(result.week[0].meals[0], 'breakfast');
+  assert.equal(result.mealServings['Monday::0'], 1.5);
+});
+
+test('diet and dislikes remain hard constraints, even if they leave an empty meal category', async () => {
+  for (const patch of [{ diet: 'Vegetarian' }, { diet: 'Vegan' }, { dislikes: 'chicken' }]) {
+    const result = await optimize({ profile: { ...profile, ...patch } });
+    assert.notEqual(result.status, 'feasible');
+    assert.ok(!result.week?.some(day => day.meals?.includes('lunch')));
+  }
+});
+
+test('incomplete recipe nutrition cannot be used to claim the daily targets are met', async () => {
+  const recipes = fixtureRecipes.map(row => row.cat === 'Breakfast' ? { ...row, nutrition: { ...row.nutrition, complete: false } } : row);
+  const result = await optimize({ recipes });
+  assert.notEqual(result.status, 'feasible');
+});
+
+test('a supplied cooking time is a hard limit when all recipes for a category exceed it', async () => {
+  const recipes = fixtureRecipes.map(row => row.cat === 'Breakfast' ? { ...row, cookTime: 90 } : row);
+  const result = await optimize({ recipes, profile: { ...profile, cookTime: 15 } });
+  assert.notEqual(result.status, 'feasible');
+});
+
+test('diet changes that conflict with a locked meal cannot silently approve the old meal', async () => {
+  const week = core.dayNames(7).map(day => ({ day, meals: fixtureRecipes.map(r => r.id) }));
+  const result = await optimize({ profile: { ...profile, diet: 'Vegetarian' }, week,
+    locked: { 'Monday::1': true }, mealServings: { 'Monday::1': 1.5 } });
+  assert.notEqual(result.status, 'feasible');
+});
+
+test('exact integer-pence basket sum includes mixed offers and pack rounding', async () => {
+  const week = core.dayNames(7).map(day => ({ day, meals: fixtureRecipes.map(r => r.id) }));
+  const locked = Object.fromEntries(week.map(day => [`${day.day}::1`, true]));
+  const mealServings = Object.fromEntries(week.map(day => [`${day.day}::1`, 1]));
+  const result = await optimize({ week, locked, mealServings });
+  assertCompleteBudget(result);
+  const totalPence = result.basket.recommendations.reduce((sum, row) => sum + row.plan.products.reduce((part, product) => part + Math.round(product.priceGBP * 100) * product.packs, 0), 0);
+  assert.equal(totalPence, Math.round(result.basket.totalCostGBP * 100));
+  const chicken = result.basket.recommendations.find(row => row.query === 'Chicken breast');
+  assert.equal(chicken.plan.requestedQuantity, 700);
+  assert.equal(chicken.plan.totalQuantity, 800);
+  assert.equal(chicken.plan.products.length, 2);
+  assert.equal(chicken.plan.totalCostGBP, 4.5);
+});
+
+test('drained tinned capacity comes from official unit prices while frozen and whole tomatoes retain net weight', async () => {
+  const { calculatePackPurchase } = await import('./catalog-adapter.js');
+  const product = (name, quantity, price, unitPrice, category) => ({ name, price, packQuantity: quantity, packUnit: 'g',
+    packSize: `${quantity}g`, pricePerUnit: unitPrice, pricePerUnitLabel: `£${unitPrice}/KG`, category,
+    url: 'https://www.asda.com/groceries/product/fixture/8000555' });
+  const tuna = calculatePackPurchase([product('ASDA Tuna Chunks in Brine 145g', 145, .59, 5.78431, 'Food cupboard > Tinned Fish > Tuna')], 145, 'mass');
+  assert.equal(tuna.products[0].packs, 2);
+  assert.equal(tuna.totalQuantity, 204);
+  assert.equal(tuna.totalCostGBP, 1.18);
+  assert.equal(tuna.products[0].packSize, '145g');
+  assert.ok(tuna.estimatedQuantity);
+  assert.match(tuna.estimateNotes.join(' '), /drain/i);
+  const sweetcorn = calculatePackPurchase([product('ASDA Sweetcorn 326g', 326, .5, 1.92308, 'Food cupboard > Tinned Vegetables')], 300, 'mass');
+  assert.equal(sweetcorn.totalQuantity, 520);
+  const tomatoes = calculatePackPurchase([product('ASDA Chopped Tomatoes 400g', 400, .4, 1, 'Food cupboard > Tinned Tomatoes')], 400, 'mass');
+  assert.equal(tomatoes.totalQuantity, 400);
+  const frozen = calculatePackPurchase([product('ASDA Frozen Sweetcorn 1000g', 1000, 1, 2, 'Frozen Food > Vegetables')], 1000, 'mass');
+  assert.equal(frozen.totalQuantity, 1000);
+});
+
+test('nutrition-specific ingredient matching excludes low-protein style yoghurt and prepared alternatives', async () => {
+  const { rankCatalogCandidates } = await import('./catalog-adapter.js');
+  const candidate = (name, category) => ({ name, category, price: 1, packQuantity: 500, packUnit: 'g', packSize: '500g',
+    url: `https://www.asda.com/groceries/product/fixture/8000666` });
+  for (const [query, name, category] of [
+    ['0% Greek yoghurt', 'Arla Greek Style 0% Fat Free Natural Yogurt 450g', 'Chilled Food > Yogurts'],
+    ['Salmon fillet', 'Vivera Plant-Based Salmon Fillet 200g', 'Chilled Food > Vegetarian'],
+    ['Edamame beans', 'ASDA Edamame Bean & Broccoli 320g', 'Frozen Food > Vegetables'],
+    ['Noodles', 'IndoMie Mi Goreng Instant Noodles 80g', 'Food cupboard > Instant Noodles'],
+  ]) assert.equal(rankCatalogCandidates(query, [candidate(name, category)], 'mass').length, 0, `${query}: ${name}`);
+});

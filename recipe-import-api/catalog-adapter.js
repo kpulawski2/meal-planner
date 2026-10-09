@@ -265,6 +265,9 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
     if (asked('skyr') && !name.has('skyr')) return false;
     if (unrequested(DAIRY_FLAVOURS) || unrequested(PLANT_DAIRY_WORDS)) return false;
     if (/yogurt drinks|(?:^|>)\s*desserts\s*>|ice cream/i.test(category)) return false;
+    // Greek-style thickened yoghurt can have much less protein than strained
+    // Greek yoghurt. Recipe nutrition for Greek yoghurt assumes the latter.
+    if (asked('greek') && !asked('style') && name.has('style')) return false;
   }
 
   const cheese = ['creamcheese', 'cottage', 'cheddar', 'feta', 'halloumi', 'parmesan', 'quark'].find(asked);
@@ -291,6 +294,7 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
 
   const meat = ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'salmon', 'cod', 'fish', 'prawn', 'tuna'].find(asked);
   if (meat && !['stock', 'sauce', 'paste', 'soup'].some(asked)) {
+    if (!['vegan', 'plant', 'vegetarian', 'alternative'].some(asked) && /plant[ -]*based|vegan|vegetarian|meat[ -]*free|fish[ -]*free|alternative/i.test(title + ' ' + category)) return false;
     if (!/meat|poultry|fish|seafood|prawn|chicken|turkey|beef|pork|lamb|cod|salmon|tuna/i.test(category)) return false;
     for (const word of ['breaded', 'breadcrumb', 'crumb', 'battered', 'cooked', 'marinated', 'flavour', 'flavoured', 'seasoned', 'sizzle', 'tikka', 'thai', 'peri', 'spicy', 'garlic', 'lemon', 'honey', 'sweet', 'pepper', 'teriyaki', 'chargrill', 'chargrilled', 'bbq', 'barbecue', 'crispy', 'smoked', 'sausage', 'chipotle']) if (name.has(word) && !asked(word)) return false;
     if (unrequested(COMPOSITE_FOODS)) return false;
@@ -313,8 +317,10 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
     // not interchangeable with their pack weights. Explicit queries retain them.
     if (asked('noodle') && !asked('udon') && name.has('udon')) return false;
     if (asked('noodle') && !asked('7moon') && name.has('7moon')) return false;
+    if (asked('noodle') && !asked('goreng') && /mi[ -]*goreng|indo[ -]*mie/i.test(title)) return false;
     if (asked('couscou') && !asked('pearl') && !asked('israeli') && (name.has('pearl') || name.has('israeli'))) return false;
     if (asked('black') && asked('bean') && !asked('eye') && name.has('eye')) return false;
+    if (asked('edamame') && /broccoli|mixed|medley|stir[ -]*fry|salad/i.test(title) && !/broccoli|mixed|medley|stir[ -]*fry|salad/i.test(query)) return false;
   }
   if (preparedWords.some(word => SPICE_TERMS.has(word)) || asked('dill')) {
     if (!/spice|seasoning|dry herbs|herbs|condiment/i.test(category) && !(asked('seasoning') && name.has('seasoning') && /food cupboard/i.test(category))) return false;
@@ -515,10 +521,23 @@ const SPICE_GRAMS_PER_TSP = { cinnamon: 2.6, paprika: 2.3, cumin: 2.1, chilli: 1
 function purchasePackMeta(product, wantedDimension) {
   let meta = packUnitMeta(product);
   if (!meta) return null;
-  if (meta.dimension === wantedDimension) return meta;
   const words = new Set(productTokens(product?.name));
   const category = [product?.category, ...(product?.categoryPath || [])].filter(Boolean).join(' ');
   const title = String(product?.name || '');
+  // Tin net weight includes water/brine that is not eaten. ASDA's displayed
+  // per-kg price for these drained foods uses the edible weight. Infer it only
+  // for those families, with a consistent near-whole-gram result; leave tomato
+  // sauces, baked beans, frozen vegetables and other full-content packs alone.
+  const drainedFood = /tinned|canned/i.test(category) &&
+    ((words.has('tuna') && /brine|spring water|in water|sunflower oil|olive oil/i.test(title)) || words.has('sweetcorn') ||
+      ((words.has('bean') || words.has('chickpea') || words.has('lentil')) && !/baked|sauce|salad|soup/i.test(title)));
+  const unitPrice = Number(product.pricePerUnit), unitLabel = String(product.pricePerUnitLabel || '');
+  const inferredDrained = /\/\s*(?:kg|kilogram)\b/i.test(unitLabel) && unitPrice > 0 ? Number(product.price) * 1000 / unitPrice : 0;
+  if (meta.dimension === 'mass' && drainedFood && inferredDrained > meta.capacity * .25 && inferredDrained < meta.capacity * .98 && Math.abs(inferredDrained - Math.round(inferredDrained)) < .02) {
+    const grams = Math.round(inferredDrained);
+    meta = { ...meta, capacity: grams, estimatedQuantity: true, quantityBasis: `Using ${grams} g drained edible contents inferred from ASDA's per-kg unit price; the ${product.packSize} label includes liquid.` };
+  }
+  if (meta.dimension === wantedDimension) return meta;
   const declaredAmount = title.match(/\b(\d+(?:\.\d+)?)\s*(ml|kg|g|litres?|liters?|l)\b/i);
   if (declaredAmount && meta.dimension !== wantedDimension) {
     const declaredMeta = packUnitMeta({ packQuantity: Number(declaredAmount[1]), packUnit: declaredAmount[2] });
@@ -801,6 +820,27 @@ export async function recommendCatalogItems(storeName, items, { signal } = {}) {
     refreshedAt: new Date(index.createdAt).toISOString(),
     recommendations,
   };
+}
+
+// Reuse the same safety filters and quantity assumptions when evaluating many
+// meal plans. The worker builds compact price tables without reloading products.
+export async function catalogPurchaseOffers(items, { signal } = {}) {
+  const index = await getIndex('Asda');
+  if (index.snapshotStatus !== 'complete') throw new Error('A complete ASDA catalogue is required to calculate a meal budget.');
+  const rows = [];
+  for (const item of items) {
+    signal?.throwIfAborted();
+    const query = clean(item.name, 120), dimension = canonicalDimension(item.dimension);
+    const candidates = indexedCandidates(index, query, dimension), best = candidates[0];
+    const high = best && best.score >= 9 && ingredientWords(query).every(token => productTokens(best.product.name).includes(token));
+    const offers = high ? candidates.map(candidate => {
+      const meta = purchasePackMeta(candidate.product, dimension), cents = Math.round(Number(candidate.product.price) * 100);
+      return meta && meta.capacity > 0 && Number.isFinite(cents) && cents >= 1 ? { capacity: meta.capacity, cents } : null;
+    }).filter(Boolean) : [];
+    rows.push({ ...item, offers, candidates: high ? candidates : [], confidence: high ? 'high' : candidates.length ? 'review' : 'none' });
+    await yieldToServer();
+  }
+  return { rows, indexSize: index.urls.length, refreshedAt: new Date(index.createdAt).toISOString() };
 }
 
 export async function searchCatalog(storeName, query, limit = 8, dimension = '') {

@@ -32,6 +32,7 @@ function automaticMatchingHarness(fetch) {
   const timerDelays = [];
   const context = {
     fetch, AbortController, DOMException, console,
+    state: { week: [], profile: { budget: 45 } },
     Date: { now: () => now, parse: Date.parse },
     // Shorten delays while keeping request timeouts separate from retry backoff.
     setTimeout: (fn, ms) => { timerDelays.push(ms); return setTimeout(fn, ms >= 45000 ? 25 : 0); }, clearTimeout,

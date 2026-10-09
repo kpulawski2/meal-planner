@@ -13,7 +13,8 @@ import { chooseBestPackCandidate, summarizePriceBenchmark } from './price-adapte
 import { GroqApiError, groqChatCompletion, groqTranscribe, evenlySampleFrames } from './groq-adapter.js';
 import { PRICE_LOOKUP_STORES, lookupStoreItem, splitBatches } from './price-search-adapter.js';
 import { catalogStoreInfo } from './catalog-adapter.js';
-import { searchCatalog, recommendCatalogItems, fetchProductPage, clearCatalogCache, catalogueStatus, cachedCatalogueStatus } from './catalog-service.js';
+import { searchCatalog, recommendCatalogItems, optimizeMealPlan, fetchProductPage, clearCatalogCache, catalogueStatus, cachedCatalogueStatus } from './catalog-service.js';
+import { normalizePlannerRequest } from './planner-request.js';
 
 const execFileAsync = promisify(execFile);
 const app = express();
@@ -64,13 +65,13 @@ app.use((req, res, next) => {
   if (origin && !allowed) return res.status(403).json({ error: 'This website origin is not allowed by the backend.' });
   next();
 });
-app.use(express.json({ limit: '100kb', strict: true }));
+app.use(express.json({ limit: '256kb', strict: true }));
 // Serve the app and its API from one origin so it works as a simple installable mobile web app.
 const PUBLIC_DIR = path.resolve(process.cwd(), 'public');
 app.use(express.static(PUBLIC_DIR, {
   etag: true, maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0,
   setHeaders(res, filename) {
-    if (filename.endsWith('.html') || filename.endsWith('service-worker.js')) res.setHeader('Cache-Control', 'no-cache');
+    if (filename.endsWith('.html') || filename.endsWith('service-worker.js') || filename.endsWith('budget-core.js')) res.setHeader('Cache-Control', 'no-cache');
   },
 }));
 
@@ -845,6 +846,26 @@ app.get('/api/catalog/search', catalogRateLimit, async (req, res) => {
     res.status(502).json({ error: `Could not load the ${cleanString(req.query.store || 'retailer', 40)} product catalogue: ${cleanString(e?.message || 'unknown error', 300)}` });
   }
 });
+let activeBudgetPlans = 0;
+app.post('/api/planner/generate', catalogRateLimit, async (req, res) => {
+  const controller = new AbortController();
+  const disconnected = () => controller.abort();
+  let claimedSlot = false;
+  try {
+    const request = normalizePlannerRequest(req.body);
+    if (activeBudgetPlans >= 1) return res.set('Retry-After', '3').status(503).json({ error: 'Budget planning is busy. Your current plan was kept. Please retry shortly.' });
+    activeBudgetPlans++;
+    claimedSlot = true;
+    res.once('close', disconnected);
+    const result = await optimizeMealPlan(request, { signal: controller.signal });
+    if (!res.destroyed) res.json({ ok: true, ...result });
+  } catch (error) {
+    if (!res.destroyed && !res.headersSent) res.status(error instanceof TypeError ? 400 : 502).json({ error: `Could not calculate a budget meal plan: ${cleanString(error?.message || 'unknown error', 300)}` });
+  } finally {
+    if (claimedSlot) activeBudgetPlans--;
+    res.off('close', disconnected);
+  }
+});
 let activeCatalogRecommendations = 0;
 app.post('/api/catalog/recommend', catalogRateLimit, async (req, res) => {
   const controller = new AbortController();
@@ -995,7 +1016,7 @@ app.post('/api/import-video', authenticated, upload.single('video'), async (req,
 app.use((err, _req, res, _next) => {
   if (err?.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'Video uploads must be 50 MB or smaller.' });
   if (err?.message?.startsWith('Upload a supported video file')) return res.status(400).json({ error: err.message });
-  if (err?.type === 'entity.too.large') return res.status(413).json({ error: 'The submitted caption/transcript is too large.' });
+  if (err?.type === 'entity.too.large') return res.status(413).json({ error: 'The submitted request is too large. Use at most 250 recipes with up to 40 ingredients each.' });
   return res.status(400).json({ error: 'The request could not be read. Please check the input and retry.' });
 });
 export const httpServer = app.listen(PORT, '0.0.0.0', () => console.log(`Meal Planner recipe importer listening on ${PORT}`));

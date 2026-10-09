@@ -1,4 +1,5 @@
 import { parentPort } from 'node:worker_threads';
+import { optimizeMealPlan } from './budget-planner.js';
 import {
   searchCatalog,
   recommendCatalogItems,
@@ -10,7 +11,7 @@ import {
 
 if (!parentPort) throw new Error('Catalogue worker must run in a worker thread.');
 
-const operations = { searchCatalog, recommendCatalogItems, fetchProductPage, catalogueStatus, clearCatalogCache };
+const operations = { searchCatalog, recommendCatalogItems, fetchProductPage, catalogueStatus, clearCatalogCache, optimizeMealPlan };
 const controllers = new Map();
 
 parentPort.on('message', async message => {
@@ -26,7 +27,9 @@ parentPort.on('message', async message => {
   try {
     if (!Object.hasOwn(operations, method)) throw new Error('Unknown catalogue operation.');
     const args = Array.isArray(message.args) ? message.args : [];
-    const result = method === 'recommendCatalogItems'
+    const result = method === 'optimizeMealPlan'
+      ? await optimizeMealPlan(args[0], { signal: controller.signal })
+      : method === 'recommendCatalogItems'
       ? await recommendCatalogItems(args[0], args[1], { signal: controller.signal })
       : await operations[method](...args);
     parentPort.postMessage({ id, ok: true, result, status: cachedCatalogueStatus() });
