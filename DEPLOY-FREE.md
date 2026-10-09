@@ -1,38 +1,35 @@
-# Meal Planner — free mobile deployment
+# Free deployment and phone install
 
-The app runs on one Render service: Render serves the mobile-friendly website and Node backend from the same HTTPS address. GitHub holds the source code; GitHub Pages is not required.
+The meal planner runs as one Render Free web service. It serves the mobile PWA and its Node API from the same HTTPS address. The app, product matcher and ASDA catalogue refresh do not require a paid search API.
 
-## Environment variables
+## App settings
 
-Keep these secrets in Render → `meal-planner` → Environment, not in GitHub:
+In Render → `meal-planner` → Environment:
 
-- `GROQ_API_KEY`: needed for recipe imports and video/audio transcription only.
-- `IMPORT_API_TOKEN`: a long private random token used to protect the recipe-import endpoints.
-- `ALLOWED_ORIGINS`: leave blank for same-origin hosting.
+- `GROQ_API_KEY` is used only for recipe imports and video/audio transcription.
+- `IMPORT_API_TOKEN` protects the recipe-import endpoints.
+- Leave `ALLOWED_ORIGINS` blank for same-origin hosting.
 
-**No Brave Search key or other price-search API key is required.** The Shopping screen uses a static manual reference catalogue and does not automatically search or scrape price websites. The public files `/price-reference-catalog.csv` and `/price-reference-catalog.json` list the bundled recipe ingredients and retailer links.
+Meal planning, shopping lists, the ASDA catalogue and product matching work without the AI settings.
 
-## Deploy/update the main app
+## ASDA catalogue refresh
 
-1. Keep `Dockerfile`, `render.yaml`, `package.json`, `public/`, and `recipe-import-api/` at the repository root.
-2. Commit changes to the existing GitHub `main` branch and let the existing green `meal-planner` Render service deploy.
-3. Do not re-enable the obsolete `meal-planner-recipe-import` Render service. Do not delete the `recipe-import-api/` directory from the repository; it still serves the recipe-import backend.
-4. Open `https://<your-render-service>.onrender.com/health`. The `aiConfigured` and `tokenConfigured` flags should be `true` for recipe imports. `automaticPriceLookupSupported` and `livePriceSearchConfigured` are correctly `false`: current price lookups are manual links, not an API call.
+`.github/workflows/refresh-asda.yml` runs daily and can be started manually in GitHub Actions. It reads ASDA's public, read-only product index, checks every active online category and all result pages, verifies full coverage, and commits the new product snapshot plus its metadata only after validation succeeds. A partial or unexpectedly reduced catalogue leaves the last healthy snapshot in place. On the public repository, the standard GitHub-hosted refresh runner is free.
 
-## Price-reference catalogue
+The search key embedded in the Python refresher is the public search-only key ASDA sends to browsers; it cannot modify ASDA's index. If ASDA rotates it, add the replacement as a repository **variable** named `ASDA_ALGOLIA_SEARCH_KEY`. Do not use an Algolia write or admin key.
 
-The current catalogue has 114 unique ingredient names from the bundled recipes and links for ASDA and Aldi (228 ingredient/store rows). 22 ASDA/Aldi product-page snapshots (15 ASDA and 7 Aldi) had visible prices and pack sizes checked on 6 October 2026; they appear as dated snapshots in the app and CSV. Other entries have links but no price until it is manually checked. Empty prices are intentional and must not be treated as zero. Online prices can vary by location and from in-store shelf prices; check the retailer page before shopping.
+The snapshot stores ASDA region prices where supplied and defaults product matching to England's price. The public index does not include each store's live stock or every product's full nutrition table; availability means listed online, and the product link opens ASDA's page for current details. Prices and stock can vary by location.
 
-Saved retailer-specific prices feed the basket comparison on the current device. They are not synchronised between phone and PC; use Settings → Export backup / Import backup to move data between devices.
+## Deploy the app
 
-## Add to a phone
+Keep `Dockerfile`, `render.yaml`, `package.json`, `public/`, `recipe-import-api/`, and `data/` in the repository root. When a catalogue refresh commits on `main`, the connected Render service can deploy the updated snapshot along with the app.
 
-1. Open your Render HTTPS URL in Safari on iPhone or Chrome on Android.
-2. Choose Share/Menu → Add to Home Screen (or Install app).
-3. It opens like an app. Render Free services sleep after inactivity, so the first opening may take about a minute.
+Open `https://<your-render-service>.onrender.com/health` to check service health and the ASDA snapshot status. Render Free may sleep while idle, so the first request after a quiet period can take longer.
 
-## Free-plan notes
+## Add it to a phone
 
-- Manual price-reference links incur no search API charge. Groq free-tier limits still apply to recipe/video AI features.
-- Render Free may sleep when inactive.
-- Saved planner data is in browser storage on each device; export backups regularly.
+1. Open the Render HTTPS address in Safari on iPhone or Chrome on Android.
+2. Choose **Share/Menu → Add to Home Screen** or **Install app**.
+3. Open Meal Planner from the new home-screen icon.
+
+The app shell and locally saved recipes, pantry and shopping data work offline. ASDA product search needs internet access. Planner data stays on each device; use Settings → Export backup / Import backup to move it between phone and computer.

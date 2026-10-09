@@ -6,6 +6,7 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install --omit=dev
 COPY public ./public
+COPY data ./data
 COPY recipe-import-api ./recipe-import-api
 EXPOSE 10000
 CMD ["npm","start"]

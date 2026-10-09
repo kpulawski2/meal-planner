@@ -10,5 +10,7 @@ services:
         value: "8"
       - key: REQUEST_TIMEOUT
         value: "30"
-      - key: MAX_PRODUCTS
-        value: "0"
+      - key: REQUEST_RETRIES
+        value: "4"
+      - key: MIN_CATALOGUE_PRODUCTS
+        value: "100"
