@@ -1,6 +1,7 @@
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { setImmediate as yieldToServer } from 'node:timers/promises';
 
 const CATALOG_STORES = {
   Asda: {
@@ -20,10 +21,39 @@ const REQUEST_TIMEOUT_MS = 12000;
 const PRODUCE_TERMS = new Set(['apple', 'avocado', 'banana', 'berry', 'blueberry', 'broccoli', 'carrot', 'cucumber', 'garlic', 'grape', 'lemon', 'lettuce', 'mango', 'mushroom', 'onion', 'orange', 'potato', 'spinach', 'strawberry', 'tomato', 'courgette', 'salad']);
 const SPICE_TERMS = new Set(['basil', 'chilli', 'chili', 'cinnamon', 'clove', 'coriander', 'cumin', 'herb', 'nutmeg', 'oregano', 'paprika', 'pepper', 'seasoning', 'spice', 'thyme', 'turmeric']);
 const catalogCache = new Map();
+const catalogLoads = new Map();
+let catalogGeneration = 0;
 let catalogueStatusCache = null;
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ASDA_CATALOGUE_PATH = process.env.ASDA_CATALOGUE_PATH || path.resolve(MODULE_DIR, '../data/products.json');
 const ASDA_METADATA_PATH = process.env.ASDA_CATALOGUE_META_PATH || path.resolve(MODULE_DIR, '../data/catalogue-meta.json');
+
+async function snapshotSignature() {
+  const [products, metadata] = await Promise.all([stat(ASDA_CATALOGUE_PATH), stat(ASDA_METADATA_PATH)]);
+  return `${products.mtimeMs}:${products.size}:${metadata.mtimeMs}:${metadata.size}`;
+}
+
+async function readAsdaSnapshot() {
+  const signature = await snapshotSignature();
+  const metadata = JSON.parse(await readFile(ASDA_METADATA_PATH, 'utf8'));
+  // Keep the large source string out of the index-building scope so it can be collected.
+  const products = JSON.parse(await readFile(ASDA_CATALOGUE_PATH, 'utf8'));
+  if (signature !== await snapshotSignature()) throw new Error('The ASDA snapshot changed while loading. Please retry.');
+  return { products, metadata, signature };
+}
+
+async function buildNameIndex(products) {
+  const postings = new Map();
+  for (let index = 0; index < products.length; index++) {
+    for (const token of new Set(productTokens(products[index]?.name))) {
+      let matches = postings.get(token);
+      if (!matches) postings.set(token, matches = []);
+      matches.push(index);
+    }
+    if (index % 256 === 255) await yieldToServer();
+  }
+  return postings;
+}
 
 function clean(value, max = 300) {
   return String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
@@ -62,13 +92,9 @@ async function buildUrlIndex(storeName) {
   if (storeName === 'Asda') {
     let products;
     let metadata;
+    let signature;
     try {
-      const [catalogueText, metadataText] = await Promise.all([
-        readFile(ASDA_CATALOGUE_PATH, 'utf8'),
-        readFile(ASDA_METADATA_PATH, 'utf8'),
-      ]);
-      products = JSON.parse(catalogueText);
-      metadata = JSON.parse(metadataText);
+      ({ products, metadata, signature } = await readAsdaSnapshot());
     } catch (error) {
       if (error?.code === 'ENOENT' || error instanceof SyntaxError) {
         throw new Error('No complete ASDA catalogue snapshot is available yet.');
@@ -90,8 +116,12 @@ async function buildUrlIndex(storeName) {
           categoryCount: Number(metadata.category_count) || 0,
           snapshotStatus: 'complete',
           source: 'validated ASDA catalogue snapshot',
+          loadedAt: Date.now(),
+          signature,
+          metadata,
+          nameIndex: await buildNameIndex(products),
+          candidateCache: new Map(),
         };
-        catalogCache.set(storeName, index);
         return index;
       }
     }
@@ -121,14 +151,29 @@ async function buildUrlIndex(storeName) {
 
   const urls = [...seen];
   if (!urls.length) throw new Error(`No ${storeName} product URLs were found in the retailer sitemap.`);
-  catalogCache.set(storeName, { createdAt: Date.now(), urls, sitemapCount });
-  return catalogCache.get(storeName);
+  return { createdAt: Date.now(), loadedAt: Date.now(), urls, sitemapCount };
 }
 
 async function getIndex(storeName) {
   const cached = catalogCache.get(storeName);
-  if (cached && Date.now() - cached.createdAt < CACHE_TTL_MS) return cached;
-  return buildUrlIndex(storeName);
+  if (cached && Date.now() - cached.loadedAt < CACHE_TTL_MS) return cached;
+  if (catalogLoads.has(storeName)) return catalogLoads.get(storeName);
+  const generation = catalogGeneration;
+  const loading = (async () => {
+    if (storeName === 'Asda' && cached && cached.signature === await snapshotSignature()) {
+      cached.loadedAt = Date.now();
+      return cached;
+    }
+    const index = await buildUrlIndex(storeName);
+    if (generation === catalogGeneration) {
+      catalogCache.set(storeName, index);
+      if (storeName === 'Asda') catalogueStatusCache = { ...index.metadata, healthy: true, products_saved: index.products.length };
+    }
+    return index;
+  })();
+  catalogLoads.set(storeName, loading);
+  try { return await loading; }
+  finally { if (catalogLoads.get(storeName) === loading) catalogLoads.delete(storeName); }
 }
 
 function slugText(url) {
@@ -179,8 +224,8 @@ function scoreCandidate(query, url) {
   return score;
 }
 
-function scoreProduct(query, product, dimension = '') {
-  const queryTokens = productTokens(query);
+function scoreProduct(query, product, dimension = '', preparedQuery = null) {
+  const queryTokens = preparedQuery || productTokens(query);
   const nameTokens = productTokens(product?.name);
   if (!queryTokens.length || !nameTokens.length) return 0;
 
@@ -298,7 +343,7 @@ function productSummary(product, score) {
 export function rankCatalogCandidates(query, products, dimension = '', limit = 36) {
   const queryTokens = productTokens(query);
   const rows = (Array.isArray(products) ? products : [])
-    .map(product => ({ product, score: scoreProduct(query, product, dimension), nameTokens: productTokens(product?.name) }))
+    .map(product => ({ product, score: scoreProduct(query, product, dimension, queryTokens), nameTokens: productTokens(product?.name) }))
     .filter(row => row.score > 0)
     .sort((a, b) => b.score - a.score || String(a.product.url || '').localeCompare(String(b.product.url || '')));
   const strict = rows.filter(row => queryTokens.every(token => row.nameTokens.includes(token)));
@@ -306,6 +351,38 @@ export function rankCatalogCandidates(query, products, dimension = '', limit = 3
   if (!ranked.length) return [];
   const floor = ranked[0].score - (strict.length ? 8 : 5);
   return ranked.filter(row => row.score >= floor).slice(0, Math.max(1, Math.min(Number(limit) || 36, 60)));
+}
+
+function indexedProducts(index, query, strict = false) {
+  const words = [...new Set(productTokens(query))];
+  if (!words.length) return [];
+  const lists = words.map(word => index.nameIndex.get(word) || []);
+  if (strict) {
+    if (lists.some(list => !list.length)) return [];
+    lists.sort((a, b) => a.length - b.length);
+    const rest = lists.slice(1).map(list => new Set(list));
+    return lists[0].filter(id => rest.every(set => set.has(id))).map(id => index.products[id]);
+  }
+  const ids = new Set();
+  for (const list of lists) for (const id of list) ids.add(id);
+  return [...ids].map(id => index.products[id]);
+}
+
+function indexedCandidates(index, query, dimension) {
+  const cacheKey = JSON.stringify([productTokens(query), productDimension(dimension)]);
+  if (index.candidateCache.has(cacheKey)) return index.candidateCache.get(cacheKey);
+  // The scorer requires a name-token hit. Full-name matches have priority, so only
+  // score their intersection; use the union when no suitable strict match exists.
+  let ranked = rankCatalogCandidates(query, indexedProducts(index, query, true), dimension, 36);
+  if (!ranked.length) ranked = rankCatalogCandidates(query, indexedProducts(index, query), dimension, 36);
+  if (index.candidateCache.size >= 300) index.candidateCache.delete(index.candidateCache.keys().next().value);
+  index.candidateCache.set(cacheKey, ranked);
+  return ranked;
+}
+
+function greatestCommonDivisor(a, b) {
+  while (b) [a, b] = [b, a % b];
+  return a;
 }
 
 export function calculatePackPurchase(candidates, requestedQuantity, dimension) {
@@ -316,14 +393,16 @@ export function calculatePackPurchase(candidates, requestedQuantity, dimension) 
     const product = candidate.product || candidate;
     const meta = packUnitMeta(product);
     const price = Number(product.price);
-    if (!meta || meta.dimension !== wantedDimension || !Number.isFinite(price) || price <= 0 || product.available === false) return null;
+    if (!meta || !Number.isFinite(meta.capacity) || meta.capacity <= 0 || meta.dimension !== wantedDimension || !Number.isFinite(price) || price <= 0 || product.available === false) return null;
     return { product, score: Number(candidate.score) || 0, meta, priceCents: Math.round(price * 100) };
   }).filter(Boolean).sort((a, b) => b.score - a.score || a.priceCents - b.priceCents);
   if (!offers.length) return null;
 
   const target = Math.ceil(requested - 1e-8);
-  const targetSteps = target;
-  const stepsByOffer = offers.map(offer => Math.max(1, Math.floor(offer.meta.capacity + 1e-8)));
+  const capacities = offers.map(offer => Math.max(1, Math.floor(offer.meta.capacity + 1e-8)));
+  const quantum = capacities.reduce(greatestCommonDivisor);
+  const targetSteps = Math.ceil(target / quantum);
+  const stepsByOffer = capacities.map(capacity => capacity / quantum);
   const largestPack = Math.max(...stepsByOffer);
   const maxStep = targetSteps + largestPack - 1;
   if (maxStep > 250000) {
@@ -332,7 +411,7 @@ export function calculatePackPurchase(candidates, requestedQuantity, dimension) 
       .sort((a, b) => a.cents - b.cents || a.over - b.over || b.offer.score - a.offer.score)[0];
     const counts = new Array(offers.length).fill(0);
     counts[single.index] = single.packs;
-    return makePurchasePlan(counts, offers, target);
+    return makePurchasePlan(counts, offers, requested);
   }
 
   const bestCost = new Float64Array(maxStep + 1);
@@ -370,7 +449,7 @@ export function calculatePackPurchase(candidates, requestedQuantity, dimension) 
     counts[offerIndex] += 1;
     cursor = previousStep[cursor];
   }
-  return makePurchasePlan(counts, offers, target);
+  return makePurchasePlan(counts, offers, requested);
 }
 
 function makePurchasePlan(counts, offers, requested) {
@@ -387,22 +466,21 @@ function makePurchasePlan(counts, offers, requested) {
   if (!products.length) return null;
   const totalQuantity = Number(products.reduce((sum, row) => sum + row.totalQuantity, 0).toFixed(3));
   const totalCostGBP = Number(products.reduce((sum, row) => sum + row.costGBP, 0).toFixed(2));
+  if (!Number.isFinite(totalQuantity) || !Number.isFinite(totalCostGBP) || totalQuantity < requested) return null;
   return { requestedQuantity: requested, totalQuantity, leftoverQuantity: Number(Math.max(0, totalQuantity - requested).toFixed(3)), totalCostGBP, products };
 }
 
-export async function recommendCatalogItems(storeName, items) {
+export async function recommendCatalogItems(storeName, items, { signal } = {}) {
   if (storeName !== 'Asda') throw new Error('Automatic pack recommendations currently require the complete ASDA catalogue.');
   const index = await getIndex(storeName);
   if (index.snapshotStatus !== 'complete' || !Array.isArray(index.products)) throw new Error('A complete ASDA catalogue snapshot is required for automatic recommendations.');
   const rows = Array.isArray(items) ? items.slice(0, 200) : [];
-  return {
-    store: storeName,
-    indexSize: index.urls.length,
-    refreshedAt: new Date(index.createdAt).toISOString(),
-    recommendations: rows.map(item => {
+  const recommendations = [];
+  for (const item of rows) {
+      signal?.throwIfAborted();
       const query = clean(item?.name, 120);
       const dimension = clean(item?.dimension, 30);
-      const candidates = rankCatalogCandidates(query, index.products, dimension, 36);
+      const candidates = indexedCandidates(index, query, dimension);
       const bestScore = candidates[0]?.score || 0;
       const relevant = candidates.filter(candidate => candidate.score >= bestScore - 4);
       const quantity = Number(item?.quantity);
@@ -413,7 +491,7 @@ export async function recommendCatalogItems(storeName, items) {
         : candidates.length ? 'review' : 'none';
       const plan = confidence === 'high' ? calculatePackPurchase(relevant, quantity, dimension) : null;
       const selectedProduct = plan?.products?.[0] || (candidates[0] ? productSummary(candidates[0].product, candidates[0].score) : null);
-      return {
+      recommendations.push({
         key: clean(item?.key, 180),
         dimension,
         query,
@@ -421,8 +499,15 @@ export async function recommendCatalogItems(storeName, items) {
         plan,
         candidateCount: relevant.length,
         confidence,
-      };
-    }),
+      });
+      // Let health checks, response writes and disconnected clients run between items.
+      await yieldToServer();
+  }
+  return {
+    store: storeName,
+    indexSize: index.urls.length,
+    refreshedAt: new Date(index.createdAt).toISOString(),
+    recommendations,
   };
 }
 
@@ -430,11 +515,12 @@ export async function searchCatalog(storeName, query, limit = 8, dimension = '')
   const index = await getIndex(storeName);
   const q = clean(query, 120);
   const maxRows = Math.max(1, Math.min(Number(limit) || 8, 12));
-  const rows = (index.products || index.urls.map(url => ({ url })))
+  const queryTokens = productTokens(q);
+  const rows = (index.products ? indexedProducts(index, q) : index.urls.map(url => ({ url })))
     .map(product => ({
       product,
       url: product.url,
-      score: index.products ? scoreProduct(q, product, dimension) : scoreCandidate(q, product.url),
+      score: index.products ? scoreProduct(q, product, dimension, queryTokens) : scoreCandidate(q, product.url),
     }))
     .filter(row => row.score > 0)
     .sort((a, b) => b.score - a.score || a.url.localeCompare(b.url))
@@ -556,8 +642,10 @@ export async function fetchProductPage(storeName, url) {
 }
 
 export function clearCatalogCache(storeName = null) {
+  catalogGeneration += 1;
   if (storeName) catalogCache.delete(storeName);
   else catalogCache.clear();
+  if (!storeName || storeName === 'Asda') catalogueStatusCache = null;
 }
 
 export function catalogStoreInfo() {
@@ -569,39 +657,22 @@ export function catalogStoreInfo() {
 
 export async function catalogueStatus() {
   try {
-    const [catalogueStat, metadataStat, metadataText] = await Promise.all([
-      stat(ASDA_CATALOGUE_PATH),
-      stat(ASDA_METADATA_PATH),
-      readFile(ASDA_METADATA_PATH, 'utf8'),
-    ]);
-    const metadata = JSON.parse(metadataText);
-    const sameSnapshot = catalogueStatusCache &&
-      catalogueStatusCache.catalogueMtime === catalogueStat.mtimeMs &&
-      catalogueStatusCache.catalogueSize === catalogueStat.size &&
-      catalogueStatusCache.metadataMtime === metadataStat.mtimeMs &&
-      catalogueStatusCache.metadataSize === metadataStat.size;
-    if (sameSnapshot) return { ...catalogueStatusCache.status };
-
-    const products = JSON.parse(await readFile(ASDA_CATALOGUE_PATH, 'utf8'));
-    const catalogueCount = Array.isArray(products) ? products.length : 0;
-    const status = {
-      ...metadata,
-      status: metadata.status || (catalogueCount ? 'seed' : 'unavailable'),
-      products_saved: catalogueCount,
-      healthy: metadata.status === 'complete' && catalogueCount >= 100 &&
-        catalogueCount === Number(metadata.products_saved) &&
-        catalogueCount === Number(metadata.products_expected) && Number(metadata.coverage) === 1,
-    };
-    catalogueStatusCache = {
-      catalogueMtime: catalogueStat.mtimeMs,
-      catalogueSize: catalogueStat.size,
-      metadataMtime: metadataStat.mtimeMs,
-      metadataSize: metadataStat.size,
-      status,
-    };
-    return status;
+    const cached = catalogCache.get('Asda');
+    if (cached && cached.signature !== await snapshotSignature()) clearCatalogCache('Asda');
+    const index = await getIndex('Asda');
+    return { ...index.metadata, healthy: true, products_saved: index.products.length };
   } catch {
     catalogueStatusCache = null;
     return { status: 'unavailable', healthy: false, products_saved: 0, source: 'ASDA official product search index' };
   }
+}
+
+// Liveness must never read or parse the 50 MB catalogue. Detailed validation is
+// shared with matching via /api/catalog/status; an unloaded catalogue is explicit.
+export function cachedCatalogueStatus() {
+  return catalogueStatusCache ? { ...catalogueStatusCache } : {
+    status: catalogLoads.has('Asda') ? 'loading' : 'not_loaded',
+    healthy: null,
+    products_saved: null,
+  };
 }

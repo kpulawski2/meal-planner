@@ -23,6 +23,141 @@ test('phone shopping app includes automatic catalogue recommendations and valid 
   for (const source of scripts) assert.doesNotThrow(() => new vm.Script(source));
 });
 
+function automaticMatchingHarness(fetch) {
+  const sourceStart = appHtml.indexOf('let automaticCatalogState=');
+  const sourceEnd = appHtml.indexOf('// Manual product-reference catalogue', sourceStart);
+  assert.ok(sourceStart >= 0 && sourceEnd > sourceStart);
+  let now = Math.floor(Date.now() / 1000) * 1000;
+  const renders = [];
+  const timerDelays = [];
+  const context = {
+    fetch, AbortController, DOMException, console,
+    Date: { now: () => now, parse: Date.parse },
+    // Shorten delays while keeping request timeouts separate from retry backoff.
+    setTimeout: (fn, ms) => { timerDelays.push(ms); return setTimeout(fn, ms >= 45000 ? 25 : 0); }, clearTimeout,
+    window: { addEventListener() {} },
+    document: { hidden: false, addEventListener() {} },
+    renderShop: () => renders.push(context.readState()),
+  };
+  vm.runInNewContext(appHtml.slice(sourceStart, sourceEnd) + '\nglobalThis.requestMatches=requestAutomaticCatalogMatches;globalThis.readState=()=>automaticCatalogState;globalThis.readSummary=automaticCatalogSummary;', context);
+  return { ...context, renders, timerDelays, currentTime: () => now, advanceTime: ms => { now += ms; } };
+}
+
+const shoppingEntries = quantity => [['chicken breast', { name: 'Chicken breast', groups: { mass: { remaining: quantity } } }]];
+const recommendationResponse = items => ({ ok: true, status: 200, text: async () => JSON.stringify({ recommendations: items.map(item => ({ key: item.key, match: { productName: 'ASDA Chicken Breast Fillets' }, plan: { requestedQuantity: item.quantity } })) }) });
+
+test('automatic phone matching recovers from empty and invalid gateway responses', async () => {
+  let requests = 0;
+  const app = automaticMatchingHarness(async (url, options) => {
+    requests++;
+    if (requests === 1) return { ok: true, status: 200, text: async () => '' };
+    if (requests === 2) return { ok: false, status: 502, text: async () => '<html>Bad gateway</html>' };
+    return recommendationResponse(JSON.parse(options.body).items);
+  });
+  await app.requestMatches(shoppingEntries(1500), 'Asda');
+  assert.equal(requests, 3);
+  assert.equal(app.readState().status, 'ready');
+  assert.equal(app.readState().results['chicken breast::mass'].plan.requestedQuantity, 1500);
+  assert.ok(app.renders.some(state => state.status === 'loading' && state.attempt > 1));
+});
+
+test('automatic phone matching caps retries and can recover on a later visit', async () => {
+  let requests = 0;
+  const app = automaticMatchingHarness(async (url, options) => {
+    requests++;
+    if (requests <= 3) return { ok: false, status: 503, text: async () => '' };
+    return recommendationResponse(JSON.parse(options.body).items);
+  });
+  await app.requestMatches(shoppingEntries(1500), 'Asda');
+  assert.equal(requests, 3);
+  assert.equal(app.readState().status, 'error');
+  assert.doesNotMatch(app.readState().error, /json|HTTP|SyntaxError/);
+  await app.requestMatches(shoppingEntries(1500), 'Asda');
+  assert.equal(requests, 3, 'rendering an error must not cause a retry loop');
+  app.advanceTime(31000);
+  await app.requestMatches(shoppingEntries(1500), 'Asda');
+  assert.equal(requests, 4);
+  assert.equal(app.readState().status, 'ready');
+});
+
+test('automatic phone matching honors numeric and HTTP-date Retry-After without changing request deadlines', async () => {
+  let requests = 0;
+  const app = automaticMatchingHarness(async (url, options) => {
+    requests++;
+    if (requests <= 2) return {
+      ok: false, status: requests === 1 ? 503 : 429, text: async () => '',
+      headers: { get: () => requests === 1 ? '2' : new Date(app.currentTime() + 10000).toUTCString() },
+    };
+    return recommendationResponse(JSON.parse(options.body).items);
+  });
+  await app.requestMatches(shoppingEntries(1500), 'Asda');
+  assert.equal(app.readState().status, 'ready');
+  assert.deepEqual(app.timerDelays, [45000, 2000, 45000, 10000, 45000]);
+});
+
+test('automatic phone matching caps server retry delays at one minute', async () => {
+  let requests = 0;
+  const app = automaticMatchingHarness(async (url, options) => {
+    requests++;
+    if (requests === 1) return { ok: false, status: 429, text: async () => '', headers: { get: () => '120' } };
+    return recommendationResponse(JSON.parse(options.body).items);
+  });
+  await app.requestMatches(shoppingEntries(1500), 'Asda');
+  assert.equal(app.readState().status, 'ready');
+  assert.deepEqual(app.timerDelays, [45000, 60000, 45000]);
+});
+
+test('phone shopping summary does not show matching for an empty or pantry-covered list', () => {
+  const app = automaticMatchingHarness(async () => { throw new Error('Empty shopping lists must not request matches'); });
+  assert.equal(app.readSummary([], 'Asda'), '');
+  assert.equal(app.readSummary(shoppingEntries(0), 'Asda'), '');
+});
+
+test('changing quantities cancels obsolete matching and accepts only the latest result', async () => {
+  let requests = 0, aborted = false;
+  const app = automaticMatchingHarness(async (url, options) => {
+    requests++;
+    if (requests === 1) return new Promise((resolve, reject) => options.signal.addEventListener('abort', () => { aborted = true; reject(new DOMException('Cancelled', 'AbortError')); }, { once: true }));
+    return recommendationResponse(JSON.parse(options.body).items);
+  });
+  const first = app.requestMatches(shoppingEntries(1500), 'Asda');
+  await app.requestMatches(shoppingEntries(2000), 'Asda');
+  await first;
+  assert.equal(aborted, true);
+  assert.equal(requests, 2);
+  assert.equal(app.readState().status, 'ready');
+  assert.equal(app.readState().results['chicken breast::mass'].plan.requestedQuantity, 2000);
+});
+
+test('request timeout aborts a stalled connection and retries automatically', async () => {
+  let requests = 0, aborted = false;
+  const app = automaticMatchingHarness(async (url, options) => {
+    requests++;
+    if (requests === 1) return new Promise((resolve, reject) => options.signal.addEventListener('abort', () => { aborted = true; reject(new DOMException('Timed out', 'AbortError')); }, { once: true }));
+    return recommendationResponse(JSON.parse(options.body).items);
+  });
+  await app.requestMatches(shoppingEntries(1500), 'Asda');
+  assert.equal(aborted, true);
+  assert.equal(requests, 2);
+  assert.equal(app.readState().status, 'ready');
+});
+
+test('updating another ingredient retains successful matches through a temporary outage', async () => {
+  let requests = 0;
+  const app = automaticMatchingHarness(async (url, options) => {
+    requests++;
+    if (requests === 1) return recommendationResponse(JSON.parse(options.body).items);
+    return { ok: false, status: 503, text: async () => '' };
+  });
+  const entries = [...shoppingEntries(1500), ['cucumber', { name: 'Cucumber', groups: { count: { remaining: 1 } } }]];
+  await app.requestMatches(entries, 'Asda');
+  entries[1][1].groups.count.remaining = 2;
+  await app.requestMatches(entries, 'Asda');
+  assert.equal(app.readState().status, 'error');
+  assert.ok(app.readState().results['chicken breast::mass']);
+  assert.equal(app.readState().results['cucumber::count'], undefined, 'changed quantities must not retain an old purchase plan');
+});
+
 const products = [
   { name: 'ASDA Baby Plum Tomatoes 300g', category: 'Fresh Fruit, Vegetables & Flowers > Fresh Salad & Stir Fry > Tomatoes', availability: 'listed_online', packQuantity: 300, packUnit: 'g', price: 1 },
   { name: 'ASDA Classic Tomato Ketchup 550g', category: 'Food Cupboard > Condiments & Cooking Ingredients > Tomato Ketchup', availability: 'listed_online', packQuantity: 550, packUnit: 'g', price: 0.95 },

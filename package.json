@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node --env-file-if-exists=.env recipe-import-api/server.js",
-    "start:plain": "node recipe-import-api/server.js",
+    "start": "node --max-old-space-size=256 --env-file-if-exists=.env recipe-import-api/server.js",
+    "start:plain": "node --max-old-space-size=256 recipe-import-api/server.js",
     "check": "node --check recipe-import-api/server.js && node --check recipe-import-api/catalog-adapter.js && node --check recipe-import-api/price-adapter.js && node --check recipe-import-api/price-search-adapter.js && node --check recipe-import-api/groq-adapter.js",
-    "test": "node --test recipe-import-api/catalog-adapter.test.js recipe-import-api/pages-catalogue.test.js"
+    "test": "node --max-old-space-size=256 --test recipe-import-api/catalog-adapter.test.js recipe-import-api/pages-catalogue.test.js recipe-import-api/catalog-load.test.js"
   },
   "dependencies": {
     "cheerio": "^1.0.0",
