@@ -1,9 +1,18 @@
 {
   "name": "Meal Planner",
-  "short_name": "Meal Planner",
-  "start_url": ".",
+  "short_name": "Meal Plan",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "description": "Your personal meal planner, recipes, shopping list, and ASDA product catalogue.",
   "background_color": "#f5f5f2",
   "theme_color": "#111111",
-  "icons": []
+  "icons": [
+    {
+      "src": "public/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }

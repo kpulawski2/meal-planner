@@ -146,6 +146,14 @@ function tokens(value) {
   return clean(value, 200).toLowerCase().split(/[^a-z0-9%]+/).filter((x) => x.length >= 2);
 }
 
+function productTokens(value) {
+  return tokens(String(value || '').replace(/&nbsp;|&amp;/gi, ' ')).map((token) => {
+    if (token.length > 4 && token.endsWith('ies')) return token.slice(0, -3) + 'y';
+    if (token.length > 3 && token.endsWith('s')) return token.slice(0, -1);
+    return token;
+  });
+}
+
 function scoreCandidate(query, url) {
   const q = tokens(query);
   const text = slugText(url);
@@ -158,12 +166,42 @@ function scoreCandidate(query, url) {
   return score;
 }
 
-function productSearchText(product) {
-  return [
-    product.name, product.ingredient, product.brand, product.category,
-    ...(product.categoryPath || []), ...(product.nutritionClaims || []),
-    product.packSize, product.sku, product.gtin,
-  ].filter(Boolean).join(' ');
+function scoreProduct(query, product) {
+  const queryTokens = productTokens(query);
+  const nameTokens = productTokens(product?.name);
+  if (!queryTokens.length || !nameTokens.length) return 0;
+
+  const name = new Set(nameTokens);
+  const brand = new Set(productTokens(product.brand));
+  const categoryText = [product.category, ...(product.categoryPath || [])].filter(Boolean).join(' ');
+  const category = new Set(productTokens(categoryText));
+  const nameHits = queryTokens.filter(token => name.has(token)).length;
+  if (!nameHits) return 0;
+
+  let score = 0;
+  for (const token of queryTokens) {
+    if (name.has(token)) score += token.length >= 5 ? 4 : 3;
+    else if (brand.has(token)) score += 0.5;
+    else score -= 1;
+  }
+
+  const title = nameTokens.join(' ');
+  const phrase = queryTokens.join(' ');
+  if ((' ' + title + ' ').includes(' ' + phrase + ' ')) score += 4;
+  if (nameHits === queryTokens.length) score += 3;
+  score += queryTokens.filter(token => category.has(token)).length * 2;
+  score -= Math.min(Math.max(0, nameTokens.length - nameHits) * 0.1, 1.5);
+  if (queryTokens.length === 1 && queryTokens[0] === 'milk') {
+    if (/\b(?:fresh milk|semi skimmed milk|skimmed milk|whole milk|milk, butter, cream & eggs)\b/i.test(categoryText)) score += 5;
+    if (/\b(?:coconut|almond|oat|soy|soya|condensed|evaporated) milk\b|\bmilk chocolate\b/i.test(product.name)) score -= 4;
+  }
+  if (queryTokens.some(token => ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'salmon', 'cod', 'fish'].includes(token))) {
+    if (/meat, poultry & fish/i.test(categoryText)) score += 4;
+    if (/frozen food/i.test(categoryText)) score -= 1;
+  }
+  if (/\b(?:food|fruit|vegetable|meat|fish|dairy|bakery|frozen|chilled|drink|cupboard|snack|sweets|world)\b/i.test(categoryText)) score += 0.5;
+  if (/\b(?:home & entertainment|toys?|pets?|laundry|household|toiletries|beauty|wellness|garden|furniture|electrical|stationery|craft)\b/i.test(categoryText)) score -= 6;
+  return score > 0 ? score : 0;
 }
 
 export async function searchCatalog(storeName, query, limit = 8) {
@@ -174,7 +212,7 @@ export async function searchCatalog(storeName, query, limit = 8) {
     .map(product => ({
       product,
       url: product.url,
-      score: scoreCandidate(q, index.products ? productSearchText(product) : product.url),
+      score: index.products ? scoreProduct(q, product) : scoreCandidate(q, product.url),
     }))
     .filter(row => row.score > 0)
     .sort((a, b) => b.score - a.score || a.url.localeCompare(b.url))

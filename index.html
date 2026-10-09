@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="public/apple-touch-icon.png">
 <title>Meal Planner</title>
 <style>
 :root{--bg:#f5f5f2;--card:#fff;--text:#171717;--muted:#737373;--line:#e5e5df;--accent:#111;--good:#1f7a4d}
@@ -40,8 +43,68 @@ function generate(){
  state.week=days.map((day,i)=>({day,meals:[choose(cats.Breakfast.filter(r=>!dislike(r)),i),choose(cats.Lunch.filter(r=>!dislike(r)),i+2),choose(cats.Dinner.filter(r=>!dislike(r)),i+3),choose(cats.Snack.filter(r=>!dislike(r)),i)].filter(Boolean).map(r=>r.id)}));save();renderAll();
 }
 function totals(d){let rs=d.meals.map(getR);return {kcal:rs.reduce((a,r)=>a+r.kcal,0),p:rs.reduce((a,r)=>a+r.protein,0),cost:rs.reduce((a,r)=>a+recipeCost(r),0)}}
-function findProduct(name){let n=name.toLowerCase();let exact=products.filter(p=>p.ingredient.toLowerCase()===n);if(exact.length)return exact[0];let hit=products.find(p=>p.name.toLowerCase().includes(n)||n.includes(p.ingredient.toLowerCase()));return hit||null}
-function recipeCost(r){return r.ingredients.reduce((sum,i)=>{let p=findProduct(i.ingredient);if(!p)return sum;return sum+(p.price*(i.quantity/p.packQuantity));},0)}
+const productMatchCache = new Map();
+function catalogTokens(value) {
+  return String(value || '')
+    .replace(/&nbsp;|&amp;/gi, ' ')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(token => token.length > 1)
+    .map(token => token.length > 4 && token.endsWith('ies')
+      ? token.slice(0, -3) + 'y'
+      : token.length > 3 && token.endsWith('s') ? token.slice(0, -1) : token);
+}
+function findProduct(name) {
+  const queryTokens = catalogTokens(name);
+  const query = queryTokens.join(' ');
+  if (!query) return null;
+  if (productMatchCache.has(query)) return productMatchCache.get(query);
+
+  const food = /\b(?:food|fruit|vegetable|meat|fish|dairy|bakery|frozen|chilled|drink|cupboard|snack|sweets|world)\b/i;
+  const nonFood = /\b(?:home & entertainment|toys?|pets?|laundry|household|toiletries|beauty|wellness|garden|furniture|electrical|stationery|craft)\b/i;
+  let best = null;
+  let bestScore = 0;
+
+  for (const product of products) {
+    if (!product || product.availability !== 'listed_online' ||
+        !(Number(product.packQuantity) > 0) || !(Number(product.price) > 0)) continue;
+    const nameTokens = catalogTokens(product.name);
+    const nameSet = new Set(nameTokens);
+    const nameHits = queryTokens.filter(token => nameSet.has(token)).length;
+    if (!nameHits) continue;
+
+    let score = 0;
+    for (const token of queryTokens) score += nameSet.has(token) ? (token.length >= 5 ? 4 : 3) : -1;
+    if ((' ' + nameTokens.join(' ') + ' ').includes(' ' + query + ' ')) score += 4;
+    if (nameHits === queryTokens.length) score += 3;
+
+    const category = String(product.category || '');
+    const categorySet = new Set(catalogTokens(category));
+    score += queryTokens.filter(token => categorySet.has(token)).length * 2;
+    score -= Math.min(Math.max(0, nameTokens.length - nameHits) * 0.1, 1.5);
+
+    if (queryTokens.length === 1 && queryTokens[0] === 'milk') {
+      if (/\b(?:fresh milk|semi skimmed milk|skimmed milk|whole milk|milk, butter, cream & eggs)\b/i.test(category)) score += 5;
+      if (/\b(?:coconut|almond|oat|soy|soya|condensed|evaporated) milk\b|\bmilk chocolate\b/i.test(product.name)) score -= 4;
+    }
+    if (queryTokens.some(token => ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'salmon', 'cod', 'fish'].includes(token))) {
+      if (/meat, poultry & fish/i.test(category)) score += 4;
+      if (/frozen food/i.test(category)) score -= 1;
+    }
+    if (food.test(category)) score += 0.5;
+    if (nonFood.test(category)) score -= 6;
+    if (score > bestScore) {
+      best = product;
+      bestScore = score;
+    }
+  }
+
+  productMatchCache.set(query, best);
+  return best;
+}
+function recipeCost(r){return r.ingredients.reduce((sum,i)=>{let p=findProduct(i.ingredient),pack=p?Number(p.packQuantity):0;if(!p||!(pack>0))return sum;return sum+(p.price*(i.quantity/pack));},0)}
 function mealCard(r,d,i){return `<div class="card"><div class="meal"><div class="meal-icon">${r.icon}</div><div class="meal-main"><div class="meal-name">${esc(r.name)}</div><div class="meal-meta">${r.kcal} kcal · ${r.protein}g protein · ${r.totalMinutes} min · £${recipeCost(r).toFixed(2)} ingredient-use</div></div><div class="meal-actions"><button onclick="swap('${d}',${i})">Swap</button><button onclick="showRecipe('${r.id}')">Recipe</button></div></div></div>`}
 function renderHome(){let idx=(new Date().getDay()+6)%7,d=state.week[idx];if(!d){generate();return}let t=totals(d);$("home").innerHTML=`<div class="hero"><h1>${d.day}'s plan</h1><p>${state.profile.calories} kcal target · ${state.profile.protein}g protein target · ASDA pricing</p><div class="stats"><div class="stat"><b>${t.kcal}</b><span>kcal</span></div><div class="stat"><b>${t.p}g</b><span>protein</span></div><div class="stat"><b>£${t.cost.toFixed(2)}</b><span>ingredient-use</span></div></div></div><div class="actions"><button class="btn" onclick="generate()">Generate week</button><button class="btn secondary" onclick="showTab('shop')">Shopping list</button></div><div class="section-title">Today's meals</div>${d.meals.map((id,i)=>mealCard(getR(id),d.day,i)).join("")}`}
 function renderWeek(){$("week").innerHTML=`<div class="actions"><button class="btn" onclick="generate()">Generate new week</button></div>${state.week.map(d=>{let t=totals(d),pct=Math.min(100,Math.round(t.kcal/state.profile.calories*100));return `<div class="day"><div class="day-head"><h3>${d.day}</h3><span class="pill">${t.kcal} kcal · ${t.p}g P</span></div><div class="progress"><i style="width:${pct}%"></i></div>${d.meals.map((id,i)=>mealCard(getR(id),d.day,i)).join("")}</div>`}).join("")}`}
@@ -56,7 +119,7 @@ function renderProfile(){let p=state.profile;$("profile").innerHTML=`<div class=
 function saveProfile(){state.profile={...state.profile,calories:+$("cal").value,protein:+$("pro").value,budget:+$("bud").value,meals:+$("meals").value,dislikes:$("dis").value,likes:$("likes").value};save();generate()}
 function showTab(id){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("active",x.dataset.tab===id));if(id==="home")renderHome();if(id==="week")renderWeek();if(id==="recipes")renderRecipesScreen();if(id==="shop")renderShop();if(id==="profile")renderProfile()}
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
-async function init(){try{[recipes,products,ingredients]=await Promise.all([fetch("data/recipes.json").then(r=>r.json()),fetch("data/products.json").then(r=>r.json()),fetch("data/ingredients.json").then(r=>r.json())]);if(!state.week.length)generate();else renderAll()}catch(e){console.error(e);$("home").innerHTML='<div class="empty">Could not load planner data. Check that the data folder was uploaded with the site.</div>'}}
+ async function init(){try{[recipes,products,ingredients]=await Promise.all([fetch("data/recipes.json").then(r=>r.json()),fetch("data/products.json").then(r=>r.json()),fetch("data/ingredients.json").then(r=>r.json())]);for(const p of products){if(!p.ingredient)p.ingredient=p.name||'';if(!p.checked)p.checked=p.checkedAt||'latest catalogue refresh'}if(!state.week.length)generate();else renderAll()}catch(e){console.error(e);$("home").innerHTML='<div class="empty">Could not load planner data. Check that the data folder was uploaded with the site.</div>'}}
 function renderAll(){renderHome();renderWeek();renderRecipesScreen();renderShop();renderProfile()}
 init();
 </script>

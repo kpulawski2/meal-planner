@@ -35,6 +35,20 @@ const sampleProducts = Array.from({ length: 120 }, (_, index) => {
   };
 });
 
+sampleProducts[2].name = 'ASDA Semi Skimmed Milk 2L';
+sampleProducts[2].category = 'Chilled Food > Milk';
+sampleProducts[2].packSize = '2 L';
+sampleProducts[2].packQuantity = 2000;
+sampleProducts[2].price = 1.65;
+sampleProducts[2].pricesByRegion.EN.price = 1.65;
+sampleProducts[2].pricesByRegion.SC.price = 1.6;
+sampleProducts[2].nutritionClaims = [];
+sampleProducts[3].name = 'ASDA Milk Chocolate Bar 100g';
+sampleProducts[3].category = 'Sweets, Treats & Snacks';
+sampleProducts[4].name = 'ASDA Frozen Chicken Breast Fillets 1kg';
+sampleProducts[4].category = 'Frozen Food > Frozen Chicken & Meat > Chicken Breast';
+sampleProducts[1].nutritionClaims = ['NoMilk'];
+
 await writeFile(process.env.ASDA_CATALOGUE_PATH, JSON.stringify(sampleProducts));
 await writeFile(process.env.ASDA_CATALOGUE_META_PATH, JSON.stringify({
   status: 'complete',
@@ -59,6 +73,13 @@ test('ASDA matching uses the validated full catalogue and returns saved product 
   assert.equal(result.results[0].pricesByRegion.SC.price, 7.1);
   assert.deepEqual(result.results[0].nutritionClaims, ['High protein']);
   assert.equal(result.results[0].nutrition.protein, '23g');
+
+  const milkResult = await searchCatalog('Asda', 'milk', 8);
+  assert.equal(milkResult.results[0].productName, 'ASDA Semi Skimmed Milk 2L');
+  assert.ok(milkResult.results.every(row => row.productName.toLowerCase().includes('milk')));
+
+  const chickenResult = await searchCatalog('Asda', 'chicken breast', 8);
+  assert.equal(chickenResult.results[0].productName, 'ASDA British Chicken Breast Fillets 1kg');
 
   const product = await fetchProductPage('Asda', result.results[0].url);
   assert.equal(product.priceGBP, 7.25);

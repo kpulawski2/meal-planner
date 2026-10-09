@@ -16,7 +16,7 @@ The Node catalogue adapter refuses to use a seed or unhealthy snapshot. `/api/ca
 
 ## Use the app on a phone
 
-The app is a progressive web app. Deploy the root service to the existing Render Free web service, open its HTTPS address on the phone, then choose **Add to Home Screen** on iPhone or **Install app** in Android Chrome. The app shell and local planner data work offline; product search needs an internet connection. Saved recipes, pantry items and shopping changes stay in browser storage on that device. Use Settings → Export backup / Import backup to move them between devices.
+The full app is live on the free Render service at [meal-planner-wm4j.onrender.com](https://meal-planner-wm4j.onrender.com). Open it on your phone and choose **Add to Home Screen** on iPhone or **Install app** in Android Chrome. The app shell and local planner data work offline; product search needs an internet connection. Saved recipes, pantry items and shopping changes stay in browser storage on that device. Use Settings → Export backup / Import backup to move them between devices.
 
 The free Render service can sleep when idle, so its first request after a quiet period may take longer. The app and catalogue refresh do not require a paid ASDA/Algolia search subscription; the catalogue key is ASDA's public read-only browser key.
 
