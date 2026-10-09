@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -115,10 +115,10 @@ await writeFile(process.env.ASDA_CATALOGUE_META_PATH, JSON.stringify({
   products_expected: sampleProducts.length,
   coverage: 1,
   category_count: 10,
-  refreshed_at: '2026-10-07T06:00:00Z',
+  refreshed_at: '2000-01-01T06:00:00Z',
 }));
 
-const { searchCatalog, recommendCatalogItems, fetchProductPage, catalogueStatus } = await import(`./catalog-adapter.js?catalogue-test=${Date.now()}`);
+const { searchCatalog, recommendCatalogItems, calculatePackPurchase, clearCatalogCache, fetchProductPage, catalogueStatus } = await import(`./catalog-adapter.js?catalogue-test=${Date.now()}`);
 
 test('ASDA matching uses the validated full catalogue and returns saved product details', async () => {
   const result = await searchCatalog('Asda', 'chicken breast', 8);
@@ -176,6 +176,32 @@ test('automatic recommendations select plain cucumber and optimize chicken breas
     ['ASDA British Chicken Breast Fillets 2kg', 1],
   ]);
   assert.ok(!chicken.match.productName.includes('Thai'), 'plain chicken breast should not auto-select a flavoured ready-to-cook variant');
+});
+
+test('pack optimization combines different sizes and preserves fractional requested amounts', () => {
+  const makePack = (size, price, unit = 'g') => ({ name: `Plain pack ${size}`, url: `https://www.asda.com/groceries/product/plain/${size}`, packQuantity: size, packUnit: unit, price });
+  const plan = calculatePackPurchase([makePack(1000, 7), makePack(600, 4.3), makePack(900, 7.1)], 1500, 'mass');
+  assert.equal(plan.totalCostGBP, 11.3);
+  assert.equal(plan.totalQuantity, 1600);
+  assert.equal(plan.leftoverQuantity, 100);
+  assert.deepEqual(new Set(plan.products.map(row => row.packQuantity)), new Set([600, 1000]));
+  const fraction = calculatePackPurchase([makePack(3, 1, 'pieces')], 2.5, 'count');
+  assert.equal(fraction.requestedQuantity, 2.5);
+  assert.equal(fraction.leftoverQuantity, 0.5);
+});
+
+test('an old publication date does not reload the validated catalogue on every request', async () => {
+  await searchCatalog('Asda', 'cucumber');
+  const saved = await readFile(process.env.ASDA_CATALOGUE_PATH, 'utf8');
+  try {
+    await writeFile(process.env.ASDA_CATALOGUE_PATH, 'temporarily unreadable snapshot');
+    const result = await searchCatalog('Asda', 'cucumber');
+    assert.equal(result.indexSize, 120, 'the in-memory catalogue TTL starts when it was loaded, not when ASDA published it');
+    assert.equal(result.results[0].productName, 'ASDA Cucumber');
+  } finally {
+    await writeFile(process.env.ASDA_CATALOGUE_PATH, saved);
+    clearCatalogCache('Asda');
+  }
 });
 
 test.after(async () => {

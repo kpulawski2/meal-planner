@@ -12,7 +12,9 @@ The daily `.github/workflows/refresh-asda.yml` workflow runs the scraper tests f
 
 The feed currently does not publish GTINs, full nutrition tables, ingredients, or store-specific stock for every item. Those fields remain empty when ASDA does not expose them in the index; product links open the official pages for full details. Catalogue availability means listed online, and local stock can vary by store. Prices are regional and may change after a refresh.
 
-The Node catalogue adapter refuses to use a seed or unhealthy snapshot. `/api/catalog/status` reports snapshot health and coverage; `/health` includes the same catalogue metadata.
+The Node catalogue adapter refuses to use a seed or unhealthy snapshot. `/api/catalog/status` reports snapshot health and coverage; `/health` reports server liveness and the last loaded catalogue status.
+
+Automatic shopping matches share one validated catalogue in memory and use an ingredient name-token index. Matching yields between ingredients, and `/health` reports cached status without reading the large catalogue file. The runtime uses a 256 MiB JavaScript heap limit to leave room within Render Free's memory allowance. The phone app retries interrupted matching requests and keeps previous results only when their ingredient quantities still agree. Catalogue data is unchanged by matching.
 
 ## Use the app on a phone
 
@@ -27,7 +29,8 @@ python -m pip install -r backend/requirements.txt
 python -m unittest discover -s backend/tests -v
 node --check recipe-import-api/server.js
 node --check recipe-import-api/catalog-adapter.js
-node --test recipe-import-api/catalog-adapter.test.js
+npm install --ignore-scripts
+npm test
 ```
 
 Refresh a full catalogue snapshot with:

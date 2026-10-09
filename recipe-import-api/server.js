@@ -12,7 +12,7 @@ import multer from 'multer';
 import { chooseBestPackCandidate, summarizePriceBenchmark } from './price-adapter.js';
 import { GroqApiError, groqChatCompletion, groqTranscribe, evenlySampleFrames } from './groq-adapter.js';
 import { PRICE_LOOKUP_STORES, lookupStoreItem, splitBatches } from './price-search-adapter.js';
-import { searchCatalog, recommendCatalogItems, fetchProductPage, clearCatalogCache, catalogStoreInfo, catalogueStatus } from './catalog-adapter.js';
+import { searchCatalog, recommendCatalogItems, fetchProductPage, clearCatalogCache, catalogStoreInfo, catalogueStatus, cachedCatalogueStatus } from './catalog-adapter.js';
 
 const execFileAsync = promisify(execFile);
 const app = express();
@@ -66,7 +66,12 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '100kb', strict: true }));
 // Serve the app and its API from one origin so it works as a simple installable mobile web app.
 const PUBLIC_DIR = path.resolve(process.cwd(), 'public');
-app.use(express.static(PUBLIC_DIR, { etag: true, maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0 }));
+app.use(express.static(PUBLIC_DIR, {
+  etag: true, maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0,
+  setHeaders(res, filename) {
+    if (filename.endsWith('.html') || filename.endsWith('service-worker.js')) res.setHeader('Cache-Control', 'no-cache');
+  },
+}));
 
 function safeEqual(a, b) {
   const aa = Buffer.from(String(a || ''));
@@ -417,7 +422,7 @@ function catalogRateLimit(req, res, next) {
   if (now - hit.at > 60_000) { hit.at = now; hit.count = 0; }
   hit.count += 1;
   catalogRequestLog.set(key, hit);
-  if (hit.count > 30) return res.status(429).json({ error: 'Catalog search rate limit reached. Try again in a minute.' });
+  if (hit.count > 30) return res.set('Retry-After', String(Math.max(1, Math.ceil((60_000 - (now - hit.at)) / 1000)))).status(429).json({ error: 'Catalog search rate limit reached. Try again in a minute.' });
   next();
 }
 
@@ -839,7 +844,11 @@ app.get('/api/catalog/search', catalogRateLimit, async (req, res) => {
     res.status(502).json({ error: `Could not load the ${cleanString(req.query.store || 'retailer', 40)} product catalogue: ${cleanString(e?.message || 'unknown error', 300)}` });
   }
 });
+let activeCatalogRecommendations = 0;
 app.post('/api/catalog/recommend', catalogRateLimit, async (req, res) => {
+  const controller = new AbortController();
+  const disconnected = () => controller.abort();
+  let claimedSlot = false;
   try {
     const store = cleanString(req.body?.store || '', 40);
     const rawItems = req.body?.items;
@@ -851,13 +860,21 @@ app.post('/api/catalog/recommend', catalogRateLimit, async (req, res) => {
       key: cleanString(item?.key, 180),
       name: cleanString(item?.name, 120),
       dimension: cleanString(item?.dimension, 30),
-      quantity: Number(item?.quantity) || 0,
+      quantity: Number(item?.quantity ?? 0),
     }));
     if (items.some(item => !item.key || !item.name)) return res.status(400).json({ error: 'Each ingredient needs a key and name.' });
-    const result = await recommendCatalogItems(store, items);
-    res.json({ ok: true, ...result });
+    if (items.some(item => !Number.isFinite(item.quantity) || item.quantity < 0 || item.quantity > 10_000_000)) return res.status(400).json({ error: 'Ingredient quantities must be finite, non-negative and no greater than 10 million base units.' });
+    if (activeCatalogRecommendations >= 2) return res.set('Retry-After', '2').status(503).json({ error: 'ASDA matching is busy. Please retry shortly.' });
+    activeCatalogRecommendations += 1;
+    claimedSlot = true;
+    res.once('close', disconnected);
+    const result = await recommendCatalogItems(store, items, { signal: controller.signal });
+    if (!res.destroyed) res.json({ ok: true, ...result });
   } catch (e) {
-    res.status(502).json({ error: `Could not build automatic ASDA pack recommendations: ${cleanString(e?.message || 'unknown error', 300)}` });
+    if (!res.destroyed && !res.headersSent) res.status(502).json({ error: `Could not build automatic ASDA pack recommendations: ${cleanString(e?.message || 'unknown error', 300)}` });
+  } finally {
+    if (claimedSlot) activeCatalogRecommendations -= 1;
+    res.off('close', disconnected);
   }
 });
 app.get('/api/catalog/product', catalogRateLimit, async (req, res) => {
@@ -877,7 +894,7 @@ app.post('/api/catalog/refresh', catalogRateLimit, (req, res) => { const store =
 app.post('/api/prices/lookup', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct ASDA/Aldi product-page references in the Shopping List.' }));
 app.get('/api/prices/lookup/:jobId', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct product-page reference catalogue.' }));
 
-app.get('/health', async (_req, res) => res.json({ ok: true, service: 'meal-planner', aiProvider: 'Groq API (recipe/video features only)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors for AI import', priceSearchProvider: 'ASDA official full-catalogue snapshot; no paid search API', braveSearchConfigured: false, priceSearchRetryPolicy: 'Not used by the manual price-reference UI', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: false, livePriceSearchConfigured: false, livePriceStores: ['Asda', 'Aldi'], priceSearchModel: null, priceDataSource: 'Complete ASDA official product-index snapshot with regional prices and direct product links; Aldi remains a sitemap URL index; no paid search API', directProductPageCount: 93, priceSnapshotCount: 83, manualPriceReferenceMode: true, officialCatalogMode: true, officialCatalogSources: catalogStoreInfo(), asdaCatalogue: await catalogueStatus(), priceReferenceCatalog: '/price-reference-catalog.json', priceReferenceCsv: '/price-reference-catalog.csv', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner', aiProvider: 'Groq API (recipe/video features only)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors for AI import', priceSearchProvider: 'ASDA official full-catalogue snapshot; no paid search API', braveSearchConfigured: false, priceSearchRetryPolicy: 'Not used by the manual price-reference UI', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, automaticCatalogMatchingSupported: true, release: process.env.RENDER_GIT_COMMIT || 'local', uptimeSeconds: Math.floor(process.uptime()), livePriceSearchConfigured: false, livePriceStores: ['Asda', 'Aldi'], priceSearchModel: null, priceDataSource: 'Complete ASDA official product-index snapshot with regional prices and direct product links; Aldi remains a sitemap URL index; no paid search API', directProductPageCount: 93, priceSnapshotCount: 83, manualPriceReferenceMode: true, officialCatalogMode: true, officialCatalogSources: catalogStoreInfo(), asdaCatalogue: cachedCatalogueStatus(), priceReferenceCatalog: '/price-reference-catalog.json', priceReferenceCsv: '/price-reference-catalog.csv', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
 
 app.post('/api/import-recipe', authenticated, async (req, res) => {
   const url = cleanString(req.body?.url, 2000);
