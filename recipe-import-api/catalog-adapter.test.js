@@ -48,6 +48,26 @@ sampleProducts[3].category = 'Sweets, Treats & Snacks';
 sampleProducts[4].name = 'ASDA Frozen Chicken Breast Fillets 1kg';
 sampleProducts[4].category = 'Frozen Food > Frozen Chicken & Meat > Chicken Breast';
 sampleProducts[1].nutritionClaims = ['NoMilk'];
+Object.assign(sampleProducts[5], {
+  name: 'ASDA Baby Plum Tomatoes 300g',
+  category: 'Fresh Fruit, Vegetables & Flowers > Fresh Salad & Stir Fry > Tomatoes',
+  packSize: '300g', packQuantity: 300, packUnit: 'g', price: 1,
+});
+Object.assign(sampleProducts[6], {
+  name: 'ASDA Classic Tomato Ketchup 550g',
+  category: 'Food Cupboard > Condiments & Cooking Ingredients > Sauces & Condiments > Tomato Ketchup',
+  packSize: '550g', packQuantity: 550, packUnit: 'g', price: 0.95,
+});
+Object.assign(sampleProducts[7], {
+  name: 'COOK by ASDA Ground Cinnamon 34g',
+  category: 'Food Cupboard > Condiments & Cooking Ingredients > Spices',
+  packSize: '34g', packQuantity: 34, packUnit: 'g', price: 0.95,
+});
+Object.assign(sampleProducts[8], {
+  name: 'Millions Cinnamon Sweets',
+  category: 'Food Cupboard > Chocolates & Sweets > Sweets > Boiled Sweets',
+  packSize: '90g', packQuantity: 90, packUnit: 'g', price: 1,
+});
 
 await writeFile(process.env.ASDA_CATALOGUE_PATH, JSON.stringify(sampleProducts));
 await writeFile(process.env.ASDA_CATALOGUE_META_PATH, JSON.stringify({
@@ -80,6 +100,11 @@ test('ASDA matching uses the validated full catalogue and returns saved product 
 
   const chickenResult = await searchCatalog('Asda', 'chicken breast', 8);
   assert.equal(chickenResult.results[0].productName, 'ASDA British Chicken Breast Fillets 1kg');
+
+  const tomatoResult = await searchCatalog('Asda', 'tomato', 8, 'mass');
+  assert.equal(tomatoResult.results[0].productName, 'ASDA Baby Plum Tomatoes 300g');
+  const cinnamonResult = await searchCatalog('Asda', 'cinnamon', 8, 'mass');
+  assert.equal(cinnamonResult.results[0].productName, 'COOK by ASDA Ground Cinnamon 34g');
 
   const product = await fetchProductPage('Asda', result.results[0].url);
   assert.equal(product.priceGBP, 7.25);

@@ -7,7 +7,7 @@
     "start": "node --env-file-if-exists=.env recipe-import-api/server.js",
     "start:plain": "node recipe-import-api/server.js",
     "check": "node --check recipe-import-api/server.js && node --check recipe-import-api/catalog-adapter.js && node --check recipe-import-api/price-adapter.js && node --check recipe-import-api/price-search-adapter.js && node --check recipe-import-api/groq-adapter.js",
-    "test": "node --test recipe-import-api/catalog-adapter.test.js"
+    "test": "node --test recipe-import-api/catalog-adapter.test.js recipe-import-api/pages-catalogue.test.js"
   },
   "dependencies": {
     "cheerio": "^1.0.0",

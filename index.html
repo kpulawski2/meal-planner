@@ -44,6 +44,8 @@ function generate(){
 }
 function totals(d){let rs=d.meals.map(getR);return {kcal:rs.reduce((a,r)=>a+r.kcal,0),p:rs.reduce((a,r)=>a+r.protein,0),cost:rs.reduce((a,r)=>a+recipeCost(r),0)}}
 const productMatchCache = new Map();
+const PRODUCE_TERMS = new Set(['apple','avocado','banana','berry','blueberry','broccoli','carrot','cucumber','garlic','grape','lemon','lettuce','mango','mushroom','onion','orange','potato','spinach','strawberry','tomato','courgette','salad']);
+const SPICE_TERMS = new Set(['basil','chilli','chili','cinnamon','clove','coriander','cumin','herb','nutmeg','oregano','paprika','pepper','seasoning','spice','thyme','turmeric']);
 function catalogTokens(value) {
   return String(value || '')
     .replace(/&nbsp;|&amp;/gi, ' ')
@@ -54,11 +56,20 @@ function catalogTokens(value) {
     .filter(token => token.length > 1)
     .map(token => token.length > 4 && token.endsWith('ies')
       ? token.slice(0, -3) + 'y'
+      : token.length > 4 && token.endsWith('oes') ? token.slice(0, -2)
       : token.length > 3 && token.endsWith('s') ? token.slice(0, -1) : token);
 }
-function findProduct(name) {
+function catalogDimension(unit) {
+  const value = String(unit || '').trim().toLowerCase();
+  if (['g','gram','grams','kg','kilogram','kilograms'].includes(value)) return 'mass';
+  if (['ml','millilitre','millilitres','milliliter','milliliters','l','litre','litres','liter','liters'].includes(value)) return 'volume';
+  if (['each','ea','piece','pieces','count'].includes(value)) return 'count';
+  return '';
+}
+function findProduct(name, unit = '') {
   const queryTokens = catalogTokens(name);
-  const query = queryTokens.join(' ');
+  const dimension = catalogDimension(unit);
+  const query = queryTokens.join(' ') + '|' + dimension;
   if (!query) return null;
   if (productMatchCache.has(query)) return productMatchCache.get(query);
 
@@ -93,6 +104,16 @@ function findProduct(name) {
       if (/meat, poultry & fish/i.test(category)) score += 4;
       if (/frozen food/i.test(category)) score -= 1;
     }
+    if (queryTokens.some(token => PRODUCE_TERMS.has(token)) || (queryTokens.includes('pepper') && queryTokens.some(token => ['bell','sweet'].includes(token)))) {
+      if (/fresh fruit|fresh salad|vegetables & flowers|fresh vegetables/i.test(category)) score += 6;
+      if (/dried fruit|raw nuts|tinned|ketchup|sauce|sweets|snacks|desserts/i.test(category)) score -= 6;
+    }
+    if (queryTokens.some(token => SPICE_TERMS.has(token))) {
+      if (/herbs? & spices|spices|seasonings/i.test(category)) score += 6;
+      if (/sweets|chocolates|desserts|bakery|toys|household/i.test(category)) score -= 4;
+    }
+    const productUnit = catalogDimension(product.packUnit);
+    if (dimension && productUnit) score += dimension === productUnit ? 1 : -2;
     if (food.test(category)) score += 0.5;
     if (nonFood.test(category)) score -= 6;
     if (score > bestScore) {
@@ -104,15 +125,16 @@ function findProduct(name) {
   productMatchCache.set(query, best);
   return best;
 }
-function recipeCost(r){return r.ingredients.reduce((sum,i)=>{let p=findProduct(i.ingredient),pack=p?Number(p.packQuantity):0;if(!p||!(pack>0))return sum;return sum+(p.price*(i.quantity/pack));},0)}
-function mealCard(r,d,i){return `<div class="card"><div class="meal"><div class="meal-icon">${r.icon}</div><div class="meal-main"><div class="meal-name">${esc(r.name)}</div><div class="meal-meta">${r.kcal} kcal · ${r.protein}g protein · ${r.totalMinutes} min · £${recipeCost(r).toFixed(2)} ingredient-use</div></div><div class="meal-actions"><button onclick="swap('${d}',${i})">Swap</button><button onclick="showRecipe('${r.id}')">Recipe</button></div></div></div>`}
-function renderHome(){let idx=(new Date().getDay()+6)%7,d=state.week[idx];if(!d){generate();return}let t=totals(d);$("home").innerHTML=`<div class="hero"><h1>${d.day}'s plan</h1><p>${state.profile.calories} kcal target · ${state.profile.protein}g protein target · ASDA pricing</p><div class="stats"><div class="stat"><b>${t.kcal}</b><span>kcal</span></div><div class="stat"><b>${t.p}g</b><span>protein</span></div><div class="stat"><b>£${t.cost.toFixed(2)}</b><span>ingredient-use</span></div></div></div><div class="actions"><button class="btn" onclick="generate()">Generate week</button><button class="btn secondary" onclick="showTab('shop')">Shopping list</button></div><div class="section-title">Today's meals</div>${d.meals.map((id,i)=>mealCard(getR(id),d.day,i)).join("")}`}
+function recipeCost(r){return r.ingredients.reduce((sum,i)=>{let p=findProduct(i.ingredient,i.unit),pack=p?Number(p.packQuantity):0;if(!p||!(pack>0))return sum;const sameDimension=catalogDimension(i.unit)===catalogDimension(p.packUnit);return sum+(Number(p.price)*(sameDimension?Number(i.quantity)/pack:1));},0)}
+function packCount(quantity, unit, product){const pack=Number(product?.packQuantity);if(!product||!(pack>0))return 0;return Math.max(1,Math.ceil(catalogDimension(unit)===catalogDimension(product.packUnit)?Number(quantity)/pack:1))}
+function mealCard(r,d,i){return `<div class="card"><div class="meal"><div class="meal-icon">${r.icon}</div><div class="meal-main"><div class="meal-name">${esc(r.name)}</div><div class="meal-meta">${r.kcal} kcal · ${r.protein}g protein · ${r.totalMinutes} min · £${recipeCost(r).toFixed(2)} estimated ingredient cost</div></div><div class="meal-actions"><button onclick="swap('${d}',${i})">Swap</button><button onclick="showRecipe('${r.id}')">Recipe</button></div></div></div>`}
+function renderHome(){let idx=(new Date().getDay()+6)%7,d=state.week[idx];if(!d){generate();return}let t=totals(d);$("home").innerHTML=`<div class="hero"><h1>${d.day}'s plan</h1><p>${state.profile.calories} kcal target · ${state.profile.protein}g protein target · ASDA pricing</p><div class="stats"><div class="stat"><b>${t.kcal}</b><span>kcal</span></div><div class="stat"><b>${t.p}g</b><span>protein</span></div><div class="stat"><b>£${t.cost.toFixed(2)}</b><span>estimated ingredient cost</span></div></div></div><div class="actions"><button class="btn" onclick="generate()">Generate week</button><button class="btn secondary" onclick="showTab('shop')">Shopping list</button></div><div class="section-title">Today's meals</div>${d.meals.map((id,i)=>mealCard(getR(id),d.day,i)).join("")}`}
 function renderWeek(){$("week").innerHTML=`<div class="actions"><button class="btn" onclick="generate()">Generate new week</button></div>${state.week.map(d=>{let t=totals(d),pct=Math.min(100,Math.round(t.kcal/state.profile.calories*100));return `<div class="day"><div class="day-head"><h3>${d.day}</h3><span class="pill">${t.kcal} kcal · ${t.p}g P</span></div><div class="progress"><i style="width:${pct}%"></i></div>${d.meals.map((id,i)=>mealCard(getR(id),d.day,i)).join("")}</div>`}).join("")}`}
 function swap(day,i){let d=state.week.find(x=>x.day===day),old=getR(d.meals[i]);let c=recipes.filter(r=>r.category===old.category&&r.id!==old.id&&!dislike(r));if(c.length)d.meals[i]=c[Math.floor(Math.random()*c.length)].id;save();renderAll()}
-function showRecipe(id){let r=getR(id),ings=r.ingredients.map(i=>{let p=findProduct(i.ingredient);return `<div class="recipe-ing"><span>${esc(i.ingredient)}</span><b>${fmt(i.quantity)} ${i.unit}</b></div>${p?`<div class="product"><div class="product-main"><div class="product-name">${esc(p.name)}</div><div class="product-meta">${esc(p.packSize)} · checked ${esc(p.checked)}</div></div><span class="price">£${p.price.toFixed(2)}</span><a class="btn link" target="_blank" href="${esc(p.url)}">ASDA</a></div>`:""}`}).join("");$("sheet").innerHTML=`<button class="close" onclick="closeModal()">×</button><h2>${r.icon} ${esc(r.name)}</h2><p class="muted">${r.kcal} kcal · ${r.protein}g protein · ${r.carbs}g carbs · ${r.fat}g fat · ${r.totalMinutes} min</p><p>${r.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</p><h3>Ingredients</h3>${ings}<h3>Method</h3><p>${esc(r.method)}</p><button class="btn" onclick="closeModal()">Done</button>`;$("modal").style.display="flex"}
+function showRecipe(id){let r=getR(id),ings=r.ingredients.map(i=>{let p=findProduct(i.ingredient,i.unit);return `<div class="recipe-ing"><span>${esc(i.ingredient)}</span><b>${fmt(i.quantity)} ${i.unit}</b></div>${p?`<div class="product"><div class="product-main"><div class="product-name">${esc(p.name)}</div><div class="product-meta">${esc(p.packSize)} · checked ${esc(p.checked)}</div></div><span class="price">£${p.price.toFixed(2)}</span><a class="btn link" target="_blank" href="${esc(p.url)}">ASDA</a></div>`:""}`}).join("");$("sheet").innerHTML=`<button class="close" onclick="closeModal()">×</button><h2>${r.icon} ${esc(r.name)}</h2><p class="muted">${r.kcal} kcal · ${r.protein}g protein · ${r.carbs}g carbs · ${r.fat}g fat · ${r.totalMinutes} min</p><p>${r.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</p><h3>Ingredients</h3>${ings}<h3>Method</h3><p>${esc(r.method)}</p><button class="btn" onclick="closeModal()">Done</button>`;$("modal").style.display="flex"}
 function closeModal(){$("modal").style.display="none"}
 function buildShop(){let map={};for(const d of state.week)for(const id of d.meals)for(const i of getR(id).ingredients){let k=i.ingredient;if(!map[k])map[k]={q:0,u:i.unit};map[k].q+=i.quantity}return map}
-function renderShop(){let m=buildShop(),rows=Object.entries(m).map(([n,x])=>{let p=findProduct(n),packs=p?Math.ceil(x.q/p.packQuantity):0,cost=p?packs*p.price:0;return `<div class="card"><div class="shop-row"><input type="checkbox"><span class="name"><b>${esc(n)}</b><br><span class="qty">Need ${fmt(x.q)} ${x.u}</span></span>${p?`<span><b>${packs} ×</b> £${cost.toFixed(2)}</span>`:"<span class='qty'>No ASDA match yet</span>"}</div>${p?`<div class="product"><div class="product-main"><div class="product-name">${esc(p.name)}</div><div class="product-meta">${esc(p.packSize)} · £${p.price.toFixed(2)} · ${p.checked}</div></div><a class="btn link" target="_blank" href="${esc(p.url)}">View ASDA</a></div>`:""}</div>`}).join("");$("shop").innerHTML=`<div class="hero"><h1>ASDA shopping list</h1><p>Quantities are normalized to grams/ml. Packs are rounded up and linked to the actual ASDA product where the catalogue has a match.</p></div>${rows}`}
+function renderShop(){let m=buildShop(),rows=Object.entries(m).map(([n,x])=>{let p=findProduct(n,x.u),packs=p?packCount(x.q,x.u,p):0,cost=p?packs*p.price:0;return `<div class="card"><div class="shop-row"><input type="checkbox"><span class="name"><b>${esc(n)}</b><br><span class="qty">Need ${fmt(x.q)} ${x.u}</span></span>${p?`<span><b>${packs} ×</b> £${cost.toFixed(2)}</span>`:"<span class='qty'>No ASDA match yet</span>"}</div>${p?`<div class="product"><div class="product-main"><div class="product-name">${esc(p.name)}</div><div class="product-meta">${esc(p.packSize)} · £${p.price.toFixed(2)} · ${p.checked}</div></div><a class="btn link" target="_blank" href="${esc(p.url)}">View ASDA</a></div>`:""}</div>`}).join("");$("shop").innerHTML=`<div class="hero"><h1>ASDA shopping list</h1><p>Quantities are normalized to grams/ml. Packs are rounded up and linked to the actual ASDA product where the catalogue has a match.</p></div>${rows}`}
 function renderRecipes(){let q=($("recipeSearch")?.value||"").toLowerCase();let cat=$("recipeCat")?.value||"All";let list=recipes.filter(r=>(cat==="All"||r.category===cat)&&(!q||(r.name+" "+r.tags.join(" ")).toLowerCase().includes(q)));$("recipeList").innerHTML=list.map(r=>`<div class="card"><div class="meal"><div class="meal-icon">${r.icon}</div><div class="meal-main"><div class="meal-name">${esc(r.name)}</div><div class="meal-meta">${r.kcal} kcal · ${r.protein}g protein · ${r.totalMinutes} min</div><div>${r.tags.slice(0,4).map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div></div><button class="btn small" onclick="showRecipe('${r.id}')">View</button></div></div>`).join("")||`<div class="empty">No recipes found.</div>`}
 function renderRecipesScreen(){$("recipes").innerHTML=`<div class="hero"><h1>Recipe library</h1><p>${recipes.length} recipes · high protein, meal prep, low calorie and cuisine collections.</p></div><div class="card"><div class="field"><label>Search</label><input id="recipeSearch" class="search" oninput="renderRecipes()" placeholder="Chicken, curry, pasta..."></div><div class="field"><label>Meal</label><select id="recipeCat" onchange="renderRecipes()"><option>All</option><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option></select></div></div><div id="recipeList"></div>`;renderRecipes()}
 function renderProfile(){let p=state.profile;$("profile").innerHTML=`<div class="section-title">Planner settings</div><div class="card"><div class="grid"><div class="field"><label>Daily calories</label><input id="cal" type="number" value="${p.calories}"></div><div class="field"><label>Protein (g)</label><input id="pro" type="number" value="${p.protein}"></div><div class="field"><label>Weekly budget (£)</label><input id="bud" type="number" value="${p.budget}"></div><div class="field"><label>Meals/day</label><input id="meals" type="number" value="${p.meals}"></div></div><div class="field"><label>Dislikes</label><input id="dis" value="${esc(p.dislikes)}" placeholder="mushrooms, olives"></div><div class="field"><label>Foods you like</label><input id="likes" value="${esc(p.likes)}"></div><button class="btn" onclick="saveProfile()">Save & regenerate</button></div><div class="card"><b>ASDA catalogue</b><p class="muted">${products.length} ASDA catalogue products currently loaded. The catalogue refresh uses ASDA's public product index and category counts.</p></div>`}
