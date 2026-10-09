@@ -14,7 +14,7 @@ The feed currently does not publish GTINs, full nutrition tables, ingredients, o
 
 The Node catalogue adapter refuses to use a seed or unhealthy snapshot. `/api/catalog/status` reports snapshot health and coverage; `/health` reports server liveness and the last loaded catalogue status.
 
-Automatic shopping matches share one validated catalogue in memory and use an ingredient name-token index. Matching yields between ingredients, and `/health` reports cached status without reading the large catalogue file. The runtime uses a 256 MiB JavaScript heap limit to leave room within Render Free's memory allowance. The phone app retries interrupted matching requests and keeps previous results only when their ingredient quantities still agree. Catalogue data is unchanged by matching.
+Automatic shopping matches share one validated catalogue in a dedicated worker and use an ingredient name-token index. Large JSON parsing and matching run outside the web server's event loop, so cold catalogue loads also leave `/health` responsive. The worker reports cached status and has a 256 MiB JavaScript heap limit. The phone app retries interrupted matching requests and keeps previous results only when their ingredient quantities still agree. Catalogue data is unchanged by matching.
 
 ## Use the app on a phone
 

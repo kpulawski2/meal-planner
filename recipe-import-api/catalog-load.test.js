@@ -81,6 +81,8 @@ test('a cold full-catalogue shopping request keeps health checks responsive and 
   const { status, data } = await recommendationsRequest;
   const elapsedMs = performance.now() - started;
   const memory = process.memoryUsage();
+  assert.ok(memory.heapUsed < 100 * 1024 * 1024,
+    'The large catalogue must live in the worker, outside the web server heap');
   t.diagnostic(`Matched ${items.length} ingredients against ${metadata.products_saved} products in ${Math.round(elapsedMs)} ms; ${healthChecks.length} health checks, maximum ${Math.round(Math.max(...healthChecks.map(row => row.latencyMs)))} ms; maximum event-loop delay ${Math.round(loopDelay.max / 1e6)} ms; heap ${Math.round(memory.heapUsed / 1024 / 1024)} MiB, RSS ${Math.round(memory.rss / 1024 / 1024)} MiB`);
   assert.ok(healthChecks.filter(row => row.overlappedRecommendation).length >= 2,
     'At least two health checks must finish before the catalogue batch finishes; the batch must yield to other requests');
