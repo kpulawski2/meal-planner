@@ -1,6 +1,6 @@
 # Meal Planner
 
-A phone-friendly meal planner with recipes, pantry tracking, shopping lists, product matching and retailer price references.
+A phone-friendly meal planner with recipes, pantry tracking, shopping lists and automatic ASDA product matching and pricing.
 
 ## ASDA catalogue
 
@@ -15,6 +15,12 @@ The feed currently does not publish GTINs, full nutrition tables, ingredients, o
 The Node catalogue adapter refuses to use a seed or unhealthy snapshot. `/api/catalog/status` reports snapshot health and coverage; `/health` reports server liveness and the last loaded catalogue status.
 
 Automatic shopping matches share one validated catalogue in a dedicated worker and use an ingredient name-token index. Large JSON parsing and matching run outside the web server's event loop, so cold catalogue loads also leave `/health` responsive. The worker reports cached status and has a 256 MiB JavaScript heap limit. The phone app retries interrupted matching requests and keeps previous results only when their ingredient quantities still agree. Catalogue data is unchanged by matching.
+
+Ingredient matching checks product types before comparing pack prices. Plain milk excludes flavoured milk, milkshakes and plant drinks; plain Skyr excludes flavoured yoghurt; light cream cheese also recognises lighter soft cheese. Prepared meals, household products and unsuitable substitutes cannot compete with the requested plain ingredient. Suitable pack combinations are compared using their catalogue prices.
+
+The shopping list fills in products, whole-pack counts, official links and the basket total automatically. The previous manual shelf-price panels and sparse product-reference lists are removed from the phone app. Existing manual price records are preserved in backups but do not affect automatic totals. The former saved retailer choice migrates once to ASDA, while meal-planning supermarket preferences stay unchanged. Aldi automatic pricing is currently unavailable and is labelled accordingly.
+
+Where a recipe uses grams for produce sold by each, or kitchen measures for weighed packs, the app can use explicitly labelled typical weights and cooking conversions. These estimates are shown beside the purchase plan; ASDA's saved pack data and shelf price remain unchanged. An ingredient that cannot be identified or quantified is excluded from a clearly labelled partial subtotal. Meal costs represent the estimated value of ingredients used, while the basket total represents whole packs to buy after pantry deductions. Unplanned recipes calculate their cost when added to the plan. The phone app rechecks prices after 30 minutes when revisited or brought back into focus.
 
 ## Use the app on a phone
 
