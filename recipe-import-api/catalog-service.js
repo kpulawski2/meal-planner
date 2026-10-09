@@ -61,7 +61,7 @@ function abortError(signal) {
   return error;
 }
 
-function callWorker(method, args, { signal } = {}) {
+function callWorker(method, args, { signal, timeoutMs = REQUEST_TIMEOUT_MS } = {}) {
   if (signal?.aborted) return Promise.reject(abortError(signal));
   if (pending.size >= MAX_PENDING_REQUESTS) return Promise.reject(new Error('Catalogue matching is busy. Please retry shortly.'));
   let target;
@@ -77,11 +77,11 @@ function callWorker(method, args, { signal } = {}) {
       settle(id, error);
     };
     const onAbort = () => cancel(abortError(signal));
-    const timer = setTimeout(() => cancel(new Error('Catalogue matching timed out. Please retry.')), REQUEST_TIMEOUT_MS);
+    const timer = setTimeout(() => cancel(new Error(method === 'optimizeMealPlan' ? 'Budget planning timed out. Your current plan was kept. Please retry.' : 'Catalogue matching timed out. Please retry.')), timeoutMs);
     pending.set(id, { resolve, reject, timer, signal, onAbort });
     signal?.addEventListener('abort', onAbort, { once: true });
     target.ref();
-    if ((method === 'catalogueStatus' || args[0] === 'Asda') && status.healthy !== true) {
+    if ((method === 'catalogueStatus' || method === 'optimizeMealPlan' || args[0] === 'Asda') && status.healthy !== true) {
       status = { status: 'loading', healthy: null, products_saved: null };
     }
     try { target.postMessage({ type: 'request', id, method, args }); }
@@ -95,6 +95,10 @@ export function searchCatalog(storeName, query, limit = 8, dimension = '') {
 
 export function recommendCatalogItems(storeName, items, { signal } = {}) {
   return callWorker('recommendCatalogItems', [storeName, items], { signal });
+}
+
+export function optimizeMealPlan(request, { signal } = {}) {
+  return callWorker('optimizeMealPlan', [request], { signal, timeoutMs: 150_000 });
 }
 
 export function fetchProductPage(storeName, url) {
