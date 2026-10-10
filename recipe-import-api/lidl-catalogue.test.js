@@ -37,6 +37,7 @@ test('expired, future, regional and member-only substitutes are excluded',()=>{
   assert.equal(catalog.rankCatalogCandidates('Milk',[{...rows[0],category:'Home > Decorations',name:'Milk Decorative Jar'}]).length,0);
   assert.equal(catalog.rankCatalogCandidates('Milk',[{...rows[0],category:'Food & Drink > Confectionery & Snacks > Chocolate & Chocolate Bars',name:'MALTESERS Milk Reindeers',price:1.45,packQuantity:59,packUnit:'g'}]).length,0);
   assert.equal(catalog.rankCatalogCandidates('Chicken breast',[{...rows[2],name:'Birchwood Lean Turkey Breast Mince 2% Fat'}]).length,0);
+  assert.equal(catalog.rankCatalogCandidates('Chicken breast',[{...rows[2],name:'Deluxe Whole Chicken'}]).length,0);
 });
 test('corrupted or mismatched generations are not loaded as a healthy catalogue',async()=>{
   await catalog.clearCatalogCache('Lidl');await writeFile(process.env.LIDL_CATALOGUE_PATH,JSON.stringify(rows.slice(1)));

@@ -286,6 +286,7 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   const meat = ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'salmon', 'cod', 'fish', 'prawn', 'tuna'].find(asked);
   if (meat && !['stock', 'sauce', 'paste', 'soup'].some(asked)) {
     if (meat !== 'fish' && !name.has(meat)) return false;
+    if (['breast','thigh','wing','drumstick','mince'].some(cut => asked(cut) && !name.has(cut))) return false;
     if (!['vegan', 'plant', 'vegetarian', 'alternative'].some(asked) && /plant[ -]*based|vegan|vegetarian|meat[ -]*free|fish[ -]*free|alternative/i.test(title + ' ' + category)) return false;
     if (!/meat|poultry|fish|seafood|prawn|chicken|turkey|beef|pork|lamb|cod|salmon|tuna/i.test(category)) return false;
     for (const word of ['breaded', 'breadcrumb', 'crumb', 'battered', 'cooked', 'marinated', 'flavour', 'flavoured', 'seasoned', 'sizzle', 'tikka', 'thai', 'peri', 'spicy', 'garlic', 'lemon', 'honey', 'sweet', 'pepper', 'teriyaki', 'chargrill', 'chargrilled', 'bbq', 'barbecue', 'crispy', 'smoked', 'sausage', 'chipotle']) if (name.has(word) && !asked(word)) return false;
