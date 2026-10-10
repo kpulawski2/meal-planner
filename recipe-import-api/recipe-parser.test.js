@@ -125,3 +125,29 @@ test('negated fat and ingredients such as butter beans do not imply unlisted coo
   assert.equal(butter.ingredients[1].name, 'butter');
   assert.equal(butter.ingredients[1].quantity, null);
 });
+test('unnumbered cooking instructions beginning Cook are retained instead of consumed as a time header', () => {
+  const recipe = recipeFromPastedText('Chicken rice bowl\nServes 2\nIngredients\n200 g chicken breast\n100 g rice\n1 tbsp olive oil\nMethod\nCook rice. Fry chicken in oil until cooked through.');
+  assert.deepEqual(recipe.steps, ['Cook rice. Fry chicken in oil until cooked through.']);
+  assert.equal(recipe.cookMinutes, null);
+  assert.equal(recipe.ingredients.length, 3);
+  assert.equal(recipe.ingredients[2].quantity, 1);
+});
+test('retained Cook steps still reveal omitted cooking oil as an unknown amount', () => {
+  const recipe = recipeFromPastedText('Chicken\nServes 2\nIngredients\n300g chicken breast\nMethod\nCook chicken in olive oil until cooked through.');
+  assert.deepEqual(recipe.steps, ['Cook chicken in olive oil until cooked through.']);
+  assert.equal(recipe.ingredients[1].name, 'olive oil');
+  assert.equal(recipe.ingredients[1].quantity, null);
+  assert.ok(recipe.warnings.some(warning => /Olive oil is mentioned/.test(warning)));
+});
+test('Prepare, timed Cook and Serve instructions stay intact while real recipe metadata is parsed', () => {
+  const prefix = 'Rice bowl\nServes 2\nPrep time: 10 minutes\nCook time: 20 minutes\nTotal time: 30 minutes\nIngredients\n100g rice\n200g carrots\nMethod\n';
+  const steps = ['Prepare the carrots.', 'Cook rice for 10 minutes.', 'Serve hot with the carrots.'];
+  for (const numbered of [false, true]) {
+    const recipe = recipeFromPastedText(prefix + steps.map((step, index) => numbered ? `${index + 1}. ${step}` : step).join('\n'));
+    assert.deepEqual(recipe.steps, steps);
+    assert.equal(recipe.servings, 2);
+    assert.equal(recipe.prepMinutes, 10);
+    assert.equal(recipe.cookMinutes, 20);
+    assert.equal(recipe.totalMinutes, 30);
+  }
+});

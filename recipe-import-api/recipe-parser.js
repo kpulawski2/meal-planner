@@ -210,10 +210,27 @@ export function recipeFromPastedText(raw, { title = '' } = {}) {
     if (/^(?:ingredients?|you(?:'ll| will) need)\s*:?\s*$/i.test(line)) { mode = 'ingredients'; sawIngredients = true; continue; }
     if (/^(?:method|instructions?|directions?|steps?|preparation)\s*:?\s*$/i.test(line)) { mode = 'steps'; continue; }
     if (/^(?:nutrition|nutritional information)\b/i.test(line)) { mode = 'nutrition'; }
-    if ((match = line.match(/^(?:serves?|servings?|makes?|yield)\s*:?\s*(.+)$/i))) { servings = sourceYield(match[1]); continue; }
-    if ((match = line.match(/^(?:prep(?:aration)?(?: time)?)\s*:?\s*(.+)$/i))) { prepMinutes = parseDuration(match[1]); continue; }
-    if ((match = line.match(/^(?:cook(?:ing)?(?: time)?)\s*:?\s*(.+)$/i))) { cookMinutes = parseDuration(match[1]); continue; }
-    if ((match = line.match(/^(?:total time)\s*:?\s*(.+)$/i))) { totalMinutes = parseDuration(match[1]); continue; }
+    // Metadata normally precedes the method. Once instructions begin, "Cook",
+    // "Prepare" and "Serve" are cooking verbs and must stay in the steps.
+    if (mode !== 'steps') {
+      if ((match = line.match(/^(?:serves?|servings?|makes?|yield)\b\s*:?\s*(.+)$/i))) {
+        const yieldValue = sourceYield(match[1]);
+        if (yieldValue !== null) { servings = yieldValue; continue; }
+      }
+      const durationStarts = /^(?:P(?=\d|T)|\d+(?:\.\d+)?\s*(?:hours?|hrs?|h|minutes?|mins?|m)\b)/i;
+      if ((match = line.match(/^(?:prep(?:aration)?(?: time)?)\b\s*:?\s*(.+)$/i)) && durationStarts.test(match[1])) {
+        const duration = parseDuration(match[1]);
+        if (duration !== null) { prepMinutes = duration; continue; }
+      }
+      if ((match = line.match(/^(?:cook(?:ing)?(?: time)?)\b\s*:?\s*(.+)$/i)) && durationStarts.test(match[1])) {
+        const duration = parseDuration(match[1]);
+        if (duration !== null) { cookMinutes = duration; continue; }
+      }
+      if ((match = line.match(/^(?:total time)\b\s*:?\s*(.+)$/i)) && durationStarts.test(match[1])) {
+        const duration = parseDuration(match[1]);
+        if (duration !== null) { totalMinutes = duration; continue; }
+      }
+    }
     if ((match = line.match(/^(?:category|meal)\s*:\s*(breakfast|lunch|dinner|snack)\b/i))) { category = match[1][0].toUpperCase() + match[1].slice(1).toLowerCase(); continue; }
     if (mode === 'nutrition' || /\b(?:kcal|calories|protein)\b/i.test(line) && /^\s*(?:nutrition|per serving|calories|kcal|protein|\d+\s*(?:kcal|calories))\b/i.test(line)) {
       if (perServingNutrition && !unsafeNutritionBasis) {
