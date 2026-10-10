@@ -121,6 +121,16 @@ await writeFile(process.env.ASDA_CATALOGUE_META_PATH, JSON.stringify({
 
 const { searchCatalog, recommendCatalogItems, calculatePackPurchase, rankCatalogCandidates, clearCatalogCache, fetchProductPage, catalogueStatus } = await import(`./catalog-adapter.js?catalogue-test=${Date.now()}`);
 
+test('plain and sweet potatoes remain separate ingredients even when the wrong type is cheaper', () => {
+  const regular = { name: 'ASDA White Potatoes 2kg', category: 'Fresh Vegetables > Potatoes',
+    url: 'https://www.asda.com/groceries/product/potatoes/991', packQuantity: 2000, packUnit: 'g', price: 1.2 };
+  const sweet = { ...regular, name: 'ASDA Sweet Potatoes 500g', url: 'https://www.asda.com/groceries/product/sweet-potatoes/992', packQuantity: 500, price: .2 };
+  assert.equal(rankCatalogCandidates('Potato', [sweet]).length, 0);
+  assert.equal(rankCatalogCandidates('Potato', [regular]).length, 1);
+  assert.equal(rankCatalogCandidates('Sweet potato', [regular]).length, 0);
+  assert.equal(rankCatalogCandidates('Sweet potato', [sweet]).length, 1);
+});
+
 test('ASDA matching uses the validated full catalogue and returns saved product details', async () => {
   const result = await searchCatalog('Asda', 'chicken breast', 8);
   const oneKgChicken = result.results.find(row => row.productName === 'ASDA British Chicken Breast Fillets 1kg');

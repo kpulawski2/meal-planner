@@ -284,6 +284,9 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   }
 
   const produce = preparedWords.some(word => PRODUCE_TERMS.has(word)) || (asked('pepper') && (asked('bell') || asked('sweet') || frozenRequested));
+  // Regular and sweet potatoes have different flavour, texture and nutrition.
+  // Their shared name token cannot make either a substitute for the other.
+  if (asked('potato') && asked('sweet') !== name.has('sweet')) return false;
   const preparedProduce = ['juice', 'sauce', 'paste', 'powder', 'chopped', 'tinned', 'dried', 'canned', 'stock'].some(word => fullWords.has(word));
   if (produce && !preparedProduce) {
     if (!(frozenRequested ? /frozen.*(?:vegetable|fruit|pea|bean)/i.test(category) : /fresh (?:fruit|salad|vegetable)|vegetables & flowers/i.test(category))) return false;
