@@ -52,3 +52,14 @@ test('a browser recipe with an unknown cooking time remains eligible for checkin
   const value = normalizePlannerRequest(request({ recipes: [{ ...recipe, cookTime: null }] }));
   assert.equal(value.recipes[0].cookTime, null);
 });
+
+test('optional appliances and fixed batches retain required costing metadata', () => {
+  const value = normalizePlannerRequest(request({ profile: { equipment: ['Ninja CREAMi', 'unknown'] }, recipes: [{ ...recipe, equipment: ['Ninja CREAMi'], fixedBatch: true, freezeMinutes: 1440, tags: ['creami', 'batch'] }] }));
+  assert.deepEqual(value.profile.equipment, ['Ninja CREAMi']);
+  assert.deepEqual(value.recipes[0].equipment, ['Ninja CREAMi']);
+  assert.equal(value.recipes[0].fixedBatch, true);
+  assert.equal(value.recipes[0].freezeMinutes, 1440);
+  assert.deepEqual(value.recipes[0].tags, ['creami', 'batch']);
+  assert.deepEqual(normalizePlannerRequest(request()).profile.equipment, []);
+  assert.throws(() => normalizePlannerRequest(request({ recipes: [{ ...recipe, freezeMinutes: 10081 }] })), /freeze time/);
+});

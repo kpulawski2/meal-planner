@@ -150,6 +150,28 @@ test('optimizer prices whole packs from catalogue and checks every day against u
   assert.ok(result.variety.dominantFamilyCount <= 7);
 });
 
+test('weekly search shares a fixed prepared batch across days and deducts pantry once', async () => {
+  const tub = { ...recipe('tub', 'Snack', 'Milk', 1000, 'ml'), equipment: ['Ninja CREAMi'], fixedBatch: true, freezeMinutes: 1440 };
+  const recipes = [...fixtureRecipes, tub];
+  const week = [
+    { day: 'Monday', meals: ['breakfast', 'lunch', 'dinner', 'tub'] },
+    { day: 'Tuesday', meals: ['breakfast-2', 'lentil-lunch', 'dinner-2', 'snack'] },
+    { day: 'Wednesday', meals: ['breakfast', 'bean-lunch', 'dinner-3', 'tub'] },
+  ];
+  const locked = Object.fromEntries(week.flatMap(day => day.meals.map((_, i) => [day.day + '::' + i, true])));
+  const mealServings = Object.fromEntries(Object.keys(locked).map(key => [key, 1]));
+  const request = { profile: { ...profile, days: 3, budget: 100, equipment: ['Ninja CREAMi'] }, recipes, week, locked, mealServings, pantry: [{ name: 'Milk', qty: 500, unit: 'ml' }] };
+  const result = await optimize(request);
+  assert.equal(result.status, 'feasible', JSON.stringify(result.warnings));
+  assert.deepEqual(result.week, week);
+  assert.equal(result.basket.items.find(item => item.key === 'milk::volume').quantity, 1600);
+  assert.equal(result.basket.recommendations.find(item => item.key === 'milk::volume').plan.totalCostGBP, 2);
+  assert.equal(result.diagnostics.searchCostGBP, result.basket.totalCostGBP, 'Beam search and final full-pack basket must use the same tub rounding');
+  assert.ok(result.nutrition.days.every(day => day.kcal === 2000 && day.p === 200));
+  const disabled = await optimize({ ...request, profile: { ...request.profile, equipment: [] } });
+  assert.notEqual(disabled.status, 'feasible', 'A locked appliance recipe cannot bypass equipment opt-in');
+});
+
 test('more variety has higher explicit minimums and cannot silently relax them to fit a budget', async () => {
   const result = await optimize({ profile: { ...profile, varietyMode: 'More variety' } });
   assertCompleteBudget(result);
