@@ -11,7 +11,9 @@ function number(value, fallback, min, max, label, integer = false) {
 export function normalizePlannerRequest(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) fail('Send planner settings and a recipe library.');
   const input = body.profile || {};
+  if (input.supermarket != null && !['Asda','Lidl'].includes(input.supermarket)) fail('Choose Asda or Lidl as your supermarket.');
   const profile = {
+    supermarket: input.supermarket || 'Asda',
     calories: number(input.calories, 2000, 400, 10000, 'Daily calories'),
     protein: number(input.protein, 200, 0, 1000, 'Daily protein'),
     budget: number(input.budget, 45, 0, 10000, 'Weekly household budget'),
@@ -46,6 +48,7 @@ export function normalizePlannerRequest(body) {
       cookTime: row.cookTime === undefined || row.cookTime === null || row.cookTime === '' ? null : number(row.cookTime, null, 0, 1440, 'Recipe cooking time'),
       equipment: Array.isArray(row.equipment) ? [...new Set(row.equipment.map(value => text(value, 60)).filter(Boolean))].slice(0, 4) : [],
       fixedBatch: row.fixedBatch === true, freezeMinutes: row.freezeMinutes == null ? null : number(row.freezeMinutes, null, 0, 10080, 'Recipe freeze time'),
+      dishFamily: text(row.dishFamily, 80),
       tags: Array.isArray(row.tags) ? row.tags.slice(0, 20).map(value => text(value, 60)) : [] };
   });
   if (body.pantry !== undefined && (!Array.isArray(body.pantry) || body.pantry.length > 300)) fail('Inventory must contain at most 300 entries.');

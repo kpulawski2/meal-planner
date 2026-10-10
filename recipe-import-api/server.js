@@ -792,13 +792,13 @@ app.get('/api/connection-check', authenticated, (_req, res) => res.json({ ok: tr
 // Automatic supermarket lookups are disabled in the direct-page catalogue build. Prices are stored as verified page snapshots or manually recorded by the user.
 
 app.get('/api/catalog/stores', catalogRateLimit, (_req, res) => res.json({ ok: true, stores: catalogStoreInfo(), mode: 'official-retailer-catalogue-snapshots' }));
-app.get('/api/catalog/status', async (_req, res) => res.json({ ok: true, catalogue: await catalogueStatus() }));
+app.get('/api/catalog/status', async (req, res) => { const store=cleanString(req.query.store || 'Asda',40); if(!['Asda','Lidl'].includes(store))return res.status(400).json({error:'Store must be Asda or Lidl.'}); res.json({ok:true,catalogue:await catalogueStatus(store)}); });
 app.get('/api/catalog/search', catalogRateLimit, async (req, res) => {
   try {
     const store = cleanString(req.query.store || '', 40);
     const query = cleanString(req.query.q || '', 120);
     const dimension = cleanString(req.query.dim || '', 20);
-    if (!['Asda', 'Aldi'].includes(store)) return res.status(400).json({ error: 'Store must be Asda or Aldi.' });
+    if (!['Asda', 'Lidl'].includes(store)) return res.status(400).json({ error: 'Store must be Asda or Lidl.' });
     if (!query || query.length < 2) return res.status(400).json({ error: 'Enter an ingredient or product name.' });
     const result = await searchCatalog(store, query, Number(req.query.limit) || 8, dimension);
     res.json({ ok: true, ...result });
@@ -834,7 +834,7 @@ app.post('/api/catalog/recommend', catalogRateLimit, async (req, res) => {
   try {
     const store = cleanString(req.body?.store || '', 40);
     const rawItems = req.body?.items;
-    if (store !== 'Asda') return res.status(400).json({ error: 'Automatic pack recommendations are currently available for Asda.' });
+    if (!['Asda','Lidl'].includes(store)) return res.status(400).json({error:'Store must be Asda or Lidl.'});
     if (!Array.isArray(rawItems) || rawItems.length < 1 || rawItems.length > 200) {
       return res.status(400).json({ error: 'Send between 1 and 200 shopping-list ingredients.' });
     }
@@ -846,14 +846,14 @@ app.post('/api/catalog/recommend', catalogRateLimit, async (req, res) => {
     }));
     if (items.some(item => !item.key || !item.name)) return res.status(400).json({ error: 'Each ingredient needs a key and name.' });
     if (items.some(item => !Number.isFinite(item.quantity) || item.quantity < 0 || item.quantity > 10_000_000)) return res.status(400).json({ error: 'Ingredient quantities must be finite, non-negative and no greater than 10 million base units.' });
-    if (activeCatalogRecommendations >= 2) return res.set('Retry-After', '2').status(503).json({ error: 'ASDA matching is busy. Please retry shortly.' });
+    if (activeCatalogRecommendations >= 2) return res.set('Retry-After', '2').status(503).json({ error: 'Retailer matching is busy. Please retry shortly.' });
     activeCatalogRecommendations += 1;
     claimedSlot = true;
     res.once('close', disconnected);
     const result = await recommendCatalogItems(store, items, { signal: controller.signal });
     if (!res.destroyed) res.json({ ok: true, ...result });
   } catch (e) {
-    if (!res.destroyed && !res.headersSent) res.status(502).json({ error: `Could not build automatic ASDA pack recommendations: ${cleanString(e?.message || 'unknown error', 300)}` });
+    if (!res.destroyed && !res.headersSent) res.status(502).json({ error: `Could not build automatic retailer pack recommendations: ${cleanString(e?.message || 'unknown error', 300)}` });
   } finally {
     if (claimedSlot) activeCatalogRecommendations -= 1;
     res.off('close', disconnected);
@@ -863,7 +863,7 @@ app.get('/api/catalog/product', catalogRateLimit, async (req, res) => {
   try {
     const store = cleanString(req.query.store || '', 40);
     const url = cleanString(req.query.url || '', 800);
-    if (!['Asda', 'Aldi'].includes(store)) return res.status(400).json({ error: 'Store must be Asda or Aldi.' });
+    if (!['Asda', 'Lidl'].includes(store)) return res.status(400).json({ error: 'Store must be Asda or Lidl.' });
     if (!url) return res.status(400).json({ error: 'Product URL is required.' });
     const product = await fetchProductPage(store, url);
     res.json({ ok: true, product });
@@ -873,7 +873,7 @@ app.get('/api/catalog/product', catalogRateLimit, async (req, res) => {
 });
 app.post('/api/catalog/refresh', catalogRateLimit, async (req, res) => {
   const store = cleanString(req.body?.store || '', 40);
-  if (store && !['Asda','Aldi'].includes(store)) return res.status(400).json({ error: 'Store must be Asda or Aldi.' });
+  if (store && !['Asda','Lidl'].includes(store)) return res.status(400).json({ error: 'Store must be Asda or Lidl.' });
   try {
     await clearCatalogCache(store || null);
     res.json({ ok: true, cleared: store || 'all' });
@@ -882,10 +882,10 @@ app.post('/api/catalog/refresh', catalogRateLimit, async (req, res) => {
   }
 });
 
-app.post('/api/prices/lookup', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct ASDA/Aldi product-page references in the Shopping List.' }));
+app.post('/api/prices/lookup', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct ASDA/Lidl product-page references in the Shopping List.' }));
 app.get('/api/prices/lookup/:jobId', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct product-page reference catalogue.' }));
 
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner', aiProvider: 'Groq API (recipe/video features only)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors for AI import', priceSearchProvider: 'ASDA official full-catalogue snapshot; no paid search API', braveSearchConfigured: false, priceSearchRetryPolicy: 'Not used by the manual price-reference UI', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, automaticCatalogMatchingSupported: true, release: process.env.RENDER_GIT_COMMIT || 'local', uptimeSeconds: Math.floor(process.uptime()), livePriceSearchConfigured: false, livePriceStores: ['Asda', 'Aldi'], priceSearchModel: null, priceDataSource: 'Complete ASDA official product-index snapshot with regional prices and direct product links; Aldi remains a sitemap URL index; no paid search API', directProductPageCount: 93, priceSnapshotCount: 83, manualPriceReferenceMode: true, officialCatalogMode: true, officialCatalogSources: catalogStoreInfo(), asdaCatalogue: cachedCatalogueStatus(), priceReferenceCatalog: '/price-reference-catalog.json', priceReferenceCsv: '/price-reference-catalog.csv', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner', aiProvider: 'Groq API (recipe/video features only)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors for AI import', priceSearchProvider: 'Official ASDA and Lidl website snapshots; no paid search API', braveSearchConfigured: false, priceSearchRetryPolicy: 'Not used by the manual price-reference UI', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, automaticCatalogMatchingSupported: true, release: process.env.RENDER_GIT_COMMIT || 'local', uptimeSeconds: Math.floor(process.uptime()), livePriceSearchConfigured: false, livePriceStores: ['Asda', 'Lidl'], priceSearchModel: null, priceDataSource: 'ASDA official product index and every Lidl GB sitemap product page. Lidl unpublished prices remain unavailable.', manualPriceReferenceMode: false, officialCatalogMode: true, officialCatalogSources: catalogStoreInfo(), asdaCatalogue: cachedCatalogueStatus(), lidlCatalogue: cachedCatalogueStatus('Lidl'), priceReferenceCatalog: '/price-reference-catalog.json', priceReferenceCsv: '/price-reference-catalog.csv', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
 
 app.post('/api/import-recipe', importAccess, async (req, res) => {
   const url = cleanString(req.body?.url, 2000);

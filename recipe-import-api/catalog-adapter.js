@@ -2,6 +2,7 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setImmediate as yieldToServer } from 'node:timers/promises';
+import { createHash } from 'node:crypto';
 
 const CATALOG_STORES = {
   Asda: {
@@ -9,10 +10,10 @@ const CATALOG_STORES = {
     catalogue: 'https://www.asda.com/groceries/search',
     allowedProduct: (url) => /^https:\/\/www\.asda\.com\/groceries\/product\//i.test(url),
   },
-  Aldi: {
-    name: 'Aldi',
-    sitemap: 'https://www.aldi.co.uk/sitemap_products.xml',
-    allowedProduct: (url) => /^https:\/\/www\.aldi\.co\.uk\/product\//i.test(url),
+  Lidl: {
+    name: 'Lidl',
+    sitemap: 'https://www.lidl.co.uk/static/sitemap.xml',
+    allowedProduct: (url) => /^https:\/\/www\.lidl\.co\.uk\/p\/[^?#]+\/p\d+$/i.test(url),
   },
 };
 
@@ -23,22 +24,28 @@ const SPICE_TERMS = new Set(['basil', 'chilli', 'chili', 'cinnamon', 'clove', 'c
 const catalogCache = new Map();
 const catalogLoads = new Map();
 let catalogGeneration = 0;
-let catalogueStatusCache = null;
+const catalogueStatusCache = new Map();
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ASDA_CATALOGUE_PATH = process.env.ASDA_CATALOGUE_PATH || path.resolve(MODULE_DIR, '../data/products.json');
 const ASDA_METADATA_PATH = process.env.ASDA_CATALOGUE_META_PATH || path.resolve(MODULE_DIR, '../data/catalogue-meta.json');
+const LIDL_CATALOGUE_PATH = process.env.LIDL_CATALOGUE_PATH || path.resolve(MODULE_DIR, '../data/lidl-products.json');
+const LIDL_METADATA_PATH = process.env.LIDL_CATALOGUE_META_PATH || path.resolve(MODULE_DIR, '../data/lidl-catalogue-meta.json');
+const snapshotPaths = store => store === 'Lidl' ? [LIDL_CATALOGUE_PATH, LIDL_METADATA_PATH] : [ASDA_CATALOGUE_PATH, ASDA_METADATA_PATH];
 
-async function snapshotSignature() {
-  const [products, metadata] = await Promise.all([stat(ASDA_CATALOGUE_PATH), stat(ASDA_METADATA_PATH)]);
+async function snapshotSignature(storeName = 'Asda') {
+  const [products, metadata] = await Promise.all(snapshotPaths(storeName).map(file => stat(file)));
   return `${products.mtimeMs}:${products.size}:${metadata.mtimeMs}:${metadata.size}`;
 }
 
-async function readAsdaSnapshot() {
-  const signature = await snapshotSignature();
-  const metadata = JSON.parse(await readFile(ASDA_METADATA_PATH, 'utf8'));
+async function readSnapshot(storeName) {
+  const signature = await snapshotSignature(storeName);
+  const [productsPath, metadataPath] = snapshotPaths(storeName);
+  const metadata = JSON.parse(await readFile(metadataPath, 'utf8'));
   // Keep the large source string out of the index-building scope so it can be collected.
-  const products = JSON.parse(await readFile(ASDA_CATALOGUE_PATH, 'utf8'));
-  if (signature !== await snapshotSignature()) throw new Error('The ASDA snapshot changed while loading. Please retry.');
+  const raw = await readFile(productsPath, 'utf8');
+  if (storeName === 'Lidl' && (!metadata.products_file_sha256 || createHash('sha256').update(raw.replace(/\r\n/g, '\n')).digest('hex') !== metadata.products_file_sha256)) throw new Error('Lidl catalogue files do not belong to the same validated refresh.');
+  const products = JSON.parse(raw);
+  if (signature !== await snapshotSignature(storeName)) throw new Error(`The ${storeName} snapshot changed while loading. Please retry.`);
   return { products, metadata, signature };
 }
 
@@ -89,15 +96,15 @@ async function buildUrlIndex(storeName) {
   const config = CATALOG_STORES[storeName];
   if (!config) throw new Error(`Unsupported catalog store: ${storeName}`);
 
-  if (storeName === 'Asda') {
+  if (Object.hasOwn(CATALOG_STORES, storeName)) {
     let products;
     let metadata;
     let signature;
     try {
-      ({ products, metadata, signature } = await readAsdaSnapshot());
+      ({ products, metadata, signature } = await readSnapshot(storeName));
     } catch (error) {
       if (error?.code === 'ENOENT' || error instanceof SyntaxError) {
-        throw new Error('No complete ASDA catalogue snapshot is available yet.');
+        throw new Error(`No complete ${storeName==='Asda'?'ASDA':storeName} catalogue snapshot is available yet.`);
       }
       throw error;
     }
@@ -115,7 +122,7 @@ async function buildUrlIndex(storeName) {
           products,
           categoryCount: Number(metadata.category_count) || 0,
           snapshotStatus: 'complete',
-          source: 'validated ASDA catalogue snapshot',
+          source: `validated ${storeName==='Asda'?'ASDA':storeName} catalogue snapshot`,
           loadedAt: Date.now(),
           signature,
           metadata,
@@ -126,32 +133,9 @@ async function buildUrlIndex(storeName) {
       }
     }
 
-    throw new Error('The ASDA catalogue snapshot is incomplete; it was not used for product matching.');
+    throw new Error(`The ${storeName} catalogue snapshot is incomplete; it was not used for product matching.`);
   }
 
-  const seen = new Set();
-  const visitedSitemaps = new Set();
-  const queue = [config.sitemap];
-  let sitemapCount = 0;
-
-  while (queue.length) {
-    const sitemapUrl = queue.shift();
-    if (visitedSitemaps.has(sitemapUrl)) continue;
-    visitedSitemaps.add(sitemapUrl);
-    sitemapCount += 1;
-    const xml = await fetchText(sitemapUrl);
-    for (const loc of extractLocs(xml)) {
-      if (loc.endsWith('.xml') || /sitemap/i.test(loc)) {
-        if (!visitedSitemaps.has(loc) && !queue.includes(loc)) queue.push(loc);
-      } else if (config.allowedProduct(loc)) {
-        seen.add(loc);
-      }
-    }
-  }
-
-  const urls = [...seen];
-  if (!urls.length) throw new Error(`No ${storeName} product URLs were found in the retailer sitemap.`);
-  return { createdAt: Date.now(), loadedAt: Date.now(), urls, sitemapCount };
 }
 
 async function getIndex(storeName) {
@@ -160,14 +144,14 @@ async function getIndex(storeName) {
   if (catalogLoads.has(storeName)) return catalogLoads.get(storeName);
   const generation = catalogGeneration;
   const loading = (async () => {
-    if (storeName === 'Asda' && cached && cached.signature === await snapshotSignature()) {
+    if (cached && cached.signature === await snapshotSignature(storeName)) {
       cached.loadedAt = Date.now();
       return cached;
     }
     const index = await buildUrlIndex(storeName);
     if (generation === catalogGeneration) {
       catalogCache.set(storeName, index);
-      if (storeName === 'Asda') catalogueStatusCache = { ...index.metadata, healthy: true, products_saved: index.products.length };
+      catalogueStatusCache.set(storeName, { ...index.metadata, store: storeName, healthy: true, products_saved: index.products.length });
     }
     return index;
   })();
@@ -237,7 +221,10 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   const fullWords = new Set(productTokens(query));
   const name = new Set(productTokens(product?.name));
   const title = String(product?.name || '');
-  const category = [product?.category, ...(product?.categoryPath || [])].filter(Boolean).join(' ');
+  if (/lighter[ -]+than[ -]+light/i.test(query) && !/lighter[ -]+than[ -]+light/i.test(title)) return false;
+  const rawCategory = [product?.category, ...(product?.categoryPath || [])].filter(Boolean).join(' ');
+  if (product?.store === 'Lidl' && !/^Food & Drink(?:\s|>|$)/i.test(rawCategory)) return false;
+  const category = product?.store === 'Lidl' ? rawCategory.replace(/fruit & veg/gi, 'Fresh Fruit & Fresh Vegetables').replace(/oils & vinegar/gi, 'Cooking oil & vinegar') : rawCategory;
   const asked = word => words.has(word);
   const unrequested = set => [...set].some(word => name.has(word) && !asked(word));
   // A token hit in candles, pet food or cosmetics is never an ingredient match.
@@ -249,6 +236,7 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
 
   if (asked('milk')) {
     if (!name.has('milk')) return false;
+    if (/confection|chocolate|\bsweets?\b|biscuits?|bakery|desserts?|ice cream|ice lollies|cereals?/i.test(category)) return false;
     const plantRequested = [...PLANT_DAIRY_WORDS].some(asked);
     if (!plantRequested && (unrequested(PLANT_DAIRY_WORDS) || /dairy free|oat & nut/i.test(category))) return false;
     if (!asked('lactosefree') && (name.has('lactosefree') || /lactose free milk/i.test(category))) return false;
@@ -297,6 +285,8 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
 
   const meat = ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'salmon', 'cod', 'fish', 'prawn', 'tuna'].find(asked);
   if (meat && !['stock', 'sauce', 'paste', 'soup'].some(asked)) {
+    if (meat !== 'fish' && !name.has(meat)) return false;
+    if (['breast','thigh','wing','drumstick','mince'].some(cut => asked(cut) && !name.has(cut))) return false;
     if (!['vegan', 'plant', 'vegetarian', 'alternative'].some(asked) && /plant[ -]*based|vegan|vegetarian|meat[ -]*free|fish[ -]*free|alternative/i.test(title + ' ' + category)) return false;
     if (!/meat|poultry|fish|seafood|prawn|chicken|turkey|beef|pork|lamb|cod|salmon|tuna/i.test(category)) return false;
     for (const word of ['breaded', 'breadcrumb', 'crumb', 'battered', 'cooked', 'marinated', 'flavour', 'flavoured', 'seasoned', 'sizzle', 'tikka', 'thai', 'peri', 'spicy', 'garlic', 'lemon', 'honey', 'sweet', 'pepper', 'teriyaki', 'chargrill', 'chargrilled', 'bbq', 'barbecue', 'crispy', 'smoked', 'sausage', 'chipotle']) if (name.has(word) && !asked(word)) return false;
@@ -421,6 +411,7 @@ function scoreProduct(query, product, dimension = '', preparedQuery = null) {
   if (!nameHits) return 0;
 
   let score = 0;
+  if (product.store === 'Lidl' && product.regionRestricted) score -= 6;
   for (const token of queryTokens) {
     if (name.has(token)) score += token.length >= 5 ? 4 : 3;
     else if (brand.has(token)) score += 0.5;
@@ -525,7 +516,8 @@ function purchasePackMeta(product, wantedDimension) {
   let meta = packUnitMeta(product);
   if (!meta) return null;
   const words = new Set(productTokens(product?.name));
-  const category = [product?.category, ...(product?.categoryPath || [])].filter(Boolean).join(' ');
+  const rawCategory = [product?.category, ...(product?.categoryPath || [])].filter(Boolean).join(' ');
+  const category = product?.store === 'Lidl' ? rawCategory.replace(/fruit & veg/gi, 'Fresh Fruit & Fresh Vegetables') : rawCategory;
   const title = String(product?.name || '');
   // Tin net weight includes water/brine that is not eaten. ASDA's displayed
   // per-kg price for these drained foods uses the edible weight. Infer it only
@@ -596,7 +588,7 @@ function productSummary(product, score) {
     packSize: product.packSize || null,
     packQuantity: product.packQuantity ?? inferredPack?.quantity ?? null,
     packUnit: product.packUnit || inferredPack?.unit || null,
-    priceGBP: product.price == null || !Number.isFinite(Number(product.price)) ? null : Number(product.price),
+    priceGBP: productPriceUsable(product) ? Number(product.price) : null,
     priceRegion: product.priceRegion || null,
     pricesByRegion: product.pricesByRegion || {},
     category: product.category || null,
@@ -604,7 +596,23 @@ function productSummary(product, score) {
     available: product.available ?? null,
     image: product.image || null,
     checkedAt: product.checkedAt || product.checked || null,
+    priceMissingReason: product.priceMissingReason || null,
+    validFrom: product.validFrom || null,
+    validThrough: product.validThrough || null,
   };
+}
+
+export function productPriceUsable(product, now = new Date()) {
+  if (product?.price == null || !Number.isFinite(Number(product.price)) || Number(product.price) <= 0) return false;
+  const day = now.toISOString().slice(0, 10);
+  const start = product.validFrom || product.offer?.validFrom;
+  const end = product.validThrough || product.offer?.validThrough;
+  if (start && (!Number.isFinite(Date.parse(start)) || (String(start).length === 10 ? String(start)>day : Date.parse(start)>now.getTime()))) return false;
+  if (end && (!Number.isFinite(Date.parse(end)) || (String(end).length === 10 ? String(end)<day : Date.parse(end)<now.getTime()))) return false;
+  // Regional Lidl offers are not universal GB prices. They stay discoverable,
+  // but do not enter a household budget without a selected/verified branch.
+  if (product?.store === 'Lidl' && product.regionRestricted === true) return false;
+  return true;
 }
 
 export function rankCatalogCandidates(query, products, dimension = '', limit = 36) {
@@ -660,7 +668,7 @@ export function calculatePackPurchase(candidates, requestedQuantity, dimension) 
     const product = candidate.product || candidate;
     const meta = purchasePackMeta(product, wantedDimension);
     const price = Number(product.price);
-    if (!meta || !Number.isFinite(meta.capacity) || meta.capacity <= 0 || meta.dimension !== wantedDimension || !Number.isFinite(price) || Math.round(price * 100) < 1 || product.available === false || /out[ _-]*of[ _-]*stock|sold[ _-]*out|unavailable|discontinued|not[ _-]*available/i.test(String(product.availability || ''))) return null;
+    if (!meta || !Number.isFinite(meta.capacity) || meta.capacity <= 0 || meta.dimension !== wantedDimension || !productPriceUsable(product) || Math.round(price * 100) < 1 || product.available === false || /out[ _-]*of[ _-]*stock|sold[ _-]*out|unavailable|discontinued|not[ _-]*available/i.test(String(product.availability || ''))) return null;
     return { product, score: Number(candidate.score) || 0, meta, priceCents: Math.round(price * 100) };
   }).filter(Boolean).sort((a, b) => b.score - a.score || a.priceCents - b.priceCents);
   if (!offers.length) return null;
@@ -785,9 +793,9 @@ function makePurchasePlan(counts, offers, requested) {
 }
 
 export async function recommendCatalogItems(storeName, items, { signal } = {}) {
-  if (storeName !== 'Asda') throw new Error('Automatic pack recommendations currently require the complete ASDA catalogue.');
+  if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new Error('Choose Asda or Lidl for automatic recommendations.');
   const index = await getIndex(storeName);
-  if (index.snapshotStatus !== 'complete' || !Array.isArray(index.products)) throw new Error('A complete ASDA catalogue snapshot is required for automatic recommendations.');
+  if (index.snapshotStatus !== 'complete' || !Array.isArray(index.products)) throw new Error(`A complete ${storeName} website catalogue snapshot is required for automatic recommendations.`);
   const rows = Array.isArray(items) ? items.slice(0, 200) : [];
   const recommendations = [];
   for (const item of rows) {
@@ -821,15 +829,17 @@ export async function recommendCatalogItems(storeName, items, { signal } = {}) {
     store: storeName,
     indexSize: index.urls.length,
     refreshedAt: new Date(index.createdAt).toISOString(),
+    coverageScope: index.metadata.coverage_scope || 'official_product_index',
+    priceCoverage: index.metadata.price_coverage ?? null,
     recommendations,
   };
 }
 
 // Reuse the same safety filters and quantity assumptions when evaluating many
 // meal plans. The worker builds compact price tables without reloading products.
-export async function catalogPurchaseOffers(items, { signal } = {}) {
-  const index = await getIndex('Asda');
-  if (index.snapshotStatus !== 'complete') throw new Error('A complete ASDA catalogue is required to calculate a meal budget.');
+export async function catalogPurchaseOffers(items, { signal, store = 'Asda' } = {}) {
+  const index = await getIndex(store);
+  if (index.snapshotStatus !== 'complete') throw new Error(`A complete ${store} website catalogue is required to calculate a meal budget.`);
   const rows = [];
   for (const item of items) {
     signal?.throwIfAborted();
@@ -838,12 +848,12 @@ export async function catalogPurchaseOffers(items, { signal } = {}) {
     const high = best && best.score >= 9 && ingredientWords(query).every(token => productTokens(best.product.name).includes(token));
     const offers = high ? candidates.map(candidate => {
       const meta = purchasePackMeta(candidate.product, dimension), cents = Math.round(Number(candidate.product.price) * 100);
-      return meta && meta.capacity > 0 && Number.isFinite(cents) && cents >= 1 ? { capacity: meta.capacity, cents } : null;
+      return meta && meta.capacity > 0 && productPriceUsable(candidate.product) && Number.isFinite(cents) && cents >= 1 ? { capacity: meta.capacity, cents } : null;
     }).filter(Boolean) : [];
     rows.push({ ...item, offers, candidates: high ? candidates : [], confidence: high ? 'high' : candidates.length ? 'review' : 'none' });
     await yieldToServer();
   }
-  return { rows, indexSize: index.urls.length, refreshedAt: new Date(index.createdAt).toISOString() };
+  return { store, rows, indexSize: index.urls.length, refreshedAt: new Date(index.createdAt).toISOString(), priceCoverage: index.metadata.price_coverage ?? null };
 }
 
 export async function searchCatalog(storeName, query, limit = 8, dimension = '') {
@@ -925,7 +935,7 @@ export async function fetchProductPage(storeName, url) {
       store: storeName,
       url: saved.url,
       productName: saved.name,
-      priceGBP: saved.price == null || !Number.isFinite(Number(saved.price)) ? null : Number(saved.price),
+      priceGBP: productPriceUsable(saved) ? Number(saved.price) : null,
       size: saved.packQuantity ?? null,
       unit: saved.packUnit || null,
       packSize: saved.packSize || null,
@@ -946,41 +956,21 @@ export async function fetchProductPage(storeName, url) {
       pricePerUnitLabel: saved.pricePerUnitLabel || null,
       offer: saved.offer || null,
       checkedAt: saved.checkedAt || saved.checked || null,
-      source: 'validated ASDA catalogue snapshot',
-      verified: Number(saved.price) > 0 && Number(saved.packQuantity) > 0,
+      source: `validated ${storeName==='Asda'?'ASDA':storeName} catalogue snapshot`,
+      verified: productPriceUsable(saved) && Number(saved.packQuantity) > 0,
     };
   }
-  const html = await fetchText(url);
-  const cheerio = await import('cheerio');
-  const $ = cheerio.load(html);
-  const title = clean($('h1').first().text() || $('title').first().text(), 240);
-  const priceMeta = $('meta[property="product:price:amount"], meta[itemprop="price"]').first().attr('content');
-  const explicitPrice = firstNumber($('.pdp-main-details__price').first().text() || $('[class*="price"]').first().text());
-  const price = Number.isFinite(Number(priceMeta)) ? Number(priceMeta) : explicitPrice;
-  const bodyText = clean($('body').text(), 5000);
-  const packText = $('.pdp-main-details__weight').first().text() || bodyText.slice(0, 1800);
-  const pack = extractPack(packText);
-  const unitMatch = bodyText.match(/\(£\s*([0-9]+(?:\.[0-9]{1,2})?)\s*\/\s*([a-z]+|each)\)/i);
-  return {
-    store: storeName,
-    url,
-    productName: title,
-    priceGBP: Number.isFinite(price) && price > 0 ? price : null,
-    size: pack?.size ?? null,
-    unit: pack?.unit ?? null,
-    unitPriceGBP: unitMatch ? Number(unitMatch[1]) : null,
-    unitPriceUnit: unitMatch ? clean(unitMatch[2], 30) : null,
-    checkedAt: new Date().toISOString(),
-    source: 'official retailer product page',
-    verified: Number.isFinite(price) && price > 0,
-  };
+  // Unknown products require the scheduled full refresh, so runtime cannot
+  // accidentally read a Lidl Plus banner or another product's price.
+  throw new Error('That product is not in the validated retailer catalogue.');
 }
 
 export function clearCatalogCache(storeName = null) {
   catalogGeneration += 1;
   if (storeName) catalogCache.delete(storeName);
   else catalogCache.clear();
-  if (!storeName || storeName === 'Asda') catalogueStatusCache = null;
+  if (storeName) catalogueStatusCache.delete(storeName);
+  else catalogueStatusCache.clear();
 }
 
 export function catalogStoreInfo() {
@@ -990,23 +980,25 @@ export function catalogStoreInfo() {
   }));
 }
 
-export async function catalogueStatus() {
+export async function catalogueStatus(storeName = 'Asda') {
+  if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new TypeError('Store must be Asda or Lidl.');
   try {
-    const cached = catalogCache.get('Asda');
-    if (cached && cached.signature !== await snapshotSignature()) clearCatalogCache('Asda');
-    const index = await getIndex('Asda');
-    return { ...index.metadata, healthy: true, products_saved: index.products.length };
+    const cached = catalogCache.get(storeName);
+    if (cached && cached.signature !== await snapshotSignature(storeName)) clearCatalogCache(storeName);
+    const index = await getIndex(storeName);
+    return { ...index.metadata, store: storeName, healthy: true, products_saved: index.products.length };
   } catch {
-    catalogueStatusCache = null;
-    return { status: 'unavailable', healthy: false, products_saved: 0, source: 'ASDA official product search index' };
+    catalogueStatusCache.delete(storeName);
+    return { store: storeName, status: 'unavailable', healthy: false, products_saved: 0, source: `${storeName} official website catalogue` };
   }
 }
 
 // Liveness must never read or parse the 50 MB catalogue. Detailed validation is
 // shared with matching via /api/catalog/status; an unloaded catalogue is explicit.
-export function cachedCatalogueStatus() {
-  return catalogueStatusCache ? { ...catalogueStatusCache } : {
-    status: catalogLoads.has('Asda') ? 'loading' : 'not_loaded',
+export function cachedCatalogueStatus(storeName = 'Asda') {
+  return catalogueStatusCache.has(storeName) ? { ...catalogueStatusCache.get(storeName) } : {
+    store: storeName,
+    status: catalogLoads.has(storeName) ? 'loading' : 'not_loaded',
     healthy: null,
     products_saved: null,
   };

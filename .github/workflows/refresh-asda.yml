@@ -83,5 +83,6 @@ jobs:
             echo 'Catalogue is unchanged.'
           else
             git commit -m 'Refresh complete ASDA product catalogue'
-            git push
+            git pull --rebase origin main
+            git push origin HEAD:main
           fi

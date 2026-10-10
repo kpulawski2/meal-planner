@@ -9,7 +9,7 @@ const added = recipes.filter(recipe => recipe.id.startsWith('afford-'));
 test('the additional recipe library has quantified original meals and complete ingredient estimates', () => {
   assert.equal(added.length, 72);
   assert.equal(new Set(recipes.map(recipe => recipe.id)).size, recipes.length);
-  assert.equal(recipes.length, 196);
+  assert.equal(recipes.length, 208);
   const categoryCounts = {};
   for (const recipe of added) {
     categoryCounts[recipe.cat] = (categoryCounts[recipe.cat] || 0) + 1;

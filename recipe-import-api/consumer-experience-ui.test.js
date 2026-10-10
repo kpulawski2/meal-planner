@@ -9,9 +9,10 @@ const affordable=await readFile(new URL('../public/affordable-recipes.js',import
 const creami=await readFile(new URL('../public/creami-recipes.js',import.meta.url),'utf8');
 const libraryCore=await readFile(new URL('../public/recipe-library-core.js',import.meta.url),'utf8');
 const world=await readFile(new URL('../public/world-recipes.js',import.meta.url),'utf8').catch(()=> 'globalThis.WORLD_RECIPES=[];');
-const worldContext={};vm.runInNewContext(world,worldContext);const shippedRecipeCount=220+worldContext.WORLD_RECIPES.length;
+const lighter=await readFile(new URL('../public/lighter-recipes.js',import.meta.url),'utf8');
+const worldContext={};vm.runInNewContext(world,worldContext);const shippedRecipeCount=232+worldContext.WORLD_RECIPES.length;
 function source(start,end){const from=html.indexOf(start),to=html.indexOf(end,from+start.length);assert.ok(from>=0&&to>from,start);return html.slice(from,to);}
-function element(value=''){const classes=new Set();return {value,files:[],style:{},textContent:'',innerHTML:'',disabled:false,attributes:{},dataset:{},classList:{toggle(name,on){if(on)classes.add(name);else classes.delete(name);},contains:name=>classes.has(name)},setAttribute(name,value){this.attributes[name]=value;},focus(){this.focused=true;},scrollIntoView(){}};}
+function element(value=''){const classes=new Set();return {value,files:[],style:{},textContent:'',innerHTML:'',disabled:false,attributes:{},dataset:{},classList:{add(name){classes.add(name)},remove(name){classes.delete(name)},toggle(name,on){if(on)classes.add(name);else classes.delete(name);},contains:name=>classes.has(name)},setAttribute(name,value){this.attributes[name]=value;},focus(){this.focused=true;},scrollIntoView(){}};}
 function importHarness(options={}){
  const ids=['sheet','modal','newSource','newNotes','newVideoFile','importApiUrl','importApiToken','aiImportBtn','importStatus','importRecovery','newName','newCat','newIcon','newIngredients','newMethod','newServings','newCookTime','newKcal','newProtein','newNutritionStatus','importPreview','importReviewNotes','importNutritionPreview'];
  const elements=Object.fromEntries(ids.map(id=>[id,element()])),stored=new Map(Object.entries(options.storage||{})),requests=[],toasts=[];
@@ -30,15 +31,18 @@ test('consumer inline script compiles and affordable recipes load before the lib
 
 test('the complete app starts and renders every panel with a new or saved plan',()=>{
  const inline=Array.from(html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)).map(block=>block[1]).filter(block=>block.trim()).join('\n');
- for(const existingPlan of [false,true]){
+ for(const existingPlan of [false,true,'first-use','draft']){
   const elements=Object.fromEntries(['home','week','shop','pantry','recipes','profile','toast','modal','sheet','recipeResults','recipeResultCount','recipeSearch'].map(id=>[id,element()]));
   for(const item of Object.values(elements)){item.classList.add=()=>{};item.classList.remove=()=>{};}
   const nav=['home','week','recipes','shop','pantry','profile'].map(id=>({...element(),dataset:{tab:id}}));
   const state={profile:{days:7,meals:4,budget:45,people:1,calories:2000,protein:200},week:existingPlan?[{day:'Monday',meals:['overnightoats','chickenwrap','beefpasta','snack']}]:[],shopping:{},locked:{},pantry:[],favorites:[],customRecipes:[],mealServings:{}};
-  const storage=new Map([['mealPlannerState',JSON.stringify(state)]]);
-  const context={AbortController,DOMException,AbortSignal,FormData,Blob,console,navigator:{},location:{origin:'https://meal-planner.example',protocol:'https:',hostname:'meal-planner.example'},localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)},document:{hidden:false,getElementById:id=>elements[id]||(elements[id]=element()),querySelectorAll:selector=>selector==='.tabs button'?nav:selector==='.screen'?['home','week','shop','pantry','recipes','profile'].map(id=>elements[id]):[],querySelector:selector=>selector==='.screen.active'?{id:'home'}:null,addEventListener(){}},setTimeout:()=>0,clearTimeout(){},fetch:async()=>({ok:false,status:503,text:async()=>''})};
+  if(existingPlan==='draft'){state.setupComplete=false;state.profile.supermarket='Lidl';state.profile.protein=120;}
+  const storage=new Map(existingPlan==='first-use'?[]:[['mealPlannerState',JSON.stringify(state)]]);
+  const appElement={inert:false};
+  const context={AbortController,DOMException,AbortSignal,FormData,Blob,console,navigator:{},location:{origin:'https://meal-planner.example',protocol:'https:',hostname:'meal-planner.example'},localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)},document:{body:element(),hidden:false,getElementById:id=>elements[id]||(elements[id]=element()),querySelectorAll:selector=>selector==='.tabs button'?nav:selector==='.screen'?['home','week','shop','pantry','recipes','profile'].map(id=>elements[id]):[],querySelector:selector=>selector==='.screen.active'?{id:'home'}:selector==='.app'?appElement:null,addEventListener(){}},setTimeout:()=>0,clearTimeout(){},fetch:async()=>({ok:false,status:503,text:async()=>''})};
   const scrolls=[];context.window=context;context.addEventListener=()=>{};context.scrollTo=options=>scrolls.push(options);
-  vm.runInNewContext(core+'\n'+affordable+'\n'+creami+'\n'+world+'\n'+libraryCore+'\n'+inline,context);
+  vm.runInNewContext(core+'\n'+affordable+'\n'+creami+'\n'+world+'\n'+lighter+'\n'+libraryCore+'\n'+inline,context);
+  if(existingPlan==='first-use'||existingPlan==='draft'){assert.equal(elements.setup.hidden,false);assert.equal(appElement.inert,true);assert.match(elements.setupContent.innerHTML,/Your supermarket/);assert.match(elements.setupContent.innerHTML,/Goals/);assert.equal(elements.profile.innerHTML,'');assert.equal(context.selectedShoppingStore(),existingPlan==='draft'?'Lidl':'Asda');assert.match(html,/if\(!state.setupComplete\)openSetup/);continue;}
   for(const id of ['home','week','shop','pantry','recipes','profile'])assert.ok(elements[id].innerHTML.length>30,id+' rendered on '+(existingPlan?'saved':'fresh')+' startup');
   assert.ok(elements.recipes.innerHTML.includes(shippedRecipeCount+' recipes'));
   assert.match(elements.recipeResults.innerHTML,/View recipe/);
@@ -140,7 +144,7 @@ test('imported recipes save cook time and automatically calculated nutrition wit
 
 function settingsHarness(profile={}){
  const elements={profile:element(),cal:element('2100'),pro:element('125'),bud:element('32'),cook:element('30'),people:element('2'),dis:element('Pork'),likes:element('Beans'),custom:element('no fish'),goalDetails:element()},buttons=Object.keys({'Lose weight':1,'Gain muscle':1,'Eat healthy':1,'Save money':1,'Make cooking easier':1}).map(goal=>({...element(),dataset:{goal}}));
- let saved=0;const context={state:{profile:{days:7,meals:3,budget:45,calories:2000,protein:100,cookTime:45,people:1,supermarkets:['Asda'],goal:['Eat healthy'],varietyMode:'Balanced',...profile}},defaultProfile:{goal:['Eat healthy','Save money','Make cooking easier']},document:{getElementById:id=>elements[id],querySelectorAll:()=>buttons},RETAILER_NAMES:['Asda','Aldi'],escape:String,save(){saved++;},cancelBudgetPlan(){},renderAll(){},generateWeek(){},budgetPlannerState:{status:'idle'}};
+ let saved=0;const context={state:{profile:{days:7,meals:3,budget:45,calories:2000,protein:100,cookTime:45,people:1,supermarkets:['Asda'],goal:['Eat healthy'],varietyMode:'Balanced',...profile}},defaultProfile:{goal:['Eat healthy','Save money','Make cooking easier']},document:{getElementById:id=>elements[id],querySelectorAll:()=>buttons},setupActive:false,selectedShoppingStore:()=>profile.supermarket||'Asda',RETAILER_NAMES:['Asda','Lidl'],escape:String,save(){saved++;},cancelBudgetPlan(){},renderAll(){},generateWeek(){},budgetPlannerState:{status:'idle'}};
  vm.runInNewContext(source('function selectedPlannerGoals(){','function budgetPlannerPanel(){')+'\n'+source('function migratePlannerPreferences(){','function save(){')+'\n'+source('function presetButtons(','let pendingSwap=null;'),context);
  return {context,elements,buttons,get saved(){return saved;}};
 }
@@ -169,6 +173,6 @@ test('only untouched conflicting legacy defaults migrate to sensible goals',()=>
 });
 
 test('weekly overview is compact and explanatory text is behind expandable details',()=>{
- const panel=source('function budgetPlannerPanel(){','function getRecipe(');assert.match(panel,/weekly-overview/);assert.match(panel,/ASDA checkout/);assert.match(panel,/Meal variety/);assert.match(panel,/<details class="planner-help"/);
- const styles=html.slice(html.indexOf('/* Keep the navigation reachable'),html.indexOf('</style>'));assert.match(styles,/\.tabs\{position:fixed;bottom:0/);assert.doesNotMatch(styles,/position:sticky/);
+ const panel=source('function budgetPlannerPanel(){','function getRecipe(');assert.match(panel,/weekly-overview/);assert.match(panel,/selectedShoppingStore/);assert.match(panel,/Meal variety/);assert.match(panel,/<details class="planner-help"/);
+ const styles=html.slice(html.indexOf('/* Keep the navigation reachable'),html.indexOf('</style>'));assert.match(styles,/\.tabs\{position:fixed;bottom:0/);assert.doesNotMatch(styles,/\.tabs\{position:sticky/);
 });

@@ -13,6 +13,7 @@ if (!parentPort) throw new Error('Catalogue worker must run in a worker thread.'
 
 const operations = { searchCatalog, recommendCatalogItems, fetchProductPage, catalogueStatus, clearCatalogCache, optimizeMealPlan };
 const controllers = new Map();
+const statuses = () => Object.fromEntries(['Asda', 'Lidl'].map(store => [store, cachedCatalogueStatus(store)]));
 
 parentPort.on('message', async message => {
   if (!message || typeof message !== 'object') return;
@@ -32,13 +33,14 @@ parentPort.on('message', async message => {
       : method === 'recommendCatalogItems'
       ? await recommendCatalogItems(args[0], args[1], { signal: controller.signal })
       : await operations[method](...args);
-    parentPort.postMessage({ id, ok: true, result, status: cachedCatalogueStatus() });
+    parentPort.postMessage({ id, ok: true, result, status: cachedCatalogueStatus(), statuses: statuses() });
   } catch (error) {
     parentPort.postMessage({
       id,
       ok: false,
       error: { name: error?.name || 'Error', message: error?.message || 'Catalogue operation failed.', code: error?.code },
       status: cachedCatalogueStatus(),
+      statuses: statuses(),
     });
   } finally {
     controllers.delete(id);

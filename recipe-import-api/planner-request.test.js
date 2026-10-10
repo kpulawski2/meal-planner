@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 import { normalizePlannerRequest } from './planner-request.js';
 const recipe = { id: 'oats', name: 'Oats bowl', cat: 'Breakfast', servings: 2, ings: [['Oats', 100, 'g']], nutrition: { kcal: 200, p: 10, complete: true } };
 const request = overrides => ({ profile: { days: 7, meals: 4, people: 1, budget: 45 }, recipes: [recipe], ...overrides });
+test('selected supermarket survives normalization and unsupported stores are rejected',()=>{
+  assert.equal(normalizePlannerRequest(request({profile:{supermarket:'Lidl'}})).profile.supermarket,'Lidl');
+  assert.equal(normalizePlannerRequest(request()).profile.supermarket,'Asda');
+  assert.throws(()=>normalizePlannerRequest(request({profile:{supermarket:'Aldi'}})),/Choose Asda or Lidl/);
+});
 
 test('planner input retains settings, recipe yields, fractions, stock and locks with bounded fields', () => {
   const value = normalizePlannerRequest(request({ pantry: [{ name: 'Oats', qty: 1, unit: 'kg' }], week: [{ day: 'Monday', meals: ['oats'] }], mealServings: { 'Monday::0': .5 }, locked: { 'Monday::0': true }, favorites: ['oats', 'missing'] }));
