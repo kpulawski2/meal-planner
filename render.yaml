@@ -13,5 +13,7 @@ services:
         value: ""
       - key: GROQ_RECIPE_MODEL
         value: qwen/qwen3.8-27b
+      - key: GROQ_TEXT_MODEL
+        value: openai/gpt-oss-20b
       - key: GROQ_TRANSCRIPTION_MODEL
         value: whisper-large-v3-turbo

@@ -21,6 +21,16 @@ test('zero budget and protein target are supported without reverting to defaults
   assert.equal(value.profile.protein, 0);
 });
 
+test('goals and variety settings reach the optimizer with singular and plural goal compatibility', () => {
+  const value = normalizePlannerRequest(request({ profile: { goal: ['Gain muscle', 'Gain muscle', 'Eat healthy', 'unsupported'], varietyMode: 'More variety' } }));
+  assert.deepEqual(value.profile.goal, ['Gain muscle', 'Eat healthy']);
+  assert.equal(value.profile.varietyMode, 'More variety');
+  assert.deepEqual(normalizePlannerRequest(request({ profile: { goals: ['Save money'] } })).profile.goal, ['Save money']);
+  const defaults = normalizePlannerRequest(request()).profile;
+  assert.equal(defaults.varietyMode, 'Balanced');
+  assert.deepEqual(defaults.goal, ['Eat healthy', 'Save money', 'Make cooking easier']);
+});
+
 test('invalid or excessive work is rejected before catalogue processing', () => {
   for (const profile of [{ budget: -1 }, { budget: Infinity }, { days: 15 }, { meals: 1 }, { people: 0 }, { people: 1.5 }, { calories: 0 }, { protein: -1 }]) assert.throws(() => normalizePlannerRequest(request({ profile })), TypeError);
   assert.throws(() => normalizePlannerRequest(request({ recipes: Array(251).fill(recipe) })), TypeError);

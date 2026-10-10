@@ -28,19 +28,37 @@ Choose **Fit plan to budget** in Today, Plan or Shopping. The planner reads actu
 
 The weekly budget is for the whole household. A 14-day plan receives twice that amount; a 3-day plan receives three sevenths. Calories and protein are targets **per person, per day**. Accepted plans must keep every day within ±10% of the calorie target and at or above the protein target, with the requested meal count and household servings. Nutrition remains an estimate based on ingredient profiles or recipe values marked verified; it is not a guarantee of exact brand nutrition. The app does not calculate personal calorie targets from body measurements.
 
-The search compares a bounded set of suitable recipes, adjusts their portion sizes, and calculates shared whole-pack basket costs in integer pence. Repetition and shared ingredients take priority when needed to fit the budget. It adds variety when the full basket can still fit. **Keep meal** locks both a recipe and its portions for the next search. Dietary exclusions remain constraints; the planner does not restore excluded recipes to fill an empty category.
+The library contains **196 recipes and fruit options**, including **72 new affordable recipes** in `public/affordable-recipes.js`, with cooking methods and times. The search compares suitable recipes, adjusts portions, and calculates shared whole-pack basket costs in integer pence. Goals influence recipe scoring: saving money favours full-pack savings and ingredient sharing; easier cooking favours shorter known cooking times and reusable batches; healthy eating favours vegetables, pulses and wholegrains; gaining muscle favours protein density. Losing weight prefers valid portions closer to 95% of the selected calorie target, within the unchanged ±10% range and protein minimum. Goals do not change the targets you set. **Keep meal** locks both a recipe and its portions; dietary exclusions remain constraints.
 
-A plan replaces saved meals only after both the worker and browser validate its prices, quantities, nutrition, meal categories and budget. Missing prices never count as free. A failed or cancelled search keeps the current plan and reports what could not be satisfied. A lowest-cost proposal found by the bounded search is not proof that no cheaper plan exists. Editing meals, portions, settings or pantry stock recalculates the checks; an old successful result does not certify an edited plan. Catalogue prices can change, so the app rechecks them when refreshed.
+Variety is required alongside the budget and nutrition checks. For a seven-day plan, the modes use these limits:
+
+| Mode | Different lunches / dinners, each | Maximum uses of a main recipe | Different breakfasts / snacks, each | Maximum uses of a breakfast or snack |
+| --- | --- | --- | --- | --- |
+| Balanced | 3 | 3 | 2 | 4 |
+| More variety | 4 | 2 | 3 | 3 |
+| Budget focus | 3 | 3 | 2 | 5 |
+
+Limits adjust for shorter or longer plans and apply only to requested meal categories. Identical main meals cannot repeat on consecutive days. Main meals need three protein families where eligible choices allow, and no family may supply more than half the main meals. Budget focus still enforces these minimums; the planner reports an unsuccessful search instead of accepting an all-week repeated meal plan.
+
+A plan replaces saved meals only after both the worker and browser independently validate its prices, quantities, nutrition, meal categories, budget and variety. Missing prices never count as free. A failed or cancelled search keeps the current plan and reports what could not be satisfied. A lowest-cost proposal found by the bounded search is not proof that no cheaper plan exists. Editing meals, portions, settings or pantry stock recalculates the checks; an old successful result does not certify an edited plan. Catalogue prices can change, so the app rechecks them when refreshed.
 
 `POST /api/planner/generate` performs the search in the existing catalogue worker, with bounded request size, one active budget search, cancellation and a deadline. Health checks continue on the web server's event loop. No paid AI or solver service is required for budget planning.
 
 Tinned tuna, beans and sweetcorn use drained contents where ASDA's declared unit-price data exposes them; that inference is labelled beside the selected packs. Generic salmon cannot match a plant-based substitute, and Greek-style yoghurt cannot silently receive the higher protein profile used for strained Greek yoghurt.
+
+## Import recipes
+
+In Recipes, choose **Import recipe**, then paste a recipe website link or recipe text with an ingredient list and cooking steps. Structured recipe websites and pasted recipes import through the app's own API for free, with no access token or AI setup required. A separate importer can still use an optional token in Advanced connection. Optional Groq AI can help with unstructured text and video using a configured free-tier account; availability is subject to its rate limits. If a source blocks access or AI is unavailable, paste the recipe text instead. Failed requests preserve the entered details and offer recovery actions.
+
+Nutrition is estimated automatically from quantified ingredients and confirmed recipe servings, including measured cooking oils. Cooked and dry rice/pasta use different profiles. Missing quantities, unknown food profiles or an unknown recipe yield stay marked for review; they are not silently guessed or presented as complete nutrition. Review the extracted ingredients, steps and servings before saving.
 
 ## Use the app on a phone
 
 The full app is live on the free Render service at [meal-planner-wm4j.onrender.com](https://meal-planner-wm4j.onrender.com). Open it on your phone and choose **Add to Home Screen** on iPhone or **Install app** in Android Chrome. The app shell and local planner data work offline; product search needs an internet connection. Saved recipes, pantry items and shopping changes stay in browser storage on that device. Use Settings → Export backup / Import backup to move them between devices.
 
 The free Render service can sleep when idle, so its first request after a quiet period may take longer. The app and catalogue refresh do not require a paid ASDA/Algolia search subscription; the catalogue key is ASDA's public read-only browser key.
+
+The compact weekly overview shows checkout cost, daily nutrition checks and meal variety. Navigation remains fixed at the bottom, selected settings stay highlighted, and the recipe library can filter by category, protein source and cooking time. Longer explanations and optional setup are kept in expandable details.
 
 ## Run and verify locally
 
