@@ -6,6 +6,8 @@ const html = await readFile(new URL('../public/index.html', import.meta.url), 'u
 const core = await readFile(new URL('../public/budget-core.js', import.meta.url), 'utf8');
 const source = html.slice(html.indexOf('let budgetPlannerState='), html.indexOf('function getRecipe('));
 const recipes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((cat, id) => ({ id: String(id), name: cat, cat, servings: 1, ings: [['Oats', 100, 'g']], nutrition: { kcal: 500, p: 50, complete: true } }));
+for (const [id, cat, ingredient] of [['l1','Lunch','Chicken breast'],['l2','Lunch','Kidney beans'],['d1','Dinner','Eggs'],['d2','Dinner','Red lentils']]) recipes.push({id,name:id,cat,servings:1,ings:[['Oats',100,'g'],[ingredient,.01,'g']],nutrition:{kcal:500,p:50,complete:true}});
+for (const [id,cat] of [['b1','Breakfast'],['s1','Snack']])recipes.push({id,name:id,cat,servings:1,ings:[['Oats',100,'g']],nutrition:{kcal:500,p:50,complete:true}});
 
 function harness(options = {}) {
   let saved = 0, activeRequest, requestedBody;
@@ -28,9 +30,10 @@ function harness(options = {}) {
   vm.runInNewContext(core + '\n' + source + '\n globalThis.run=generateWeek;globalThis.cancel=cancelBudgetPlan;globalThis.validate=budgetPlanValidation;globalThis.planner=()=>budgetPlannerState;globalThis.targetsMet=dailyTargetsMet;', context);
   context.buildShopping = () => context.MealBudgetCore.buildShopping({ ...state, recipes, people: state.profile.people });
   context.makeFeasible = () => {
-    const week = context.MealBudgetCore.dayNames(7).map(day => ({ day, meals: ['0', '1', '2', '3'] }));
-    const recommendation = { key: 'oats::mass', match: { productName: 'ASDA Oats' }, plan: { requestedQuantity: 2800, totalQuantity: 3000, totalCostGBP: 3, products: [{ packs: 3, costGBP: 3 }] } };
-    return { status: 'feasible', week, mealServings: {}, basket: { complete: true, totalCostGBP: 3, recommendations: [recommendation] } };
+    const week = context.MealBudgetCore.dayNames(7).map((day,index) => ({ day, meals: [['0','b1'][index%2], ['1','l1','l2'][index%3], ['2','d1','d2'][(index+1)%3], ['3','s1'][index%2]] }));
+    const shopping=context.MealBudgetCore.buildShopping({week,recipes,people:state.profile.people,pantry:state.pantry});
+    const recommendations=context.automaticCatalogItems(Object.entries(shopping)).map(item=>({key:item.key,match:{productName:'ASDA '+item.name},plan:{requestedQuantity:item.quantity,totalQuantity:item.quantity+100,totalCostGBP:3,products:[{packs:1,costGBP:3}]}}));
+    return { status: 'feasible', week, mealServings: {}, basket: { complete: true, totalCostGBP:recommendations.length*3, recommendations } };
   };
   return { context, state, get saved() { return saved; }, get requestedBody() { return requestedBody; }, release() { activeRequest(); } };
 }
@@ -88,6 +91,12 @@ test('cancelled and stale searches cannot overwrite a saved plan', async () => {
 test('planner refuses to change locked meals or their portions', () => {
   const app = harness({ state: { week: [{ day: 'Monday', meals: ['0', '1', '2', '3'] }], locked: { 'Monday::0': true }, mealServings: { 'Monday::0': 2 } } });
   assert.equal(app.context.validate(app.context.makeFeasible()), false);
+});
+
+test('browser rejects a priced nutrition-complete plan that repeats the same main meals all week',()=>{
+ const app=harness(),result=app.context.makeFeasible();
+ result.week=result.week.map(day=>({...day,meals:['0','1','2','3']}));
+ assert.equal(app.context.validate(result),false);
 });
 
 test('daily badges and gap lists agree on floating-point nutrition boundaries', () => {

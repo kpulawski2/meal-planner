@@ -53,7 +53,7 @@ function classifyError(status, detail, retryAfterMs, model) {
   if (status === 401 || status === 403) {
     return new GroqApiError(`Groq rejected the API key or access. Check GROQ_API_KEY and model access. ${detail}`.trim(), { status, kind: 'configuration', retryAfterMs, model });
   }
-  if (status === 404) {
+  if (status === 404 || status === 400 && /model.+(?:decommissioned|not found|does not exist|unavailable)|model_decommissioned/i.test(detail)) {
     return new GroqApiError(`Groq model ${model} was not found or is unavailable. Check the configured model ID. ${detail}`.trim(), { status, kind: 'model_unavailable', retryAfterMs, model });
   }
   if (status === 429) {
@@ -85,6 +85,7 @@ export async function groqChatCompletion({
   frameImages = [],
   temperature = 0.1,
   maxCompletionTokens = 6500,
+  reasoningEffort,
   jsonMode = true,
   timeoutMs = 90000,
   fetchImpl = fetch
@@ -102,6 +103,7 @@ export async function groqChatCompletion({
     stream: false
   };
   if (jsonMode) body.response_format = { type: 'json_object' };
+  if (reasoningEffort) body.reasoning_effort = reasoningEffort;
 
   let response;
   try {
@@ -125,6 +127,24 @@ export async function groqChatCompletion({
   const text = typeof content === 'string' ? content.trim() : Array.isArray(content) ? content.map(part => part?.text || '').join('\n').trim() : '';
   if (!text) throw new GroqApiError('Groq returned no text. Retry the import or paste the recipe caption/transcript.', { kind: 'empty_response', model });
   return text;
+}
+
+// Both IDs are listed on Groq's Free Plan Limits page. A text model never
+// receives images; unavailable vision is reported instead of pretending frames
+// were read. There is one model fallback, only for an unavailable text model.
+export async function groqRecipeCompletion({ textModel = 'openai/gpt-oss-20b', visionModel = 'qwen/qwen3.8-27b', ...options }) {
+  const vision = Array.isArray(options.frameImages) && options.frameImages.length > 0;
+  const supportedVision = 'qwen/qwen3.8-27b';
+  // Older Render configurations may name a retired or text-only vision model.
+  // Only the currently documented image model receives private uploaded frames.
+  const model = vision ? (visionModel === supportedVision ? visionModel : supportedVision) : textModel;
+  const reasoningEffort = model.startsWith('qwen/') ? 'none' : model.startsWith('openai/gpt-oss') ? 'low' : undefined;
+  try {
+    return await groqChatCompletion({ ...options, model, reasoningEffort });
+  } catch (error) {
+    if (vision || !(error instanceof GroqApiError) || error.kind !== 'model_unavailable' || textModel === 'qwen/qwen3.8-27b') throw error;
+    return groqChatCompletion({ ...options, model: 'qwen/qwen3.8-27b', reasoningEffort: 'none' });
+  }
 }
 
 export async function groqTranscribe({

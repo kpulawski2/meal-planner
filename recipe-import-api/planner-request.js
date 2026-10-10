@@ -20,6 +20,8 @@ export function normalizePlannerRequest(body) {
     people: number(input.people, 1, 1, 50, 'People', true),
     diet: ['No restrictions', 'Vegetarian', 'Vegan'].includes(input.diet) ? input.diet : 'No restrictions',
     priority: ['Balanced', 'Cheapest', 'Protein value', 'Variety'].includes(input.priority) ? input.priority : 'Balanced',
+    varietyMode: ['Balanced', 'More variety', 'Budget focus'].includes(input.varietyMode) ? input.varietyMode : 'Balanced',
+    goal: (Array.isArray(input.goal) ? input.goal : Array.isArray(input.goals) ? input.goals : ['Eat healthy', 'Save money', 'Make cooking easier']).filter((goal, index, values) => ['Lose weight', 'Gain muscle', 'Eat healthy', 'Save money', 'Make cooking easier'].includes(goal) && values.indexOf(goal) === index).slice(0, 5),
     dislikes: text(input.dislikes, 1000), likes: text(input.likes, 1000), custom: text(input.custom, 2000),
     batch: input.batch !== false, mealPrep: Boolean(input.mealPrep), avoidRepeat: input.avoidRepeat !== false,
     minWaste: input.minWaste !== false, leftovers: input.leftovers !== false,

@@ -30,7 +30,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Test catalogue refresh, product matching and budget plans
+    name: Test catalogue, recipe imports and meal planning
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +46,7 @@ jobs:
         run: npm install --no-audit --no-fund --ignore-scripts
       - name: Test ASDA search-index refresh and partial-catalogue protection
         run: python -m unittest discover -s backend/tests -v
-      - name: Check and test catalogue matcher and budget planner
+      - name: Check and test catalogue, imports, nutrition, variety and budgets
         run: |
           npm run check
           npm test

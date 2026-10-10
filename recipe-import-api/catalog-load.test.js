@@ -4,12 +4,11 @@ import { readFile } from 'node:fs/promises';
 import { once } from 'node:events';
 import { monitorEventLoopDelay, performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
-import vm from 'node:vm';
+import { readRecipeLibrary } from './recipe-fixtures.js';
 import { setTimeout as pause } from 'node:timers/promises';
 
 const cataloguePath = fileURLToPath(new URL('../data/products.json', import.meta.url));
 const metadataPath = fileURLToPath(new URL('../data/catalogue-meta.json', import.meta.url));
-const appPath = new URL('../public/index.html', import.meta.url);
 
 async function readJsonResponse(response) {
   const body = await response.text();
@@ -21,16 +20,13 @@ async function readJsonResponse(response) {
 }
 
 test('a cold full-catalogue shopping request keeps health checks responsive and returns structured results', { timeout: 120_000 }, async t => {
-  const [html, metadataText] = await Promise.all([
-    readFile(appPath, 'utf8'),
+  const [recipes, metadataText] = await Promise.all([
+    readRecipeLibrary(),
     readFile(metadataPath, 'utf8'),
   ]);
   const metadata = JSON.parse(metadataText);
   assert.equal(metadata.status, 'complete', 'This load regression requires the complete checked-in catalogue');
   assert.ok(metadata.products_saved >= 10_000, 'Exercise the actual large catalogue, rather than a small seed fixture');
-  const recipesMatch = html.match(/const builtInRecipes\s*=\s*(\[[\s\S]*?\n\]);/);
-  assert.ok(recipesMatch, 'Exercise the ingredients used by the actual built-in recipes');
-  const recipes = vm.runInNewContext(recipesMatch[1], {}, { timeout: 1000 });
   const ingredientNames = [...new Set(recipes.flatMap(recipe => recipe.ings.map(([name]) => name)))];
   assert.ok(ingredientNames.length >= 100, 'Exercise a real full shopping list, rather than just one ingredient');
   const items = ingredientNames.map(name => ({
