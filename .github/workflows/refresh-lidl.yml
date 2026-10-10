@@ -4,10 +4,10 @@ on:
     - cron: '55 5 * * *'
   workflow_dispatch:
   pull_request:
-    paths: ['backend/lidl_catalogue.py', 'backend/refresh_lidl_catalogue.py', 'backend/tests/test_lidl_catalogue.py', '.github/workflows/refresh-lidl.yml']
+    paths: ['backend/lidl_catalogue.py', 'backend/lidl_discovery.py', 'backend/refresh_lidl_catalogue.py', 'backend/tests/test_lidl*.py', '.github/workflows/refresh-lidl.yml']
   push:
     branches: [main]
-    paths: ['backend/lidl_catalogue.py', 'backend/refresh_lidl_catalogue.py', 'backend/tests/test_lidl_catalogue.py', '.github/workflows/refresh-lidl.yml']
+    paths: ['backend/lidl_catalogue.py', 'backend/lidl_discovery.py', 'backend/refresh_lidl_catalogue.py', 'backend/tests/test_lidl*.py', '.github/workflows/refresh-lidl.yml']
 permissions:
   contents: read
 concurrency:
@@ -38,7 +38,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install -r backend/requirements.txt
-      - name: Read every sitemap product and publish only a validated refresh
+      - name: Expand the existing catalogue from official sitemap, search and regular prices
         run: python backend/refresh_lidl_catalogue.py
       - name: Commit validated Lidl website snapshot
         run: |

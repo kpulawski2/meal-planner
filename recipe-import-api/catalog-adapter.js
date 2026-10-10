@@ -289,7 +289,7 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
     if (['breast','thigh','wing','drumstick','mince'].some(cut => asked(cut) && !name.has(cut))) return false;
     if (!['vegan', 'plant', 'vegetarian', 'alternative'].some(asked) && /plant[ -]*based|vegan|vegetarian|meat[ -]*free|fish[ -]*free|alternative/i.test(title + ' ' + category)) return false;
     if (!/meat|poultry|fish|seafood|prawn|chicken|turkey|beef|pork|lamb|cod|salmon|tuna/i.test(category)) return false;
-    for (const word of ['breaded', 'breadcrumb', 'crumb', 'battered', 'cooked', 'marinated', 'flavour', 'flavoured', 'seasoned', 'sizzle', 'tikka', 'thai', 'peri', 'spicy', 'garlic', 'lemon', 'honey', 'sweet', 'pepper', 'teriyaki', 'chargrill', 'chargrilled', 'bbq', 'barbecue', 'crispy', 'smoked', 'sausage', 'chipotle']) if (name.has(word) && !asked(word)) return false;
+    for (const word of ['breaded', 'breadcrumb', 'crumb', 'battered', 'cooked', 'marinated', 'flavour', 'flavoured', 'seasoned', 'sizzle', 'tikka', 'thai', 'peri', 'spicy', 'garlic', 'lemon', 'honey', 'sweet', 'pepper', 'teriyaki', 'chargrill', 'chargrilled', 'bbq', 'barbecue', 'crispy', 'smoked', 'sausage', 'chipotle', 'sauce', 'butter', 'cream', 'gravy', 'mayonnaise']) if (name.has(word) && !asked(word)) return false;
     if (unrequested(COMPOSITE_FOODS)) return false;
     if (/prepared|ready meals|marinated|ready to cook/i.test(category)) return false;
     if (['chicken', 'beef', 'pork', 'lamb', 'turkey'].includes(meat) && /tinned|pies|party food|cooked meat|continental meat|charcuterie/i.test(category)) return false;
@@ -481,6 +481,9 @@ function packUnitMeta(product) {
   const sizeText = clean(product?.packSize, 50).toLowerCase();
   let quantity = Number(product?.packQuantity);
   let unit = explicit;
+  // Lidl's publisher explicitly leaves uncertain pack quantities null. Parsing
+  // its display text again would turn variant/range labels into fixed packs.
+  if (product?.store === 'Lidl' && Object.hasOwn(product, 'packQuantity') && (!(quantity > 0) || !Number.isFinite(quantity))) return null;
   if (!(quantity > 0) || !Number.isFinite(quantity) || !unit) {
     const multiple = sizeText.match(/(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(kg|g|ml|l)\b/i);
     const match = sizeText.match(/(\d+(?:\.\d+)?)\s*(kg|g|ml|l|pieces?|pcs|each|ea|pk|packs?)\b/i);
@@ -578,6 +581,15 @@ function purchasePackMeta(product, wantedDimension) {
   return null;
 }
 
+function priceEvidence(product) {
+  const pageSource = product?.store === 'Lidl' && product?.price != null && (!product.priceSource || product.priceSource === 'Lidl GB official product page');
+  return {
+    priceSource: product.priceSource || (pageSource ? 'Lidl GB official product page' : null),
+    priceSourceUrl: product.priceSourceUrl || (pageSource ? product.url : null),
+    priceCheckedAt: product.priceCheckedAt || (pageSource ? product.checkedAt || product.checked || null : null),
+  };
+}
+
 function productSummary(product, score) {
   const inferredPack = packUnitMeta(product);
   return {
@@ -589,6 +601,7 @@ function productSummary(product, score) {
     packQuantity: product.packQuantity ?? inferredPack?.quantity ?? null,
     packUnit: product.packUnit || inferredPack?.unit || null,
     priceGBP: productPriceUsable(product) ? Number(product.price) : null,
+    ...priceEvidence(product),
     priceRegion: product.priceRegion || null,
     pricesByRegion: product.pricesByRegion || {},
     category: product.category || null,
@@ -604,6 +617,7 @@ function productSummary(product, score) {
 
 export function productPriceUsable(product, now = new Date()) {
   if (product?.price == null || !Number.isFinite(Number(product.price)) || Number(product.price) <= 0) return false;
+  if (product.priceMemberOnly === true || product.offer?.validForMemberTier) return false;
   const day = now.toISOString().slice(0, 10);
   const start = product.validFrom || product.offer?.validFrom;
   const end = product.validThrough || product.offer?.validThrough;
@@ -612,6 +626,18 @@ export function productPriceUsable(product, now = new Date()) {
   // Regional Lidl offers are not universal GB prices. They stay discoverable,
   // but do not enter a household budget without a selected/verified branch.
   if (product?.store === 'Lidl' && product.regionRestricted === true) return false;
+  if (product?.store === 'Lidl' && product.priceSource && product.priceSource !== 'Lidl GB official product page') {
+    if (!['Lidl GB official search listing', 'Lidl GB official leaflet'].includes(product.priceSource)) return false;
+    let source;
+    try { source = new URL(product.priceSourceUrl); } catch { return false; }
+    const allowedHosts = product.priceSource === 'Lidl GB official leaflet' ? ['www.lidl.co.uk', 'endpoints.leaflets.schwarz', 'assets.leaflets.schwarz', 'lidl.leaflets.schwarz'] : ['www.lidl.co.uk'];
+    if (source.protocol !== 'https:' || !allowedHosts.includes(source.hostname) || source.port || source.username || source.password) return false;
+    if (typeof product.priceCheckedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(product.priceCheckedAt)) return false;
+    const checked = Date.parse(product.priceCheckedAt);
+    const age = now.getTime() - checked;
+    if (!Number.isFinite(checked) || age < 0 || age > 48 * 60 * 60 * 1000) return false;
+    if (product.priceSource === 'Lidl GB official leaflet' && (!start || !end)) return false;
+  }
   return true;
 }
 
@@ -886,7 +912,8 @@ export async function searchCatalog(storeName, query, limit = 8, dimension = '')
       packSize: product.packSize || null,
       packQuantity: product.packQuantity ?? null,
       packUnit: product.packUnit || null,
-      priceGBP: product.price ?? null,
+      priceGBP: productPriceUsable(product) ? Number(product.price) : null,
+      ...priceEvidence(product),
       priceRegion: product.priceRegion || null,
       pricesByRegion: product.pricesByRegion || {},
       pricePerUnitGBP: product.pricePerUnit ?? null,
@@ -902,7 +929,7 @@ export async function searchCatalog(storeName, query, limit = 8, dimension = '')
       nutritionClaims: product.nutritionClaims || [],
       categoryPath: product.categoryPath || [],
       checkedAt: product.checkedAt || product.checked || null,
-      verified: index.snapshotStatus === 'complete' && Number(product.price) > 0 && Number(product.packQuantity) > 0,
+      verified: index.snapshotStatus === 'complete' && productPriceUsable(product) && Number(product.packQuantity) > 0,
     }) : ({ url, score })),
   };
 }
@@ -936,6 +963,7 @@ export async function fetchProductPage(storeName, url) {
       url: saved.url,
       productName: saved.name,
       priceGBP: productPriceUsable(saved) ? Number(saved.price) : null,
+      ...priceEvidence(saved),
       size: saved.packQuantity ?? null,
       unit: saved.packUnit || null,
       packSize: saved.packSize || null,

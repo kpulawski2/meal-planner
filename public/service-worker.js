@@ -1,4 +1,4 @@
-const CACHE='meal-planner-shell-v13-lidl-and-personal-setup';
+const CACHE='meal-planner-shell-v14-lidl-catalogue-expansion';
 const CORE=['/','/index.html','/budget-core.js','/affordable-recipes.js','/lighter-recipes.js','/creami-recipes.js','/world-recipes.js','/recipe-library-core.js','/recipe-library.json','/manifest.webmanifest','/icon.svg'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
