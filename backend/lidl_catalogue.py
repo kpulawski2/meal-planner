@@ -14,6 +14,7 @@ from xml.etree import ElementTree as ET
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from lidl_discovery import discover_supplement
 
 ROOT = Path(__file__).resolve().parents[1]
 ORIGIN = 'https://www.lidl.co.uk'
@@ -96,13 +97,17 @@ def text(value):
 
 def pack(value):
     value = text(value)
+    # A range or choice of sizes is not a fixed purchasable pack. Do not choose
+    # one number from "70/85g", "175g, 125g", or "1.2kg - 1.6kg".
+    if re.search(r'\d\s*(?:kg|g|ml|cl|l)?\s*[/,–-]\s*\d', value, re.I): return None,None
     multi = re.search(r'\b(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(kg|g|ml|cl|l)\b',value,re.I)
-    single = re.search(r'\b(\d+(?:\.\d+)?)\s*(kg|g|ml|cl|l|pieces?|each|pack)\b',value,re.I)
+    single = re.search(r'\b(\d+(?:\.\d+)?)\s*(kg|g|ml|cl|l|pints?|pieces?|each|pack)\b',value,re.I)
     if multi: qty, unit = int(multi[1])*float(multi[2]), multi[3].lower()
     elif single: qty, unit = float(single[1]), single[2].lower()
     elif re.fullmatch(r'(?:per\s+)?(?:each|piece)',value,re.I): qty,unit=1,'pieces'
     else: return None,None
     if unit == 'cl': qty,unit=qty*10,'ml'
+    if unit in ('pint','pints'): qty,unit=qty*568.26125,'ml'
     if unit in ('piece','each','pack'): unit='pieces'
     return (qty,unit) if qty>0 else (None,None)
 
@@ -110,6 +115,29 @@ def positive(value):
     try: number=float(value)
     except (TypeError, ValueError): return None
     return number if math.isfinite(number) and number>0 else None
+
+def regular_price(item):
+    """Read only the explicit public regular-price label next to a member offer.
+
+    The numeric Lidl Plus price, oldPrice and unit-price text are never promoted
+    into the public catalogue price. Conflicting regular labels stay unpriced.
+    """
+    labels={}
+    for member in item.get('lidlPlus') or []:
+        info=member.get('price') or {}
+        if info.get('currencyCode',(item.get('price') or {}).get('currencyCode'))!='GBP': continue
+        label=text((info.get('packaging') or {}).get('text'))
+        match=re.fullmatch(r'Regular price\s+£\s*(\d+(?:\.\d{1,2})?)',label,re.I)
+        price=positive(match[1]) if match else None
+        if price is not None: labels[price]=label
+    return next(iter(labels.items())) if len(labels)==1 else (None,None)
+
+def restricted_region(item, facts):
+    if item.get('regionsPrices') or item.get('regions'): return True
+    wording=' '.join(text(facts.get(k)) for k in ('supplementalDescription','description'))
+    country=r'(?:Scotland|England|Wales|Northern Ireland)'
+    area=country+r'(?:\s*(?:and|&)\s*'+country+r'){0,2}'
+    return bool(re.search(r'(?:only\s+(?:available\s+)?in\s+'+area+r'|(?:available\s+)?in\s+'+area+r'\s+only|not\s+available\s+in\s+'+area+r')',wording,re.I))
 
 def parse_product(url, source, checked):
     scripts = re.findall(r'<script\b[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',source,re.S|re.I)
@@ -138,6 +166,8 @@ def parse_product(url, source, checked):
     public=[offer for offer in offers if offer.get('priceCurrency')=='GBP' and positive(offer.get('price')) and not offer.get('validForMemberTier')]
     offer=public[0] if public else {}
     price=positive(offer.get('price'))
+    evidence=None
+    if price is None: price,evidence=regular_price(item)
     price_info=item.get('price') or {}
     stock=item.get('stockAvailability') or {}
     windows=stock.get('badgeInfoV2') or []
@@ -173,7 +203,11 @@ def parse_product(url, source, checked):
         'validFrom':valid_from,'validThrough':valid_until,'priceMissingReason':None if price else 'not_published',
         'offer':{'validFrom':valid_from,'validThrough':valid_until} if valid_from or valid_until else None,
         'memberOffersAvailable':bool(item.get('lidlPlus')),'regions':item.get('regions') or [],
-        'regionRestricted':bool(item.get('regionsPrices')) or bool(item.get('regions')),
+        'regionRestricted':restricted_region(item,facts),
+        'priceSource':'Lidl GB official product page' if price is not None else None,
+        'priceSourceUrl':url if price is not None else None,'priceCheckedAt':checked if price is not None else None,
+        'priceBasis':('labelled_regular_price' if evidence else 'public_offer') if price is not None else None,
+        'priceEvidence':evidence,
         'description':text(facts.get('description'))}
 
 def validate(records, expected, previous=None):
@@ -199,12 +233,30 @@ def atomic(path, data):
     finally:
         if os.path.exists(name): os.unlink(name)
 
+def previous_snapshot(products_path, metadata_path):
+    """Only a matching, validated generation can be used as an additive base."""
+    if not products_path.exists() and not metadata_path.exists(): return []
+    if not products_path.exists() or not metadata_path.exists(): raise LidlRefreshError('Previous Lidl catalogue generation is incomplete; files kept.')
+    raw=products_path.read_text(encoding='utf-8').replace('\r\n','\n')
+    meta=json.loads(metadata_path.read_text(encoding='utf-8'))
+    previous=json.loads(raw)
+    if (meta.get('status')!='complete' or not isinstance(previous,list) or
+        len(previous)!=meta.get('products_saved') or len(previous)!=meta.get('products_expected') or
+        hashlib.sha256(raw.encode()).hexdigest()!=meta.get('products_file_sha256')):
+        raise LidlRefreshError('Previous Lidl catalogue integrity check failed; files kept.')
+    validate(previous,[p['url'] for p in previous])
+    return previous
+
 def refresh(products_path=None, metadata_path=None, get=fetch):
     start=time.monotonic()
     products_path=Path(products_path or ROOT/'data/lidl-products.json')
     metadata_path=Path(metadata_path or ROOT/'data/lidl-catalogue-meta.json')
-    urls,maps=discover(get)
-    LOG.info('Discovered %d Lidl product pages across %d sitemaps',len(urls),len(maps))
+    previous=previous_snapshot(products_path,metadata_path)
+    sitemap_urls,maps=discover(get)
+    known=set(sitemap_urls)|{p['url'] for p in previous}
+    search_urls,search_meta=discover_supplement(get,known)
+    urls=sorted(set(sitemap_urls)|search_urls)
+    LOG.info('Discovered %d Lidl product pages: %d sitemap, %d additional search URLs',len(urls),len(sitemap_urls),len(set(urls)-set(sitemap_urls)))
     checked=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00','Z')
     records,failures=[],[]
     def load(url):
@@ -218,27 +270,45 @@ def refresh(products_path=None, metadata_path=None, get=fetch):
             if count%100==0 or count==len(urls): LOG.info('Checked %d/%d pages; failures %d',count,len(urls),len(failures))
     if failures: raise LidlRefreshError(f'{len(failures)} Lidl pages failed; previous snapshot kept. First failures: {failures[:5]}')
     final_urls,final_maps=discover(get)
-    if final_urls!=urls or final_maps!=maps: raise LidlRefreshError('Lidl sitemap changed during refresh; previous snapshot kept.')
-    previous=None
-    if products_path.exists() and metadata_path.exists():
-        meta=json.loads(metadata_path.read_text(encoding='utf-8'))
-        if meta.get('status')=='complete': previous=json.loads(products_path.read_text(encoding='utf-8'))
-    validate(records,urls,previous)
+    if final_urls!=sitemap_urls or final_maps!=maps: raise LidlRefreshError('Lidl sitemap changed during refresh; previous snapshot kept.')
+    final_search_urls,final_search_meta=discover_supplement(get,known)
+    if final_search_urls!=search_urls or final_search_meta.get('search_ids_sha256')!=search_meta.get('search_ids_sha256'):
+        raise LidlRefreshError('Lidl search changed during refresh; previous snapshot kept.')
+    validate(records,urls,[p for p in previous if p.get('discoveryStatus')!='not_listed'])
+    fresh_ids={p['id'] for p in records}
+    previous_by_id={p['id']:p for p in previous}
+    newly_priced=sum(p['price'] is not None and p['id'] in previous_by_id and previous_by_id[p['id']]['price'] is None for p in records)
+    for p in records:
+        p['discoveryStatus']='listed'
+        p['discoverySources']=(['official_sitemap'] if p['url'] in sitemap_urls else [])+(['official_search'] if p['url'] in search_urls else [])
+    # Preserve prior identities if the publisher removes a page from discovery.
+    # A retained entry cannot enter a new basket without fresh publication.
+    retained=[{**p,'discoveryStatus':'not_listed','available':False,'availability':'not_listed',
+        'price':None,'priceMissingReason':'no_longer_listed',
+        'lastPublishedPrice':p.get('lastPublishedPrice') or ({'price':p['price'],'checkedAt':p.get('priceCheckedAt') or p.get('checkedAt')} if p['price'] is not None else None)}
+        for p in previous if p['id'] not in fresh_ids]
+    records.extend(retained)
     records.sort(key=lambda p:(p['name'].casefold(),p['id']))
-    meta={'schema_version':1,'store':'Lidl','status':'complete','coverage':1,'coverage_scope':'official_sitemap_products',
-        'entire_store_inventory':False,'source':'Lidl GB official recursive sitemap and product pages','source_url':SITEMAP,
-        'products_expected':len(urls),'products_saved':len(records),'sitemaps':maps,'failed_pages':0,
+    meta={'schema_version':2,'store':'Lidl','status':'complete','coverage':1,'coverage_scope':'official_sitemap_and_search_products',
+        'entire_store_inventory':False,'source':'Lidl GB official recursive sitemap, public search and product pages','source_url':SITEMAP,
+        'products_expected':len(records),'products_saved':len(records),'sitemaps':maps,'failed_pages':0,
+        'sitemap_products_expected':len(sitemap_urls),'sitemap_products_checked':len(sitemap_urls),
+        'current_products_checked':len(urls),'additional_search_products':len(set(urls)-set(sitemap_urls)),
+        'retained_not_listed':len(retained),'new_products_added':len(fresh_ids-previous_by_id.keys()),'new_prices_added':newly_priced,
         'refreshed_at':checked,'last_successful_at':checked,'duration_seconds':round(time.monotonic()-start,2),
         'category_count':len({p['category'] for p in records}),'category_counts':dict(Counter(p['category'] for p in records)),
-        'price_note':'Public GBP prices only. Many Lidl pages say See in store for price; these remain unpriced. Lidl Plus discounts are excluded.',
+        'price_note':'Public GBP product offers and explicitly labelled regular prices only. Many Lidl pages say See in store for price; these remain unpriced. Lidl Plus discounts are excluded.',
         'availability_note':'In-store sales channel; no claim of stock at your local branch.',
-        'coverage_note':'Every product in Lidl GB\u2019s official sitemap was checked. Lidl does not publish its complete priced in-store inventory.',
-        'sitemap_sha256':hashlib.sha256('\n'.join(urls).encode()).hexdigest()}
+        'coverage_note':'Every Lidl GB sitemap product and public search identity was checked. Previous product identities are retained; no longer listed entries cannot enter a basket. Lidl does not publish its complete priced in-store inventory.',
+        'sitemap_sha256':hashlib.sha256('\n'.join(sitemap_urls).encode()).hexdigest(),**search_meta}
     for key,field in [('price','price'),('pack_size','packSize'),('sku','sku'),('gtin','gtin'),('brand','brand'),('category','category'),('image','image'),('nutrition','nutrition')]:
         meta['with_'+key]=sum(p.get(field) is not None and p.get(field)!='' for p in records)
     meta['price_coverage']=meta['with_price']/len(records)
     meta['grocery_products']=sum(p['category'].startswith('Food & Drink') for p in records)
     meta['grocery_with_price']=sum(p['category'].startswith('Food & Drink') and p['price'] is not None for p in records)
+    meta['with_regular_price_labels']=sum(p.get('priceBasis')=='labelled_regular_price' and p['price'] is not None for p in records)
+    meta['with_priced_pack_size']=sum(p['price'] is not None and p['packQuantity'] is not None for p in records)
+    meta['with_usable_price_at_refresh']=sum(p['price'] is not None and p['packQuantity'] is not None and p['available'] is not False and not p.get('regionRestricted') for p in records)
     # Both are validated before replacement; consumers verify matching count + hash.
     meta['products_sha256']=hashlib.sha256(json.dumps(records,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()
     meta['products_file_sha256']=hashlib.sha256((json.dumps(records,ensure_ascii=False,indent=2,allow_nan=False)+'\n').encode()).hexdigest()

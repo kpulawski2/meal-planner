@@ -8,6 +8,15 @@ sitemap, large catalogue shrink, or lost price coverage retains the healthy
 snapshot. Products and metadata are atomically written individually; the runtime
 checks the product-file hash to reject mismatched generations.
 
+The additive refresh also reads Lidl's official public search in complete
+48-product pages. It validates GB product IDs and canonical URLs, checks hidden
+results through the official gridbox endpoint, and rechecks both sources before
+publication. New published URLs join the existing catalogue. Explicit null
+gridboxes are reported as unpublished IDs; URLs are never invented. Previous
+identities are retained when no longer listed, with purchases disabled and their
+last published price kept only as history. Failed or changing discovery leaves
+both healthy files untouched. The previous generation's hash is checked first.
+
 The initial source contains **1,918 website products**, including **1,345 food
 and drink products**. **622** products (**310** food/drink products) publish a GBP
 price. These are counts of source prices, including offers that might be future
@@ -15,9 +24,26 @@ or unavailable. Dates and availability determine which can enter a budget.
 The runtime excludes expired, future, unavailable, member-only and regional
 offers, and never fills a Lidl price with an ASDA price or generic estimate.
 
+The expansion also reads the explicit **“Regular price £…”** label alongside a
+Lidl Plus offer. This is the published non-member shelf price; the discounted
+member number, crossed-out price, percentage, unit price, “from” price, and
+conflicting labels are not substituted. Currency must be GBP. Price evidence,
+source URL and check time are retained. Regional restrictions in text and offer
+dates still apply. Ambiguous pack choices such as `70/85g` or weight ranges
+remain unusable for pack optimisation; four UK pints can be converted to ml.
+
+The October expansion audit found **69** regular-price labels absent from the
+initial import, including cucumber, chestnut mushrooms, butter and pasta sauce.
+The expanded snapshot preserves all **1,918** product identities and has **691**
+published prices, including **379** food/drink prices (previously 310).
+Some are future or regional offers; the metadata reports published prices and
+prices usable at refresh time separately. No additional published product
+identities were found in the public search, current leaflets or checked range
+pages. The daily search check can add new identities as Lidl publishes them.
+
 This is complete coverage of the official product sitemap, **not a complete
 priced in-store inventory**. Many everyday pages explicitly say “See in store
-for price”. The publisher does not expose those prices, GTINs or nutrition in
+for price” without any regular-price label. The publisher does not expose those prices, GTINs or nutrition in
 the examined public product data. Missing fields stay null. `InStoreOnly` is
 a sales channel, not verification of a local branch's stock. A Lidl budget can
 only be accepted if every needed ingredient is actually priced and purchasable.
@@ -25,6 +51,8 @@ Otherwise the user sees what is missing and their saved meals are retained.
 
 Sources: [official robots](https://www.lidl.co.uk/robots.txt),
 [official sitemap](https://www.lidl.co.uk/static/sitemap.xml),
+[official public search](https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=2.1.0&fetchsize=48&productsOnly=true&idsOnly=false&offset=0),
+[cucumber regular-price label](https://www.lidl.co.uk/p/cucumber/p10055848),
 [example milk page with an unpublished price](https://www.lidl.co.uk/p/milbona-uht-skimmed-milk/p10000029).
 
 `refresh-lidl.yml` runs daily at 05:55 UTC, validates the scraper first and commits
