@@ -48,6 +48,8 @@ test('the real ASDA catalogue automatically prices plain milk, Skyr and light cr
 
 test('ingredient prices exclude ready meals, desserts and substitutes from every chosen pack', { timeout: 60_000 }, async t => {
   const expectations = {
+    'Potato': { allow: /potato/i, reject: /sweet|mash|chips|fries|ready|roast.*seasoning/i },
+    'Sweet potato': { allow: /sweet.*potato/i, reject: /mash|chips|fries|ready/i },
     'Frozen peas': { allow: /pea/i, reject: /dinner|chicken|mushy|soup|sugar.?snap|mangetout/i },
     'Frozen berries': { allow: /berr|fruit/i, reject: /chocolate|milk|yog[hu]*rt|smoothie|dessert|jam/i },
     'Cocoa powder': { allow: /cocoa/i, requireCategory: /home baking.*cocoa|cocoa$/i,
