@@ -6,6 +6,7 @@ const pending = new Map();
 let worker = null;
 let nextRequestId = 0;
 let status = { status: 'not_loaded', healthy: null, products_saved: null };
+const storeStatuses = new Map();
 
 function settle(id, error, result) {
   const request = pending.get(id);
@@ -22,6 +23,7 @@ function workerFailed(failedWorker, error) {
   if (worker !== failedWorker) return;
   worker = null;
   status = { status: 'unavailable', healthy: false, products_saved: null };
+  storeStatuses.clear();
   for (const id of [...pending.keys()]) settle(id, error);
   // Release the failed worker's catalogue memory while allowing a later retry.
   void failedWorker.terminate().catch(() => {});
@@ -37,10 +39,11 @@ function getWorker() {
   created.on('message', message => {
     if (worker !== created || !message || typeof message !== 'object') return;
     if (message.status && typeof message.status === 'object') status = message.status;
+    if (message.statuses) for (const [store, value] of Object.entries(message.statuses)) storeStatuses.set(store, value);
     if (!message.id) return;
     if (message.ok) settle(message.id, null, message.result);
     else {
-      const error = new Error(message.error?.message || 'ASDA catalogue processing failed.');
+      const error = new Error(message.error?.message || 'Retailer catalogue processing failed.');
       error.name = message.error?.name || 'Error';
       if (message.error?.code) error.code = message.error.code;
       settle(message.id, error);
@@ -105,14 +108,14 @@ export function fetchProductPage(storeName, url) {
   return callWorker('fetchProductPage', [storeName, url]);
 }
 
-export function catalogueStatus() {
-  return callWorker('catalogueStatus', []);
+export function catalogueStatus(storeName = 'Asda') {
+  return callWorker('catalogueStatus', [storeName]);
 }
 
 export function clearCatalogCache(storeName = null) {
   return callWorker('clearCatalogCache', [storeName]);
 }
 
-export function cachedCatalogueStatus() {
-  return { ...status };
+export function cachedCatalogueStatus(storeName = 'Asda') {
+  return { ...(storeStatuses.get(storeName) || (storeName === 'Asda' ? status : { store: storeName, status: 'not_loaded', healthy: null, products_saved: null })) };
 }

@@ -97,7 +97,7 @@ test('source attribution includes its licence and ignores unsafe source links',(
 
 test('the planner delegates its entire eligible library to the diverse bounded pool',()=>{
  const rows=Array.from({length:400},(_,index)=>row('web-'+index)),calls=[];
- const context={state:{profile:{},week:[],pantry:[],favorites:[]},recipes:rows,recipeAllowed:()=>true,recipeNutrition:()=>({kcal:389,p:16.9,complete:true}),recipeCategory:recipe=>recipe.cat,RecipeLibraryCore:{selectPlannerRecipes(recipes,state){calls.push({recipes,state});return recipes.slice(350);}}};
+ const context={selectedShoppingStore:()=>'Asda',state:{profile:{},week:[],pantry:[],favorites:[]},recipes:rows,recipeAllowed:()=>true,recipeNutrition:()=>({kcal:389,p:16.9,complete:true}),recipeCategory:recipe=>recipe.cat,RecipeLibraryCore:{selectPlannerRecipes(recipes,state){calls.push({recipes,state});return recipes.slice(350);}}};
  vm.runInNewContext(source('function budgetPlannerPayload(){','function budgetPlannerFingerprint()'),context);
  const payload=context.budgetPlannerPayload();assert.equal(calls[0].recipes.length,400);assert.equal(calls[0].recipes[399].nutrition.complete,true);
  assert.equal(payload.recipes[0].id,'web-350');assert.equal(payload.recipes.length,50);assert.ok(Array.isArray(payload.recipes[0].equipment));

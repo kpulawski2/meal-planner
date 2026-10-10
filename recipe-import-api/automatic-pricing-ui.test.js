@@ -25,16 +25,16 @@ function recommendation(row,price=1.65,packQuantity=2000,packUnit='ml'){
 function harness(entries=[item('Milk',1500,'volume')],options={}){
   let now=Date.now(),requests=0,exportedBlob=null;
   const rendered=[],views=[];
-  const state={shoppingStore:'Aldi',profile:{supermarkets:['Aldi'],budget:45},week:[{day:'Monday',meals:[]}],shopping:{},packQuotes:{Asda:{milk:{volume:{price:999,size:1,unit:'ml'}}}},...options.state};
+  const state={shoppingStore:'Asda',profile:{supermarkets:['Asda'],supermarket:'Asda',budget:45},week:[{day:'Monday',meals:[]}],shopping:{},packQuotes:{Asda:{milk:{volume:{price:999,size:1,unit:'ml'}}}},...options.state};
   const context={
-    state,RETAILER_NAMES:['Asda','Aldi'],AbortController,DOMException,console,Blob,setTimeout:options.fastTimers?((fn,ms)=>setTimeout(fn,ms>=45000?250:0)):setTimeout,clearTimeout,
+    hadSavedProfile:true,state,RETAILER_NAMES:['Asda','Lidl'],AbortController,DOMException,console,Blob,setTimeout:options.fastTimers?((fn,ms)=>setTimeout(fn,ms>=45000?250:0)):setTimeout,clearTimeout,
     Date:class extends Date {static now(){return now}},
     fetch:async(url,request)=>{
       requests++;
       if(options.responseStatus)return {ok:false,status:options.responseStatus,text:async()=>''};
       const rows=JSON.parse(request.body).items;
       const recommendations=options.respond?options.respond(rows):rows.map(row=>recommendation(row));
-      return {ok:true,status:200,text:async()=>JSON.stringify({recommendations})};
+      return {ok:true,status:200,text:async()=>JSON.stringify({store:JSON.parse(request.body).store,recommendations})};
     },
     window:{addEventListener(){}},
     document:{hidden:false,addEventListener(){},querySelector(){return {id:options.activeView||'shop'}},body:{appendChild(){}},createElement(){return {click(){},remove(){}}}},
@@ -55,18 +55,18 @@ function harness(entries=[item('Milk',1500,'volume')],options={}){
 test('legacy manual retailer choice migrates once to ASDA while preserving meal preferences and saved data',()=>{
   const app=harness();
   assert.equal(app.state.shoppingStore,'Asda');
-  assert.deepEqual(app.state.profile.supermarkets,['Aldi']);
+  assert.deepEqual(Array.from(app.state.profile.supermarkets),['Asda']);
   assert.equal(app.state.packQuotes.Asda.milk.volume.price,999);
-  assert.equal(app.state.automaticPricingVersion,1);
-  const explicit=harness(undefined,{state:{shoppingStore:'Aldi',automaticPricingVersion:1}});
-  assert.equal(explicit.state.shoppingStore,'Aldi');
+  assert.equal(app.state.automaticPricingVersion,2);
+  const explicit=harness(undefined,{state:{shoppingStore:'Lidl',profile:{supermarket:'Lidl',supermarkets:['Lidl']},automaticPricingVersion:2}});
+  assert.equal(explicit.state.shoppingStore,'Lidl');
 });
 
 test('consumer shopping flow has no manual prices, sparse link tables or generic estimates',()=>{
   assert.doesNotMatch(html,/Set shelf price|Set pack & price|Record price I checked|id="newCost"|id="editCost"|DIRECT_RETAILER_PRODUCTS|PACK_CATALOG/);
   const app=harness();
-  assert.match(app.readItem('milk'),/Finding the best ASDA packs/);
-  assert.doesNotMatch(app.readItem('milk'),/No reliable ASDA match/);
+  assert.match(app.readItem('milk'),/Finding the best supermarket packs/);
+  assert.doesNotMatch(app.readItem('milk'),/No reliable supermarket match/);
   assert.match(app.readPlanner(),/prices are filled in automatically/);
 });
 
@@ -80,7 +80,7 @@ test('catalogue response updates basket totals, packs and product links without 
   assert.match(app.readPlanner(),/£1.65/);
   assert.doesNotMatch(app.readPlanner(),/999|generic|Recorded/);
   assert.match(app.readItem('milk'),/ASDA Semi Skimmed Milk/);
-  assert.match(app.readItem('milk'),/View at ASDA/);
+  assert.match(app.readItem('milk'),/View at Asda/);
   assert.ok(app.rendered.some(markup=>markup.includes('£1.65')),'automatic response rerenders prices');
   const text=app.copyText();
   assert.match(text,/Basket total: £1.65/);
@@ -117,13 +117,11 @@ test('fresh produce estimates keep the exact sale pack and clearly label approxi
   assert.match(app.readPlanner(),/Estimated weights and their assumptions/);
 });
 
-test('unsupported retailer displays honest missing automatic data and never creates a fake basket price',async()=>{
-  const app=harness(undefined,{state:{shoppingStore:'Aldi',automaticPricingVersion:1}});
-  await app.load();
-  assert.equal(app.requests,0);
-  assert.equal(app.readBasket().priced,0);
-  assert.match(app.readItem('milk'),/Automatic price unavailable for Aldi/);
-  assert.match(app.readSummary(),/Aldi catalogue prices are not connected/);
+test('Lidl uses its own published prices and never an Asda response',async()=>{
+  const profile={supermarket:'Lidl',supermarkets:['Lidl'],budget:45};
+  const app=harness(undefined,{state:{shoppingStore:'Lidl',profile},respond:rows=>rows.map(row=>({key:row.key,confidence:'high',match:{productName:'Milbona Milk',url:'https://www.lidl.co.uk/p/milk/p10000029',priceGBP:null,packSize:'1L'},plan:null}))});
+  await app.load();assert.equal(app.requests,1);assert.equal(app.readBasket().priced,0);assert.equal(app.readBasket().complete,false);
+  assert.match(app.readItem('milk'),/Milbona Milk/);assert.match(app.readItem('milk'),/Price unavailable/);
   assert.doesNotMatch(app.readPlanner(),/£999|£1.65|generic/);
 });
 
@@ -132,7 +130,7 @@ test('changing quantity immediately removes obsolete totals until the new automa
   await app.load();
   entries[0][1].groups.volume.remaining=4500;
   assert.equal(app.readBasket().priced,0);
-  assert.match(app.readItem('milk'),/Finding the best ASDA packs/);
+  assert.match(app.readItem('milk'),/Finding the best supermarket packs/);
   await app.load();
   assert.equal(app.readBasket().packs,3);
   assert.equal(app.readBasket().total,4.949999999999999);
@@ -159,7 +157,7 @@ test('visible meal prices leave the loading state after terminal failures withou
   await app.load();
   assert.equal(app.requests,3);
   assert.equal(app.readState().status,'error');
-  assert.ok(app.views.some(view=>view.text==='Calculating ASDA cost…'));
+  assert.ok(app.views.some(view=>view.text==='Calculating supermarket cost…'));
   assert.equal(app.views.at(-1).text,'Some ingredient prices unavailable');
   assert.ok(app.views.every(view=>view.view==='home'));
 });
@@ -174,8 +172,8 @@ test('automatic price refresh avoids home generation recursion when the meal pla
 test('regional catalogue provenance expands region abbreviations for consumers',async()=>{
   const app=harness(undefined,{respond:rows=>rows.map(row=>({...recommendation(row),match:{...recommendation(row).match,priceRegion:'EN'}}))});
   await app.load();
-  assert.match(app.readItem('milk'),/England ASDA catalogue price/);
-  assert.doesNotMatch(app.readItem('milk'),/>EN ASDA catalogue price/);
+  assert.match(app.readItem('milk'),/England supermarket catalogue price/);
+  assert.doesNotMatch(app.readItem('milk'),/>EN supermarket catalogue price/);
 });
 
 test('CSV export carries automatic products, pack prices and totals and protects spreadsheet formula cells',async()=>{

@@ -12,7 +12,7 @@ for (const [id,cat] of [['b1','Breakfast'],['s1','Snack']])recipes.push({id,name
 function harness(options = {}) {
   let saved = 0, activeRequest, requestedBody;
   const state = { profile: { days: 7, meals: 4, people: 1, budget: 45, calories: 2000, protein: 200 }, week: [{ day: 'Old day', meals: ['0', '1', '2', '3'] }], mealServings: {}, locked: {}, pantry: [], favorites: [], prepPlan: { checked: { old: true }, storage: {} }, ...options.state };
-  const context = { state, recipes, AbortController, DOMException, console, setTimeout, clearTimeout,
+  const context = { selectedShoppingStore:()=>state.profile.supermarket||'Asda', state, recipes, AbortController, DOMException, console, setTimeout, clearTimeout,
     recipeAllowed: () => true, recipeCategory: recipe => recipe.cat, recipeNutrition: recipe => recipe.nutrition,
     mealKey: (day, index) => `${day}::${index}`, getMealServings: (day, index) => state.mealServings[`${day}::${index}`] || state.profile.people,
     automaticCatalogItems: entries => entries.flatMap(([key, item]) => Object.entries(item.groups).filter(([, group]) => group.remaining > .000001).map(([dimension, group]) => ({ key: `${key}::${dimension}`, name: item.name, dimension, quantity: group.remaining }))),

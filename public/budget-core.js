@@ -45,6 +45,13 @@
   }
   function dayNames(count) { const names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']; return Array.from({ length: count }, (_, i) => names[i % 7] + (i >= 7 ? ' (Week 2)' : '')); }
   function mealSlots(count) { return Number(count) === 2 ? ['Lunch', 'Dinner'] : Number(count) === 3 ? ['Breakfast', 'Lunch', 'Dinner'] : ['Breakfast', 'Lunch', 'Dinner', 'Snack']; }
+  function dishFamily(recipe) {
+    if (recipe?.dishFamily) return String(recipe.dishFamily);
+    const ingredients=(recipe?.ings||[]).map(row=>canonicalIngredientName(row[0])).join(' ');
+    if (/\beggs?\b/.test(ingredients)&&/\blentils?\b/.test(ingredients)&&/\btomato/.test(ingredients)) return 'eggs-tomato-lentils';
+    return String(recipe?.id||'');
+  }
+  function distinctDishes(rows) {const keys=rows.map(dishFamily);return new Set(keys).size===keys.length;}
   // Shared by the browser and worker so a successful budget response is also
   // checked against the same visible variety policy before it replaces a plan.
   function proteinFamily(recipe) {
@@ -72,6 +79,12 @@
     const policy = varietyPolicy(profile, week.length || Number(profile.days) || 7), byId = new Map(recipes.map(recipe => [recipe.id, recipe]));
     const categoryIds = Object.fromEntries(mealSlots(Number(profile.meals) || week[0]?.meals?.length || 4).map(category => [category, new Set()])), recipeCounts = Object.create(null), families = Object.create(null), violations = [];
     let mainMeals = 0;
+    for (const day of week) {
+      const rows=(day.meals||[]).map(id=>byId.get(id)).filter(Boolean);
+      if (!distinctDishes(rows)) violations.push(`${day.day||'A day'} repeats the same dish in different meal slots.`);
+      const slots=mealSlots(Number(profile.meals)||day.meals?.length||4);
+      rows.forEach((recipe,index)=>{const category=recipe.cat==='Fruit'?'Snack':recipe.cat;if(category!==slots[index])violations.push(`${recipe.name||recipe.id} does not belong in the ${slots[index]} slot.`);});
+    }
     for (const [dayIndex, day] of week.entries()) for (const [slot, id] of (day.meals || []).entries()) {
       const recipe = byId.get(id);
       if (!recipe) continue;
@@ -130,5 +143,5 @@
     }
     return Object.fromEntries(Object.entries(map).filter(([, item]) => item.unknown || Object.values(item.groups).some(group => group.remaining > .000001)));
   }
-  root.MealBudgetCore = Object.freeze({ canonicalIngredientName, isCookingWater, unitMeta, buildShopping, dayNames, mealSlots, produceGrams, spiceGrams, proteinFamily, varietyPolicy, inspectVariety });
+  root.MealBudgetCore = Object.freeze({ canonicalIngredientName, isCookingWater, unitMeta, buildShopping, dayNames, mealSlots, produceGrams, spiceGrams, proteinFamily, dishFamily, distinctDishes, varietyPolicy, inspectVariety });
 })(globalThis);

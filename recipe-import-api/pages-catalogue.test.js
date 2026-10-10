@@ -30,7 +30,7 @@ function automaticMatchingHarness(fetch) {
   let now = Math.floor(Date.now() / 1000) * 1000;
   const renders = [];
   const timerDelays = [];
-  const context = {
+  const context = { RETAILER_NAMES:['Asda','Lidl'],
     fetch, AbortController, DOMException, console,
     state: { week: [], profile: { budget: 45 } },
     Date: { now: () => now, parse: Date.parse },
@@ -168,7 +168,7 @@ const products = [
   { name: 'ASDA 6 Bananas', category: 'Fresh Fruit, Vegetables & Flowers > Fresh Fruit > Bananas', availability: 'listed_online', packQuantity: 6, packUnit: 'pieces', price: 0.94 },
   { name: 'ASDA Banana Chips 75g', category: 'Fresh Fruit, Vegetables & Flowers > Raw Nuts, Seeds & Dried Fruit > Dried Fruit', availability: 'listed_online', packQuantity: 75, packUnit: 'g', price: 1.25 },
 ];
-const context = { products };
+const context = { RETAILER_NAMES:['Asda','Lidl'], products };
 vm.runInNewContext(html.slice(start, end) + '\nglobalThis.findProduct = findProduct;\nglobalThis.recipeCost = recipeCost;\nglobalThis.packCount = packCount;', context);
 
 test('Pages matching favours fresh produce and cooking spices over unrelated products', () => {

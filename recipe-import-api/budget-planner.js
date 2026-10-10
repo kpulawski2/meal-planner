@@ -189,7 +189,7 @@ function withLocks(template, name, request, rowsById, targets, people, slots) {
   if (!locked.some(Boolean)) return template;
   const current = currentDay(request, name, rowsById, slots, people); if (!current) return null;
   const rows = template.rows.map((row, slot) => locked[slot] ? current.rows[slot] : row), fixed = locked.map((value, slot) => value ? current.factors[slot] : null);
-  if (rows.some(row => !row.n.complete)) return null;
+  if (rows.some(row => !row.n.complete) || !Core.distinctDishes(rows)) return null;
   const choices = portionChoices(rows, targets, fixed, request.profile); return choices[0] ? { rows, factors: choices[0].factors } : null;
 }
 
@@ -209,6 +209,7 @@ async function dailyTemplates(pools, slots, targets, profile, people, stock, boo
     const sides = index => {
       if (index === sideIndexes.length) {
         combinations++;
+        if (!Core.distinctDishes(base)) return;
         const k = base.reduce((sum, row) => sum + row.n.kcal, 0), p = base.reduce((sum, row) => sum + row.n.p, 0);
         if (p * 2 + EPS < targets.protein || k * 2 + EPS < targets.min || k * .5 > targets.max + EPS) return;
         const factor = Math.max(.5, targets.min / k, targets.protein / Math.max(EPS, p));
@@ -393,18 +394,19 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
 
 export async function optimizeMealPlan(request, { signal } = {}) {
   const started = Date.now(), profile = request.profile || {}, daysCount = Math.round(clamp(profile.days, 1, 14, 7)), people = clamp(profile.people, 1, 50, 1);
+  const store = profile.supermarket || 'Asda';
   const slots = Core.mealSlots(clamp(profile.meals, 2, 4, 4)), names = Core.dayNames(daysCount), weeklyBudgetGBP = clamp(profile.budget, 0, 10000, 45), budgetGBP = weeklyBudgetGBP * daysCount / 7;
   const targets = { min: clamp(profile.calories, 200, 10000, 2000) * .9, max: clamp(profile.calories, 200, 10000, 2000) * 1.1, protein: clamp(profile.protein, 0, 1000, 200) };
   const budgetCents = pennies(budgetGBP), pantry = Array.isArray(request.pantry) ? request.pantry : [], favorites = Array.isArray(request.favorites) ? request.favorites : [];
   const recipes = (Array.isArray(request.recipes) ? request.recipes : []).filter(recipe => recipe && Array.isArray(recipe.ings) && allowedRecipe(recipe, profile)).map(prepareRecipe);
   const byId = new Map(recipes.map(recipe => [recipe.id, recipe])), items = new Map();
   for (const recipe of recipes) for (const [name, , unit] of recipe.ings) { if (Core.isCookingWater(name)) continue; const meta = Core.unitMeta(unit, name), key = bookKey(name, meta.dim); if (!items.has(key)) items.set(key, { key, name, dimension: meta.dim }); }
-  const unavailable = reason => ({ status: 'unavailable', week: request.week || [], mealServings: request.mealServings || {}, basket: { complete: false, totalCostGBP: null, recommendations: [] }, budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP) }, variety: Core.inspectVariety(request.week || [], recipes, profile), goals: goalReport(profile), warnings: [reason], diagnostics: { elapsedMs: Date.now() - started } });
+  const unavailable = reason => ({ store, status: 'unavailable', week: request.week || [], mealServings: request.mealServings || {}, basket: { store, complete: false, totalCostGBP: null, recommendations: [] }, budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP) }, variety: Core.inspectVariety(request.week || [], recipes, profile), goals: goalReport(profile), warnings: [reason], diagnostics: { elapsedMs: Date.now() - started } });
   if (!recipes.length) return unavailable('No allowed recipes are available. Add recipes with complete ingredient quantities and nutrition.');
   if (items.size > 400) return unavailable('This recipe selection contains more than 400 different ingredient requirements. Select a smaller recipe library to calculate the budget safely.');
   signal?.throwIfAborted();
   let catalogue;
-  try { catalogue = await catalogPurchaseOffers([...items.values()], { signal }); }
+  try { catalogue = await catalogPurchaseOffers([...items.values()], { signal, store }); }
   catch (error) { if (signal?.aborted) throw error; return unavailable(error.message); }
   const books = new Map(), stock = stockAmounts(pantry);
   for (const [index, row] of catalogue.rows.entries()) {
@@ -412,7 +414,7 @@ export async function optimizeMealPlan(request, { signal } = {}) {
     if (index % 8 === 7) { signal?.throwIfAborted(); await yieldToWorker(); }
   }
   const pools = safePools(recipes, slots, stock, people, daysCount, books, profile, favorites), warnings = [];
-  if (pools.some(pool => !pool.length)) return unavailable('At least one meal category has no allowed recipe with complete nutrition and automatic ingredient pricing. Add suitable recipes or check the exclusions.');
+  if (pools.some(pool => !pool.length)) return unavailable(`At least one meal category has no suitable recipe with complete nutrition and published ${store} ingredient prices.${store === 'Lidl' ? ' Lidl does not publish prices for many everyday products, so this budget cannot be verified automatically yet.' : ''} Your saved plan was kept.`);
   const generated = await dailyTemplates(pools, slots, targets, profile, people, stock, books, signal), { templates, examined, combinations } = generated;
   if (!templates.length) return unavailable('The search could not find complete daily meals within the nutrition range. No dietary or nutrition needs have been reduced; add suitable recipes or review the targets.');
   const searched = await searchWeek(templates, names, request, byId, slots, targets, people, stock, books, budgetCents, signal);
@@ -458,8 +460,8 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   const uniqueMeals = new Set(plan.week.flatMap(day => day.meals)).size;
   if (!variety.met) warnings.push('No plan meeting the required meal variety was found. Repetition and protein-family limits have not been relaxed. Add alternatives, unlock conflicting meals or review the budget and targets.');
   if (Object.values(shopping).some(item => item.quantityNotes?.length)) warnings.push('Shopping quantities include labelled typical weights and cooking conversions. Actual weights and local prices can vary.');
-  return { status: feasible ? 'feasible' : 'no_feasible_plan', ...plan,
-    basket: { totalCostGBP: round(totalCents / 100), complete, items: basketItems, recommendations, indexSize: catalogue.indexSize, refreshedAt: catalogue.refreshedAt },
+  return { store, status: feasible ? 'feasible' : 'no_feasible_plan', ...plan,
+    basket: { store, totalCostGBP: round(totalCents / 100), complete, items: basketItems, recommendations, indexSize: catalogue.indexSize, refreshedAt: catalogue.refreshedAt },
     nutrition: { days: nutritionDays, calorieMin: targets.min, calorieMax: targets.max, proteinTarget: targets.protein, perPerson: true, source: 'recipe nutrition estimates' },
     budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP), overGBP: round(Math.max(0, totalCents - budgetCents) / 100), household: true },
     variety, goals, warnings, diagnostics: { elapsedMs: Date.now() - started, searchCostGBP: round(best.cost / 100), combinations, evaluatedPortions: examined, weekExpansions: searched.expansions, stages: searched.stages, searchVarietyViolations: searched.searchVarietyViolations, recipeCount: recipes.length, ingredientCount: books.size, uniqueMeals, search: 'bounded main-meal pairs and weekly beam search, goal-aware portions, shared full-pack basket, hard variety and nutrition limits' } };
