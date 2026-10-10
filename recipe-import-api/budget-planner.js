@@ -1,4 +1,5 @@
 import '../public/budget-core.js';
+import '../public/recipe-library-core.js';
 import { catalogPurchaseOffers, calculatePackPurchase } from './catalog-adapter.js';
 import { setImmediate as yieldToWorker } from 'node:timers/promises';
 import { activeGoals, recipeQuality, dailyQuality, goalReport } from './planner-quality.js';
@@ -11,6 +12,7 @@ const round = (value, digits = 2) => Number(value.toFixed(digits));
 const bookKey = (name, dimension) => `${Core.canonicalIngredientName(name)}::${dimension}`;
 
 function allowedRecipe(recipe, profile) {
+  if (!globalThis.RecipeLibraryCore.equipmentAllowed(recipe, profile)) return false;
   const ingredients = (recipe.ings || []).map(row => String(row[0]).toLowerCase()), hay = `${recipe.name} ${ingredients.join(' ')}`.toLowerCase();
   const dislikes = String(profile.dislikes || '').toLowerCase().split(',').map(value => value.trim()).filter(Boolean);
   if (dislikes.some(value => hay.includes(value))) return false;
@@ -71,7 +73,7 @@ function prepareRecipe(recipe) {
     if (!(quantity > 0) || !Number.isFinite(quantity) || !String(name).trim()) { known = false; continue; }
     amounts.set(key, (amounts.get(key) || 0) + quantity * meta.factor / yieldCount);
   }
-  return { ...recipe, n: nutritionOf(recipe), amounts, known };
+  return { ...recipe, servings: yieldCount, n: nutritionOf(recipe), amounts, known };
 }
 
 function nutritionValid(rows, factors, targets) {
@@ -131,8 +133,13 @@ function stockAmounts(pantry) {
 }
 
 function requirementAmounts(days, people) {
-  const amounts = new Map();
-  for (const day of days) for (let index = 0; index < day.rows.length; index++) for (const [key, quantity] of day.rows[index].amounts) amounts.set(key, (amounts.get(key) || 0) + quantity * day.factors[index] * people);
+  const amounts = new Map(), batches = new Map();
+  for (const day of days) for (let index = 0; index < day.rows.length; index++) {
+    const row=day.rows[index],portions=day.factors[index]*people;
+    if(row.fixedBatch){const use=batches.get(row.id)||{row,portions:0};use.portions+=portions;batches.set(row.id,use);}
+    else for (const [key, quantity] of row.amounts) amounts.set(key, (amounts.get(key) || 0) + quantity * portions);
+  }
+  for(const {row,portions} of batches.values())for(const [key,quantity]of row.amounts)amounts.set(key,(amounts.get(key)||0)+quantity*Math.ceil((portions-EPS)/row.servings)*row.servings);
   return amounts;
 }
 
@@ -259,9 +266,35 @@ async function dailyTemplates(pools, slots, targets, profile, people, stock, boo
   return { templates: [...selected].sort((a, b) => a.rank - b.rank), examined, combinations };
 }
 
+function batchUses(template, people) {
+  const uses = new Map();
+  template.rows.forEach((row, index) => {
+    if (!row.fixedBatch) return;
+    const use = uses.get(row.id) || { row, portions: 0 };
+    use.portions += template.factors[index] * people;
+    uses.set(row.id, use);
+  });
+  return [...uses.values()];
+}
+
+function candidateAmounts(state, template) {
+  if (!template.batchRecipes?.length) return template.amounts;
+  const amounts = new Map(template.amounts);
+  for (const { row, portions } of template.batchRecipes) {
+    const yieldSize = Math.max(EPS, Number(row.servings) || 1);
+    const previous = state.batchPortions.get(row.id) || 0;
+    const bought = value => Math.max(0, Math.ceil((value - EPS) / yieldSize)) * yieldSize;
+    // A prepared tub can supply several days. Only charge ingredients for
+    // additional whole tubs, while nutrition follows the portions consumed.
+    const adjustment = bought(previous + portions) - bought(previous) - bought(portions);
+    for (const [key, quantity] of row.amounts) amounts.set(key, (amounts.get(key) || 0) + quantity * adjustment);
+  }
+  return amounts;
+}
+
 function candidateCost(state, template, stock, books) {
   let cost = state.cost;
-  for (const [key, quantity] of template.amounts) {
+  for (const [key, quantity] of candidateAmounts(state, template)) {
     const previous = state.amounts.get(key) || 0, book = books.get(key), inventory = stock.get(key) || 0;
     const oldCost = book?.cost(Math.max(0, previous - inventory)) ?? (previous <= inventory + EPS ? 0 : Infinity);
     const newCost = book?.cost(Math.max(0, previous + quantity - inventory)) ?? (previous + quantity <= inventory + EPS ? 0 : Infinity);
@@ -278,7 +311,7 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
   const saveMoney = activeGoals(profile).includes('Save money'), easy = activeGoals(profile).includes('Make cooking easier');
   const width = names.length > 7 ? 90 : 72;
   const repeatLimits = slots.map(slot => ['Lunch', 'Dinner'].includes(slot) ? policy.repeatLimit : policy.sideRepeatLimit), minimumDistinct = slots.map(slot => ['Lunch', 'Dinner'].includes(slot) ? policy.minimumDistinct : policy.minimumSideDistinct);
-  const clean = { days: [], amounts: new Map(), cost: 0, quality: 0, batches: new Set(), counts: new Map(), distinct: slots.map(() => new Set()), families: new Map(), rank: 0 };
+  const clean = { days: [], amounts: new Map(), batchPortions: new Map(), cost: 0, quality: 0, batches: new Set(), counts: new Map(), distinct: slots.map(() => new Set()), families: new Map(), rank: 0 };
   const shapeOf = proposal => {
     const familyCounts = new Map(proposal.state.families);
     for (const index of mainIndexes) { const family = proposal.template.rows[index].family; familyCounts.set(family, (familyCounts.get(family) || 0) + 1); }
@@ -292,6 +325,7 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
       const signature = template.rows.map(row => row.id).join('|') + '::' + template.factors.map(value => round(value, 5)).join(',');
       if (seenDay.has(signature)) continue; seenDay.add(signature);
       if (!template.amounts) { template.amounts = requirementAmounts([template], people); template.quality = dailyQuality(template.rows, template.factors, profile); }
+      if (!template.batchRecipes) template.batchRecipes = batchUses(template, people);
       options.push(template);
     }
     const proposals = [];
@@ -332,15 +366,16 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
     proposals.sort((a, b) => a.rank - b.rank || a.cost - b.cost || a.quality - b.quality);
     const selected = [], signatures = new Set(), shapes = new Map();
     for (const proposal of proposals) {
-      const key = [...proposal.state.counts].map(([id, count]) => `${id}:${count}`).sort().join('|') + '>' + proposal.template.rows.map(row => row.id).join('|') + '::' + proposal.cost + '::' + Math.round(proposal.quality / 25);
+      const key = [...proposal.state.counts].map(([id, count]) => `${id}:${count}`).sort().join('|') + '>' + proposal.template.rows.map(row => row.id).join('|') + '::' + proposal.cost + '::' + Math.round(proposal.quality / 25) + '::' + [...proposal.state.batchPortions].map(([id, quantity]) => `${id}:${round(quantity, 5)}`).sort().join('|');
       if (signatures.has(key)) continue;
       const shape = shapeOf(proposal);
       if ((shapes.get(shape) || 0) >= 4) continue;
       shapes.set(shape, (shapes.get(shape) || 0) + 1); signatures.add(key); selected.push(proposal); if (selected.length >= width) break;
     }
     beam = selected.map(({ state, template, cost, quality, rank }) => {
-      const next = { days: [...state.days, template], amounts: new Map(state.amounts), cost, quality, rank, batches: new Set([...state.batches, ...template.rows.map(row => row.id)]), counts: new Map(state.counts), distinct: state.distinct.map(value => new Set(value)), families: new Map(state.families) };
-      for (const [key, quantity] of template.amounts) next.amounts.set(key, (next.amounts.get(key) || 0) + quantity);
+      const next = { days: [...state.days, template], amounts: new Map(state.amounts), batchPortions: new Map(state.batchPortions), cost, quality, rank, batches: new Set([...state.batches, ...template.rows.map(row => row.id)]), counts: new Map(state.counts), distinct: state.distinct.map(value => new Set(value)), families: new Map(state.families) };
+      for (const [key, quantity] of candidateAmounts(state, template)) next.amounts.set(key, (next.amounts.get(key) || 0) + quantity);
+      for (const { row, portions } of template.batchRecipes) next.batchPortions.set(row.id, (next.batchPortions.get(row.id) || 0) + portions);
       template.rows.forEach((row, index) => { next.counts.set(row.id, (next.counts.get(row.id) || 0) + 1); next.distinct[index].add(row.id); if (mainIndexes.includes(index)) next.families.set(row.family, (next.families.get(row.family) || 0) + 1); });
       return next;
     });
@@ -427,5 +462,5 @@ export async function optimizeMealPlan(request, { signal } = {}) {
     basket: { totalCostGBP: round(totalCents / 100), complete, items: basketItems, recommendations, indexSize: catalogue.indexSize, refreshedAt: catalogue.refreshedAt },
     nutrition: { days: nutritionDays, calorieMin: targets.min, calorieMax: targets.max, proteinTarget: targets.protein, perPerson: true, source: 'recipe nutrition estimates' },
     budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP), overGBP: round(Math.max(0, totalCents - budgetCents) / 100), household: true },
-    variety, goals, warnings, diagnostics: { elapsedMs: Date.now() - started, combinations, evaluatedPortions: examined, weekExpansions: searched.expansions, stages: searched.stages, searchVarietyViolations: searched.searchVarietyViolations, recipeCount: recipes.length, ingredientCount: books.size, uniqueMeals, search: 'bounded main-meal pairs and weekly beam search, goal-aware portions, shared full-pack basket, hard variety and nutrition limits' } };
+    variety, goals, warnings, diagnostics: { elapsedMs: Date.now() - started, searchCostGBP: round(best.cost / 100), combinations, evaluatedPortions: examined, weekExpansions: searched.expansions, stages: searched.stages, searchVarietyViolations: searched.searchVarietyViolations, recipeCount: recipes.length, ingredientCount: books.size, uniqueMeals, search: 'bounded main-meal pairs and weekly beam search, goal-aware portions, shared full-pack basket, hard variety and nutrition limits' } };
 }

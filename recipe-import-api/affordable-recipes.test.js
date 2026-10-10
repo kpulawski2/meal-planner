@@ -4,7 +4,7 @@ import { readRecipeLibrary } from './recipe-fixtures.js';
 import { recommendCatalogItems } from './catalog-service.js';
 import '../public/budget-core.js';
 
-const recipes = await readRecipeLibrary();
+const recipes = await readRecipeLibrary({ includeCollections: false });
 const added = recipes.filter(recipe => recipe.id.startsWith('afford-'));
 test('the additional recipe library has quantified original meals and complete ingredient estimates', () => {
   assert.equal(added.length, 72);

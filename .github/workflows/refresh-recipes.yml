@@ -1,0 +1,62 @@
+name: Refresh open recipe library
+
+on:
+  schedule:
+    - cron: '15 6 1 * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/refresh-recipes.yml'
+      - 'recipe-import-api/recipe-library*'
+      - 'recipe-import-api/refresh-recipe-library.js'
+      - 'data/recipe-library*'
+      - 'docs/recipe-library-licence.md'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recipe-library-refresh-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Test recipe normalization and partial refresh protection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund --ignore-scripts
+      - run: node --check recipe-import-api/refresh-recipe-library.js
+      - run: node --test recipe-import-api/recipe-library.test.js
+
+  refresh:
+    name: Refresh complete freely licensed Wikibooks collection
+    needs: validate
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund --ignore-scripts
+      - name: Fetch every source page, validate and atomically publish
+        run: node recipe-import-api/refresh-recipe-library.js
+      - name: Commit refreshed open recipes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- data/recipe-library.json data/recipe-library-meta.json
+          if git diff --cached --quiet; then
+            echo 'Recipe library is unchanged.'
+          else
+            git commit -m 'Refresh freely licensed Wikibooks recipe library'
+            git pull --rebase origin main
+            git push
+          fi

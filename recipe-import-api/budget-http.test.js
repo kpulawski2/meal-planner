@@ -4,10 +4,11 @@ import { once } from 'node:events';
 import { setTimeout as pause } from 'node:timers/promises';
 import { performance } from 'node:perf_hooks';
 import { readRecipeLibrary } from './recipe-fixtures.js';
+import '../public/recipe-library-core.js';
 
 test('the phone budget request checks a real whole-catalogue plan while health remains responsive', { timeout: 120000 }, async t => {
   const library = await readRecipeLibrary();
-  const recipes = library.map(recipe => ({ id: recipe.id, name: recipe.name, cat: recipe.cat, ings: recipe.ings, servings: recipe.servings || 1, cookTime: recipe.cookTime ?? null, proteinFamily: recipe.proteinFamily, tags: recipe.tags, nutrition: recipe.nutrition }));
+  const recipes = globalThis.RecipeLibraryCore.selectPlannerRecipes(library).map(recipe => ({ id: recipe.id, name: recipe.name, cat: recipe.cat, ings: recipe.ings, servings: recipe.servings || 1, cookTime: recipe.cookTime ?? null, equipment: recipe.equipment, fixedBatch: recipe.fixedBatch, freezeMinutes: recipe.freezeMinutes, proteinFamily: recipe.proteinFamily, tags: recipe.tags, nutrition: recipe.nutrition }));
   const payload = { profile: { days: 7, meals: 4, people: 1, calories: 2000, protein: 200, budget: 45, avoidRepeat: true, varietyMode: 'Balanced', goal: ['Eat healthy', 'Save money', 'Make cooking easier'] }, recipes, pantry: [], week: [], mealServings: {}, locked: {}, favorites: [] };
   process.env.PORT = '0';
   const { httpServer } = await import('./server.js');

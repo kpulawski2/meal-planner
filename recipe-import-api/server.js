@@ -84,9 +84,18 @@ const PUBLIC_DIR = path.resolve(process.cwd(), 'public');
 app.use(express.static(PUBLIC_DIR, {
   etag: true, maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0,
   setHeaders(res, filename) {
-    if (filename.endsWith('.html') || filename.endsWith('service-worker.js') || filename.endsWith('budget-core.js')) res.setHeader('Cache-Control', 'no-cache');
+    if (filename.endsWith('.html') || filename.endsWith('.js')) res.setHeader('Cache-Control', 'no-cache');
   },
 }));
+
+// Stream the licensed library instead of keeping thousands of source records
+// in the free server's heap. Browsers can cache the snapshot for offline use.
+app.get('/recipe-library.json', (_req, res) => {
+  res.set('Cache-Control', 'no-cache');
+  res.sendFile(path.resolve(process.cwd(), 'data', 'recipe-library.json'), error => {
+    if (error && !res.headersSent) res.status(503).json({ error: 'The web recipe library is temporarily unavailable. Everyday recipes are still available.' });
+  });
+});
 
 function safeEqual(a, b) {
   const aa = Buffer.from(String(a || ''));

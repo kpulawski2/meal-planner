@@ -6,6 +6,10 @@ import {readFile} from 'node:fs/promises';
 const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
 const core=await readFile(new URL('../public/budget-core.js',import.meta.url),'utf8');
 const affordable=await readFile(new URL('../public/affordable-recipes.js',import.meta.url),'utf8');
+const creami=await readFile(new URL('../public/creami-recipes.js',import.meta.url),'utf8');
+const libraryCore=await readFile(new URL('../public/recipe-library-core.js',import.meta.url),'utf8');
+const world=await readFile(new URL('../public/world-recipes.js',import.meta.url),'utf8').catch(()=> 'globalThis.WORLD_RECIPES=[];');
+const worldContext={};vm.runInNewContext(world,worldContext);const shippedRecipeCount=220+worldContext.WORLD_RECIPES.length;
 function source(start,end){const from=html.indexOf(start),to=html.indexOf(end,from+start.length);assert.ok(from>=0&&to>from,start);return html.slice(from,to);}
 function element(value=''){const classes=new Set();return {value,files:[],style:{},textContent:'',innerHTML:'',disabled:false,attributes:{},dataset:{},classList:{toggle(name,on){if(on)classes.add(name);else classes.delete(name);},contains:name=>classes.has(name)},setAttribute(name,value){this.attributes[name]=value;},focus(){this.focused=true;},scrollIntoView(){}};}
 function importHarness(options={}){
@@ -34,9 +38,9 @@ test('the complete app starts and renders every panel with a new or saved plan',
   const storage=new Map([['mealPlannerState',JSON.stringify(state)]]);
   const context={AbortController,DOMException,AbortSignal,FormData,Blob,console,navigator:{},location:{origin:'https://meal-planner.example',protocol:'https:',hostname:'meal-planner.example'},localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)},document:{hidden:false,getElementById:id=>elements[id]||(elements[id]=element()),querySelectorAll:selector=>selector==='.tabs button'?nav:selector==='.screen'?['home','week','shop','pantry','recipes','profile'].map(id=>elements[id]):[],querySelector:selector=>selector==='.screen.active'?{id:'home'}:null,addEventListener(){}},setTimeout:()=>0,clearTimeout(){},fetch:async()=>({ok:false,status:503,text:async()=>''})};
   const scrolls=[];context.window=context;context.addEventListener=()=>{};context.scrollTo=options=>scrolls.push(options);
-  vm.runInNewContext(core+'\n'+affordable+'\n'+inline,context);
+  vm.runInNewContext(core+'\n'+affordable+'\n'+creami+'\n'+world+'\n'+libraryCore+'\n'+inline,context);
   for(const id of ['home','week','shop','pantry','recipes','profile'])assert.ok(elements[id].innerHTML.length>30,id+' rendered on '+(existingPlan?'saved':'fresh')+' startup');
-  assert.match(elements.recipes.innerHTML,/196 recipes/);
+  assert.ok(elements.recipes.innerHTML.includes(shippedRecipeCount+' recipes'));
   assert.match(elements.recipeResults.innerHTML,/View recipe/);
   assert.match(elements.profile.innerHTML,/Make it your week/);
   assert.equal(context.recipeCategory({cat:'snacks'}),'Snack');

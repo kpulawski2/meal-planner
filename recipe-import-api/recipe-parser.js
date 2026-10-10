@@ -51,7 +51,7 @@ export function parseIngredientLine(raw) {
   let name = original, quantity = null, unit = 'unknown', notes = '';
   // Retain ambiguous ranges verbatim instead of undercounting the shopping list.
   if (new RegExp(`^${NUMBER}\\s*(?:[-–]|to)\\s*${NUMBER}`, 'i').test(text)) {
-    const match = text.match(new RegExp(`^${NUMBER}\\s*(?:[-–]|to)\\s*${NUMBER}\\s*(${UNITS})?\\s*(.*)$`, 'i'));
+    const match = text.match(new RegExp(`^${NUMBER}\\s*(?:[-–]|to)\\s*${NUMBER}\\s*(${UNITS}\\b)?\\s*(.*)$`, 'i'));
     name = match?.[2] || original; notes = `Quantity range in source: ${original}`;
   } else {
     text = text.replace(new RegExp(`^(${NUMBER})\\s*\\((${NUMBER})\\s*(${UNITS})\\)\\s*(?:tins?|cans?|packs?|packets?)\\s*(?:of\\s+)?(.+)$`, 'i'), '$1 x $2 $3 $4');

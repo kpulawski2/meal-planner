@@ -13,6 +13,7 @@
     const liquid = /(?:\bmilk\b|\bjuice\b|\bsauce\b|\bdressing\b|\bstock\b)/.test(ingredient) && !/powder|cube|concentrat/.test(ingredient);
     const oil = /\boil\b/.test(ingredient), honey = /\bhoney\b/.test(ingredient);
     const meta = (dim, factor, label, note = '') => ({ dim, factor, label, estimated: !!note, note });
+    if (['clove','cloves'].includes(u) && /\bgarlic\b/.test(ingredient)) return meta('mass', 3, 'g', 'Garlic cloves estimated at 3 g each; actual weights vary.');
     if (['g', 'gram', 'grams', 'kg', 'kilogram', 'kilograms'].includes(u)) {
       const factor = u.startsWith('k') ? 1000 : 1;
       if (oil || liquid) return meta('volume', factor / (oil ? .92 : 1), 'ml', oil ? 'Cooking oil density estimated at 0.92 g/ml.' : 'Liquid ingredient density estimated at 1 g/ml.');
@@ -98,15 +99,22 @@
   }
   function buildShopping({ week = [], recipes = [], mealServings = {}, people = 1, pantry = [] } = {}) {
     const byId = new Map(recipes.map(recipe => [recipe.id, recipe])), map = Object.create(null), stock = Object.create(null);
+    const uses=[], batches=new Map();
     for (const day of week) for (const [index, id] of (day.meals || []).entries()) {
       const recipe = byId.get(id); if (!recipe) { const key = `unknown recipe ${id}`; map[key] = { name: key, groups: Object.create(null), unknown: true, pantryNotes: [], quantityNotes: [] }; continue; }
-      const portions = Number(mealServings[`${day.day}::${index}`]) || Number(people) || 1, scale = portions / Math.max(1, Number(recipe.servings) || 1);
+      const portions = Number(mealServings[`${day.day}::${index}`]) || Number(people) || 1;
+      if(recipe.fixedBatch){const previous=batches.get(id)||{recipe,portions:0};previous.portions+=portions;batches.set(id,previous);}else uses.push({recipe,portions});
+    }
+    for(const use of batches.values())uses.push(use);
+    for(const {recipe,portions} of uses){
+      const yieldCount=Math.max(1,Number(recipe.servings)||1),purchased=recipe.fixedBatch?Math.ceil((portions-.000001)/yieldCount)*yieldCount:portions,scale=purchased/yieldCount;
       for (const [rawName, rawQuantity, rawUnit] of recipe.ings || []) {
         const name = String(rawName || '').trim().replace(/\s+/g, ' '); if (!name) continue;
         if (isCookingWater(name)) continue;
         const key = canonicalIngredientName(name), meta = unitMeta(rawUnit, name), quantity = Number(rawQuantity);
         const item = map[key] || (map[key] = { name, groups: Object.create(null), unknown: false, pantryNotes: [], quantityNotes: [] });
         if (meta.note && !item.quantityNotes.includes(meta.note)) item.quantityNotes.push(meta.note);
+        if(recipe.fixedBatch){const note=`${recipe.name}: ${purchased/yieldCount} full tub${purchased/yieldCount===1?'':'s'}, ${Number(Math.max(0,purchased-portions).toFixed(2))} extra serving${Math.abs(purchased-portions-1)<.000001?'':'s'} kept frozen.`;if(!item.quantityNotes.includes(note))item.quantityNotes.push(note);}
         if (!(quantity > 0) || !Number.isFinite(quantity)) { item.unknown = true; continue; }
         const group = item.groups[meta.dim] || (item.groups[meta.dim] = { need: 0, remaining: 0, label: meta.label, dim: meta.dim, pantry: 0, pantryUsed: 0 });
         group.need += quantity * scale * meta.factor;
