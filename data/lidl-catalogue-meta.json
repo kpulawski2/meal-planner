@@ -16,9 +16,9 @@
     "https://www.lidl.co.uk/static/sitemap.xml"
   ],
   "failed_pages": 0,
-  "refreshed_at": "2026-10-10T15:41:48Z",
-  "last_successful_at": "2026-10-10T15:41:48Z",
-  "duration_seconds": 264.25,
+  "refreshed_at": "2026-10-10T15:57:04Z",
+  "last_successful_at": "2026-10-10T15:57:04Z",
+  "duration_seconds": 316.14,
   "category_count": 101,
   "category_counts": {
     "Home > Decoration": 45,
@@ -138,6 +138,6 @@
   "price_coverage": 0.32429614181439,
   "grocery_products": 1345,
   "grocery_with_price": 310,
-  "products_sha256": "edddb3d99ede5b73a8f8a11a7d21622dd9b32c580719bf452bb1f3ef99c8cdd7",
-  "products_file_sha256": "9ebdec989aa84b11a44063145316d2b9079efce541721e0cf940e9d3aca90e8e"
+  "products_sha256": "4d132630d15d215f28d232ea59856753d3fd216961fa9a12a41bb9da4f1e2bf3",
+  "products_file_sha256": "3f359fb85b40dd10382918ca2053b4e16f100d27660da780ccd5624505552cf8"
 }
