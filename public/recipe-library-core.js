@@ -17,6 +17,7 @@
   const allowed=rows.filter(r=>r&&r.id&&(r.cookedOnly===true||equipmentAllowed(r,profile)&&(!root.RecipeExperience||root.RecipeExperience.allowedFeedback(r,state))));
   const byId=new Map(allowed.map(r=>[r.id,r])),selected=new Map();
   const keep=id=>{if(selected.size<max&&byId.has(id))selected.set(id,byId.get(id));};
+  if(profile.varietyMode==='Repeat favourites')for(const id of Object.values(profile.repeatMeals||{}))keep(id);
   for(const day of state.week||[])for(const id of day.meals||[])keep(id);
   for(const id of state.favorites||[])keep(id);
   for(const row of root.RecipeExperience?root.RecipeExperience.rank(allowed,state):[])if(root.RecipeExperience.feedbackValue(row,state)==='again')keep(row.id);

@@ -2,7 +2,10 @@
 
 A phone-friendly meal planner with recipes, pantry tracking, shopping lists and automatic ASDA product matching and pricing.
 
+The free consumer app also includes a dated food diary (common-food estimates, recipe portions and reusable food labels), a measured personal-recipe builder, and an explicit **Repeat favourites** planning mode. Choose three meals per day and a daily recipe for breakfast, lunch and dinner to keep a simple routine. Logged intake stays separate from planned meals, pantry and spending. See [consumer features](docs/consumer-features.md) for behaviour and limits.
+
 ## ASDA catalogue
+
 
 `data/products.json` is generated from the public, read-only ASDA product search index used by ASDA.com. The refresh walks every active online top-level category and splits large categories by the site's own department facets. It saves official product links, current regional prices (England, Northern Ireland, Scotland and Wales where supplied), pack sizes, SKU/CIN, brand, category, image URL, active online status, and dietary claims exposed by the search index. The app matches recipe ingredients against this snapshot.
 
@@ -28,7 +31,7 @@ Choose **Fit plan to budget** in Today, Plan or Shopping. The planner reads actu
 
 The weekly budget is for the whole household. A 14-day plan receives twice that amount; a 3-day plan receives three sevenths. Calories and protein are targets **per person, per day**. Accepted plans must keep every day within ±10% of the calorie target and at or above the protein target, with the requested meal count and household servings. Nutrition remains an estimate based on ingredient profiles or recipe values marked verified; it is not a guarantee of exact brand nutrition. The app does not calculate personal calorie targets from body measurements.
 
-The app includes **232 everyday recipes and fruit options**, including 12 measured lighter meals, **41 measured world recipe adaptations**, **24 original Ninja CREAMi formulations**, and a browsable freely licensed Wikibooks collection. The search compares suitable recipes, adjusts portions, and calculates shared whole-pack basket costs in integer pence. Goals influence recipe scoring: saving money favours full-pack savings and ingredient sharing; easier cooking favours shorter known cooking times and reusable batches; healthy eating favours vegetables, pulses and wholegrains; gaining muscle favours protein density. Losing weight prefers valid portions closer to 95% of the selected calorie target, within the unchanged ±10% range and protein minimum. Goals do not change the targets you set. **Keep meal** locks both a recipe and its portions; dietary exclusions remain constraints.
+The app includes **233 everyday recipes and fruit options**, including 12 measured lighter meals, **41 measured world recipe adaptations**, **24 original Ninja CREAMi formulations**, and a browsable freely licensed Wikibooks collection. The search compares suitable recipes, adjusts portions, and calculates shared whole-pack basket costs in integer pence. Goals influence recipe scoring: saving money favours full-pack savings and ingredient sharing; easier cooking favours shorter known cooking times and reusable batches; healthy eating favours vegetables, pulses and wholegrains; gaining muscle favours protein density. Losing weight prefers valid portions closer to 95% of the selected calorie target, within the unchanged ±10% range and protein minimum. Goals do not change the targets you set. **Keep meal** locks both a recipe and its portions; dietary exclusions remain constraints.
 
 ## Recipe collections and Ninja CREAMi
 

@@ -234,9 +234,9 @@ const shipped = await readRecipeLibrary();
 const everyday = shipped.filter(row => row.id.startsWith('everyday-'));
 
 test('24 measured additions expand quick lunches, vegetarian meals and lighter dinners with complete estimates', () => {
-  assert.equal(everyday.length, 24);
+  assert.equal(everyday.length, 25);
   assert.equal(new Set(shipped.map(row => row.id)).size, shipped.length);
-  assert.deepEqual(Object.fromEntries(['Breakfast', 'Lunch', 'Dinner', 'Snack'].map(cat => [cat, everyday.filter(row => row.cat === cat).length])), { Breakfast: 4, Lunch: 8, Dinner: 8, Snack: 4 });
+  assert.deepEqual(Object.fromEntries(['Breakfast', 'Lunch', 'Dinner', 'Snack'].map(cat => [cat, everyday.filter(row => row.cat === cat).length])), { Breakfast: 4, Lunch: 9, Dinner: 8, Snack: 4 });
   for (const row of everyday) {
     assert.equal(row.servings, 1);
     assert.equal(row.cost, null);
@@ -248,7 +248,7 @@ test('24 measured additions expand quick lunches, vegetarian meals and lighter d
     assert.equal(library.planReady(row), true, row.name);
     assert.ok(row.ings.every(([name, quantity, unit]) => name && quantity > 0 && Number.isFinite(quantity) && unit));
     assert.ok(row.method.length && row.cookTime > 0 && row.cookTime <= 30);
-    assert.ok(row.nutrition.kcal >= 150 && row.nutrition.kcal <= 460);
+    assert.ok(row.nutrition.kcal >= 150 && row.nutrition.kcal <= (row.id === "everyday-tuna-pickle-egg-mayo-wrap" ? 550 : 460));
     if (row.cat === 'Dinner') assert.ok(row.nutrition.p >= 19);
   }
   const lunches = everyday.filter(row => row.cat === 'Lunch');

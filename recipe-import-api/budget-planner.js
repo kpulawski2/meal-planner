@@ -194,7 +194,8 @@ function safePools(rows, slots, stock, people, days, books, profile, favorites) 
     row.priceable = row.known && [...row.amounts].every(([key, quantity]) => Number.isFinite(books.get(key)?.unitCost) || (stock.get(key) || 0) + EPS >= quantity * people * days * 2);
   }
   return slots.map(slot => {
-    const eligible = rows.filter(row => !row.cookedOnly && row.n.complete && row.priceable && (row.cat === slot || slot === 'Snack' && row.cat === 'Fruit'));
+    const chosen = profile.varietyMode === 'Repeat favourites' ? profile.repeatMeals?.[slot] : null;
+    const eligible = rows.filter(row => (!chosen || row.id === chosen) && !row.cookedOnly && row.n.complete && row.priceable && (row.cat === slot || slot === 'Snack' && row.cat === 'Fruit'));
     const value = eligible.slice().sort((a, b) => a.linear / Math.max(1, a.n.kcal + a.n.p * 10) - b.linear / Math.max(1, b.n.kcal + b.n.p * 10) || a.id.localeCompare(b.id));
     const protein = eligible.slice().sort((a, b) => a.linear / Math.max(.1, a.n.p) - b.linear / Math.max(.1, b.n.p) || a.id.localeCompare(b.id));
     const favoritesSorted = eligible.filter(row => row.preference).sort((a, b) => b.preference - a.preference || a.linear - b.linear);
@@ -223,6 +224,9 @@ function withLocks(template, name, request, rowsById, targets, people, slots) {
   const locked = slots.map((_, slot) => Boolean(request.locked?.[`${name}::${slot}`]));
   if (!locked.some(Boolean)) return { ...template, name };
   const current = currentDay(request, name, rowsById, slots, people); if (!current) return null;
+  if (slots.some((category, slot) => locked[slot] && !request.cookedMeals?.[`${name}::${slot}`]
+    && request.profile.varietyMode === 'Repeat favourites' && request.profile.repeatMeals?.[category]
+    && current.rows[slot].id !== request.profile.repeatMeals[category])) return null;
   const rows = template.rows.map((row, slot) => locked[slot] ? current.rows[slot] : row), fixed = locked.map((value, slot) => value ? current.factors[slot] : null);
   if (rows.some(row => !row.n.complete) || !Core.distinctDishes(rows)) return null;
   const choices = portionChoices(rows, targets, fixed, request.profile); return choices[0] ? { rows, factors: choices[0].factors, name } : null;
@@ -370,7 +374,7 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
       for (const template of options) {
       expansions++;
       const previous = state.days.at(-1), main = mainIndexes.map(index => template.rows[index]);
-      if (template.rows.some((row, i) => (state.counts.get(row.id) || 0) >= repeatLimits[i] || mainIndexes.includes(i) && previous?.rows[i].id === row.id)) continue;
+      if (template.rows.some((row, i) => (state.counts.get(row.id) || 0) >= repeatLimits[i] || policy.avoidConsecutive && mainIndexes.includes(i) && previous?.rows[i].id === row.id)) continue;
       const increments = new Map(); for (const row of main) increments.set(row.family, (increments.get(row.family) || 0) + 1);
       if ([...increments].some(([family, count]) => (state.families.get(family) || 0) + count > policy.dominantFamilyLimit)) continue;
       const remainingDays = names.length - dayIndex - 1;
@@ -442,6 +446,11 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   const unavailable = reason => ({ store, status: 'unavailable', week: request.week || [], mealServings: request.mealServings || {}, basket: { store, complete: false, totalCostGBP: null, recommendations: [] }, budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP) }, variety: Core.inspectVariety(request.week || [], recipes, profile), goals: goalReport(profile), warnings: [reason], diagnostics: { elapsedMs: Date.now() - started } });
   if((request.week||[]).some(day=>(day.meals||[]).some((id,index)=>excludedRecipeIds.has(id)&&request.locked?.[`${day.day}::${index}`]&&!request.cookedMeals?.[`${day.day}::${index}`])))return unavailable('A locked meal is marked Skip next time. Unlock that meal or clear its preference before fitting your plan. Your saved plan was kept.');
   if (!recipes.length) return unavailable('No allowed recipes are available. Add recipes with complete ingredient quantities and nutrition.');
+  if (profile.varietyMode === 'Repeat favourites') for (const category of slots) {
+    const id = profile.repeatMeals?.[category];
+    if (id && !recipes.some(row => row.id === id && !row.cookedOnly && row.n.complete && row.known && (row.cat === category || category === 'Snack' && row.cat === 'Fruit')))
+      return unavailable(`Your repeated ${category.toLowerCase()} is unavailable or incompatible with your settings. Review that recipe or choose another; your saved plan was kept.`);
+  }
   if (items.size > 400) return unavailable('This recipe selection contains more than 400 different ingredient requirements. Select a smaller recipe library to calculate the budget safely.');
   signal?.throwIfAborted();
   let catalogue;
@@ -459,7 +468,7 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   let best = searched.best;
   // A valid existing plan is another starting point; it never overrides locks.
   const existing = names.map(name => currentDay(request, name, byId, slots, people));
-  if (existing.every(day => day && day.rows.every(row => row.n.complete) && nutritionValid(day.rows, day.factors, targets))) {
+  if (existing.every(day => day && day.rows.every((row, index) => row.n.complete && (profile.varietyMode !== 'Repeat favourites' || !profile.repeatMeals?.[slots[index]] || row.id === profile.repeatMeals[slots[index]] || request.cookedMeals?.[`${day.name}::${index}`])) && nutritionValid(day.rows, day.factors, targets))) {
     const cost = basketCost(existing, people, stock, books, request), variety = Core.inspectVariety(planFromDays(existing, names, people).week, recipes, profile);
     if (Number.isFinite(cost) && variety.met && cost <= budgetCents && (!best || best.cost > budgetCents || cost < best.cost && (profile.priority === 'Cheapest' || profile.varietyMode === 'Budget focus'))) best = { days: existing, cost, preference: 0 };
   }
