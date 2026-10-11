@@ -797,7 +797,7 @@ app.get('/api/catalog/browse', catalogRateLimit, async (req, res) => {
   const store = cleanString(req.query.store || 'Lidl', 40);
   if (store !== 'Lidl') return res.status(400).json({ error: 'Ingredient browsing is currently available for Lidl.' });
   try {
-    const result = await browseCatalog(store, { query: cleanString(req.query.q, 120), category: cleanString(req.query.category, 120), price: cleanString(req.query.price, 20), offset: req.query.offset, limit: req.query.limit });
+    const result = await browseCatalog(store, { query: cleanString(req.query.q, 120), category: cleanString(req.query.category, 120), price: cleanString(req.query.price, 20), source: cleanString(req.query.source, 20), offset: req.query.offset, limit: req.query.limit });
     res.json({ ok: true, ...result });
   } catch { res.status(503).json({ error: 'The Lidl ingredient catalogue is unavailable. Your shopping list is saved. Please retry.' }); }
 });

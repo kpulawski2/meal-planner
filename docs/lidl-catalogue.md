@@ -96,3 +96,25 @@ Mayonnaise label facts are specific to the lighter-than-light variant; regular
 or light mayonnaise cannot replace it silently. Source:
 [Hellmann's product](https://www.hellmanns.com/uk/p/lighter-than-light-squeezy-mayonnaise.html/08722700479499)
 and [label nutrition supplied by Unilever on Tesco](https://www.tesco.com/shop/en-GB/products/257130705).
+
+## Verified-only browsing and ingredient matching
+
+The ingredient browser now defaults to verified official product listings.
+Historical range references require an explicit Listings selection. The API
+supports `source=products` and reports `verifiedProducts` separately from
+`rangeReferences`; the existing API default continues to include both. Prices
+remain subject to the existing availability, offer-date and source checks.
+
+The 11 October 2026 snapshot contains 1,918 Lidl listings versus 49,628 ASDA
+listings. It already covers all product pages found in the official recursive
+sitemap and public search. No additional current product identity was verified
+during this change. Archived links and historical range publications are not
+added as current product records; the product snapshot is preserved. Scheduled
+refreshes continue to add newly published and validated official product pages.
+This does not establish complete branch inventory or parity with ASDA.
+
+Matching recognises Skyr yoghurt when the official name says Skyr, and named
+pasta shapes such as fusilli for generic Pasta requests. Prepared tuna salad
+and sweetened oat bites cannot stand in for plain tuna and oats. Existing
+verified Lidl examples include Baresa Fusilli (10000271) and Milbona High Protein
+Skyr (10041733). Their unpublished prices remain unknown.

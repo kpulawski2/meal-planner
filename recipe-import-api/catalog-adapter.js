@@ -194,7 +194,11 @@ function productTokens(value) {
     .replace(/\b(?:reduced|low)[-\s]+fat\b/gi, 'light')
     .replace(/\blactose[-\s]*free\b|\blactofree\b/gi, 'lactosefree')
     .replace(/\bdairy[-\s]*free\b/gi, 'dairyfree');
-  return tokens(text).map((token) => {
+  // Skyr is itself yoghurt; a retailer need not repeat both words. Named dry
+  // pasta shapes also remain discoverable for a generic pasta ingredient.
+  const foodText = text.replace(/\bskyr\s+yogh?urt\b/gi, 'skyr')
+    .replace(/\b(fusilli|penne|spaghetti|farfalle|tagliatelle)\b(?!\s+pasta)/gi, '$1 pasta');
+  return tokens(foodText).map((token) => {
     if (token === 'yogurt' || token === 'yogurts') return 'yoghurt';
     if (token === 'chili') return 'chilli';
     if (token === 'lighter' || token === 'lite') return 'light';
@@ -297,6 +301,7 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
     if (!/meat|poultry|fish|seafood|prawn|chicken|turkey|beef|pork|lamb|cod|salmon|tuna/i.test(category)) return false;
     for (const word of ['breaded', 'breadcrumb', 'crumb', 'battered', 'cooked', 'marinated', 'flavour', 'flavoured', 'seasoned', 'sizzle', 'tikka', 'thai', 'peri', 'spicy', 'garlic', 'lemon', 'honey', 'sweet', 'pepper', 'teriyaki', 'chargrill', 'chargrilled', 'bbq', 'barbecue', 'crispy', 'smoked', 'sausage', 'chipotle', 'sauce', 'butter', 'cream', 'gravy', 'mayonnaise']) if (name.has(word) && !asked(word)) return false;
     if (unrequested(COMPOSITE_FOODS)) return false;
+    if (name.has('salad') && !asked('salad')) return false;
     if (/prepared|ready meals|marinated|ready to cook/i.test(category)) return false;
     if (['chicken', 'beef', 'pork', 'lamb', 'turkey'].includes(meat) && /tinned|pies|party food|cooked meat|continental meat|charcuterie/i.test(category)) return false;
     if (!frozenRequested && /frozen/i.test(category) && ['chicken', 'beef', 'pork', 'lamb', 'turkey'].includes(meat)) return false;
@@ -366,7 +371,7 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
     if (!/flour|home baking|cooking ingredient/i.test(category) || /bread|wrap|tortilla|cake|biscuit/i.test(title)) return false;
   }
   if (asked('oat') && !['biscuit', 'milk', 'drink', 'bar'].some(asked)) {
-    if (!/porridge|oats|cereal/i.test(category) || /biscuit|bar|muesli|granola|flapjack|yoghurt|overnight/i.test(title)) return false;
+    if (!/porridge|oats|cereal/i.test(category) || /biscuit|bar|bites|muesli|granola|flapjack|yoghurt|overnight|cocoa|chocolate|vanilla|syrup/i.test(title)) return false;
   }
   if (asked('egg')) {
     if (!/eggs?|egg whites?/i.test(category) || /custard|tart|scotch|salad|sandwich|fried|omelette|mayonnaise|cake|biscuit/i.test(title)) return false;
@@ -942,7 +947,7 @@ export async function searchCatalog(storeName, query, limit = 8, dimension = '')
 
 // Browsing includes unpriced food and separately labelled range references.
 // References never enter the matching index or automatic budget calculations.
-export async function browseCatalog(storeName, { query = '', category = '', price = 'all', offset = 0, limit = 40 } = {}) {
+export async function browseCatalog(storeName, { query = '', category = '', price = 'all', source = 'all', offset = 0, limit = 40 } = {}) {
   if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new TypeError('Store must be Asda or Lidl.');
   const index = await getIndex(storeName), now = new Date();
   const refs = storeName === 'Lidl' ? await loadRangeReferences() : [];
@@ -968,12 +973,12 @@ export async function browseCatalog(storeName, { query = '', category = '', pric
   const categories = [...new Set(rows.map(row => row.category))].sort();
   const words = productTokens(clean(query, 120)), selectedCategory = clean(category, 120);
   const filterPrice = ['all', 'priced', 'unpriced'].includes(price) ? price : 'all';
-  const filtered = rows.filter(row => (!selectedCategory || row.category === selectedCategory) && (filterPrice === 'all' || (row.priceGBP !== null) === (filterPrice === 'priced')) && words.every(word => productTokens(row.productName).includes(word)));
+  const filtered = rows.filter(row => (source !== 'products' || row.kind === 'product') && (!selectedCategory || row.category === selectedCategory) && (filterPrice === 'all' || (row.priceGBP !== null) === (filterPrice === 'priced')) && words.every(word => productTokens(row.productName).includes(word)));
   filtered.sort((a, b) => a.productName.localeCompare(b.productName) || a.id.localeCompare(b.id));
   const start = Number.isFinite(Number(offset)) ? Math.max(0, Math.trunc(Number(offset))) : 0;
   const count = Number.isFinite(Number(limit)) ? Math.max(1, Math.min(100, Math.trunc(Number(limit) || 40))) : 40;
   return { store: storeName, total: rows.length, matched: filtered.length, priced: rows.filter(row => row.priceGBP !== null).length,
-    rangeReferences: rows.filter(row => row.kind === 'range_reference').length, categories, refreshedAt: index.metadata.refreshed_at, offset: start,
+    verifiedProducts: rows.filter(row => row.kind === 'product').length, rangeReferences: rows.filter(row => row.kind === 'range_reference').length, categories, refreshedAt: index.metadata.refreshed_at, offset: start,
     nextOffset: start + count < filtered.length ? start + count : null, results: filtered.slice(start, start + count) };
 }
 

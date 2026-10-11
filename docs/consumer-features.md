@@ -104,3 +104,24 @@ unpriced entries, or search and filter by food category and price availability.
 Additional official range references show their source year/month and link.
 Their current pack, price and stock remain unknown until checked in store.
 Browsing does not change your shopping list, pantry or budget.
+
+## Cook from my pantry and meal routines
+
+The Pantry tab compares measured recipe ingredients with active stock for the
+current household size. Lots and duplicate recipe ingredients are combined in
+compatible units. Expired or invalid dated stock is excluded; stock expiring
+within three days is highlighted. Full-batch recipes require their entire batch,
+and estimated quantities remain labelled. Ready meals appear first, followed by
+recipes missing at most two ingredients. Suggestions each check the stock
+independently. They do not reserve food, change spending or mark meals cooked.
+The normal Plan meal action checks the plan before applying a change.
+
+Meal routines are available in Favourites and Settings. Choose Repeat favourites
+and one or more daily recipe choices, then name a routine. Up to 20 routines
+are stored locally and included in the existing backup export. Unselected slots
+remain Planner chooses. Loading a routine restores only the meal count and
+daily recipe choices: household size, targets, dietary settings and budget stay
+as currently set. Missing or incompatible recipes prevent loading. Review
+Settings and use Save & fit my plan to generate a week through the existing
+nutrition, budget and cooked-meal checks. Saving or loading a routine never
+replaces the saved week or changes pantry, leftovers or purchase history.
