@@ -1,0 +1,69 @@
+# Everyday planning features
+
+These features use the existing app and browser storage. There is no subscription or paid AI requirement for stock tracking, supermarket matching, planning, swaps or cooking mode.
+
+## Purchases and pantry stock
+
+The app cannot detect a checkout at ASDA or Lidl. To record a purchase:
+
+1. Open **Shopping**, with the supermarket you used selected.
+2. Tick the ingredients you bought.
+3. Select **Shopping done · add to pantry**.
+4. Review the selected packs and confirm the purchase.
+
+Confirmation adds the full purchased pack quantities to the pantry, including the amount beyond the recipe's immediate need. It records the checked catalogue cost against the current plan. Ticking an item alone does not add stock or record a purchase. Purchases outside this list can be added through **Add stock manually** in Pantry.
+
+The purchase confirmation requires a current online pack check. Missing quantities, unpublished prices, stale prices or a changed list prevent confirmation. Individual produce weights and some usable pack quantities are estimates and are labelled. The recorded cost is the checked catalogue price; the app does not read a receipt, an actual checkout total, supermarket accounts or bank transactions.
+
+You can set an optional expiry date on each stock entry. Entries past that date are excluded from shopping deductions and planning. Expiry dates are supplied by the user; the app does not inspect food or infer its condition.
+
+## Cooking and leftovers
+
+Select **Meal cooked** on a planned meal, or from cooking mode. Review the household portions and any extra portions to keep. Confirmation deducts measured ingredients from recorded pantry stock, using the earliest recorded expiry first. Missing stock needs an explicit confirmation that you supplied it; the app does not create stock for missing ingredients.
+
+Extra cooked portions are stored separately as leftovers. Matching leftovers reduce the ingredients needed by later occurrences of the same recipe. **Use leftovers** records the portions actually served and reduces that leftover stock. Changed ingredients or recipe yields do not reuse old leftovers under a different recipe signature.
+
+Cooked meals keep their recipe and portions fixed within the current plan. Undo the cooking record before changing those portions. Recent stock activity has **Undo** when later actions have not changed the affected stock. Undo later dependent actions first when necessary.
+
+## Budget checks and meal swaps
+
+The weekly dashboard shows the projected plan cost, remaining shopping, recorded purchases, nutrition targets and meal variety. Projected cost is the current plan's recorded purchases plus the remaining full supermarket packs. Existing pantry stock and matching leftovers reduce the remaining shopping. Unknown costs remain unknown.
+
+**Swap** offers recipes of the same meal type that suit your preferences. Household portions are kept. **Check swap** prices the whole remaining basket before and after the change, including pack thresholds and pantry deductions. A suitable ingredient cost per portion is not a substitute for this full basket check.
+
+A swap is marked safe only when:
+
+- Every remaining ingredient quantity has a validated purchase plan from the selected supermarket.
+- Recorded spending plus remaining packs fits the household budget for the plan length.
+- Every day has complete nutrition and meets the calorie range and protein minimum.
+- Meal types, current dietary restrictions and weekly variety pass.
+
+A final online pack check runs before the change is applied. Changes to the plan, pantry, portions, preferences, cooked records, catalogue generation or prices invalidate an earlier preview. Locked or cooked slots cannot be swapped.
+
+When a complete quote would exceed the budget or miss nutrition or variety targets, the app shows those changes and requires a separate acknowledgement. Such a choice is never marked safe. A swap with missing prices or incompatible future meal slots cannot be applied.
+
+Already consumed meals remain part of the day's nutrition and the plan's history after a preference change. This exception does not allow a future occurrence or an uncooked portion of an excluded recipe.
+
+## Preferences and recipe details
+
+**Would eat again** raises a recipe's preference score. **Skip next time** excludes it from future automatic choices. Recent cooking history reduces the preference for meals cooked recently; it does not override nutrition, pricing, diet or variety checks.
+
+Recipe details list missing information that prevents automatic use, such as unmeasured ingredients, an unknown yield, missing steps or incomplete nutrition. A built-in or web recipe can become an editable local copy. Editing quantities or yield clears old nutrition claims so the ingredient estimate can be recalculated. Copies preserve their source reference and do not overwrite the original recipe.
+
+The Everyday collection adds original measured breakfasts, lunches, dinners and snacks. Oils, sauces and garnishes used in those recipes are quantified. Nutrition is estimated from ingredients, and supermarket pack costs are calculated separately.
+
+## Cooking mode and offline use
+
+**Cooking mode** displays one recipe step at a time, scaled ingredients and timers. A supported browser can keep the screen awake. Timers require the app to remain open; this is not a background alarm service.
+
+The app saves the most recently checked shopping basket for each supermarket. When offline, a matching saved basket shows its check time. Changed quantities or a different supermarket cannot borrow an incompatible saved quote. Purchase confirmation and swap confirmation require fresh online checks.
+
+Pantry stock, leftovers, taste preferences, cooking history and saved baskets are kept on this device in browser storage. They are included in app backups. There is no automatic account synchronisation between a phone and another browser, and clearing browser data removes local state unless restored from a backup.
+
+## Starting the next week
+
+**Start new week** asks for confirmation, archives the previous plan and starts a new spending period. Pantry stock, leftovers, custom recipes and taste preferences carry over. Re-fitting the current week keeps its purchases and cooked meals in that same spending period.
+
+## Catalogue limits
+
+Prices are supermarket catalogue snapshots, not guaranteed store checkout prices or stock reservations. Lidl does not publish prices for every essential product, so the app cannot certify a complete Lidl budget when required prices are missing. It preserves existing plans when no fully verified replacement can be found.

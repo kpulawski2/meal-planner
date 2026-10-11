@@ -39,7 +39,7 @@ function harness(entries=[item('Milk',1500,'volume')],options={}){
     window:{addEventListener(){}},
     document:{hidden:false,addEventListener(){},querySelector(){return {id:options.activeView||'shop'}},body:{appendChild(){}},createElement(){return {click(){},remove(){}}}},
     URL:{createObjectURL(blob){exportedBlob=blob;return 'blob:export'},revokeObjectURL(){}},
-    buildShopping:()=>Object.fromEntries(entries),save(){},toast(){},
+    buildShopping:()=>Object.fromEntries(entries),planCashSpent:()=>0,planCashKnown:()=>true,save(){},toast(){},
     fmt:value=>Math.round(Number(value)*10)/10,
     escape:value=>String(value).replace(/[&<>"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char])),
     shoppingQtyLabel:row=>Object.values(row.groups).map(group=>group.remaining+' '+group.label).join(', '),

@@ -132,10 +132,15 @@ function stockAmounts(pantry) {
   return stock;
 }
 
-function requirementAmounts(days, people) {
+function requirementAmounts(days, people, lifecycle = {}) {
   const amounts = new Map(), batches = new Map();
+  const leftoverStock = new Map();
+  for (const lot of lifecycle.leftovers || []) leftoverStock.set(lot.recipeId, (leftoverStock.get(lot.recipeId) || 0) + Math.max(0, Number(lot.servings) || 0));
   for (const day of days) for (let index = 0; index < day.rows.length; index++) {
-    const row=day.rows[index],portions=day.factors[index]*people;
+    const row=day.rows[index],cooked=lifecycle.cookedMeals?.[`${day.name}::${index}`];
+    let portions=Math.max(0,day.factors[index]*people-(cooked?.recipeId===row.id?Number(cooked.servings)||0:0));
+    const leftover=Math.min(portions,leftoverStock.get(row.id)||0); portions-=leftover;leftoverStock.set(row.id,(leftoverStock.get(row.id)||0)-leftover);
+    if(portions<=EPS)continue;
     if(row.fixedBatch){const use=batches.get(row.id)||{row,portions:0};use.portions+=portions;batches.set(row.id,use);}
     else for (const [key, quantity] of row.amounts) amounts.set(key, (amounts.get(key) || 0) + quantity * portions);
   }
@@ -143,10 +148,38 @@ function requirementAmounts(days, people) {
   return amounts;
 }
 
-function basketCost(days, people, stock, books) {
+function basketCost(days, people, stock, books, lifecycle = {}) {
   let cost = 0;
-  for (const [key, quantity] of requirementAmounts(days, people)) { const value = books.get(key)?.cost(Math.max(0, quantity - (stock.get(key) || 0))) ?? Infinity; if (!Number.isFinite(value)) return Infinity; cost += value; }
+  for (const [key, quantity] of requirementAmounts(days, people, lifecycle)) { const value = books.get(key)?.cost(Math.max(0, quantity - (stock.get(key) || 0))) ?? Infinity; if (!Number.isFinite(value)) return Infinity; cost += value; }
   return cost;
+}
+
+// Nutrition retains the complete week. Only ingredients still needing cooking
+// enter the basket, after one allocation of each stored leftover portion.
+export function plannerShoppingInput(plan, recipes, people, pantry, lifecycle = {}) {
+  const week = [], mealServings = {}, stock = new Map();
+  for (const lot of lifecycle.leftovers || []) stock.set(lot.recipeId, (stock.get(lot.recipeId) || 0) + Math.max(0, Number(lot.servings) || 0));
+  for (const day of plan.week || []) {
+    const next = { day: day.day, meals: [] };
+    for (const [index, id] of (day.meals || []).entries()) {
+      const cooked = lifecycle.cookedMeals?.[`${day.day}::${index}`];
+      let portions = Math.max(0, (Number(plan.mealServings?.[`${day.day}::${index}`]) || people) - (cooked?.recipeId === id ? Number(cooked.servings) || 0 : 0));
+      const reserved = Math.min(portions, stock.get(id) || 0); portions -= reserved; stock.set(id, (stock.get(id) || 0) - reserved);
+      if (portions <= EPS) continue;
+      mealServings[`${day.day}::${next.meals.length}`] = portions; next.meals.push(id);
+    }
+    week.push(next);
+  }
+  return { week, recipes, mealServings, people, pantry };
+}
+function shoppingForPlan(plan, recipes, people, pantry, lifecycle) {
+  return Core.buildShopping(plannerShoppingInput(plan, recipes, people, pantry, lifecycle));
+}
+
+export function recipeRankingAdjustment(recipe = {}) {
+  // Soft preferences only rank candidates that already satisfy every hard
+  // nutrition, dietary, price, equipment and meal-category requirement.
+  return -clamp(recipe.preferenceScore,-40,40,0)*1.5-clamp(recipe.useUpScore,0,10,0)*2;
 }
 
 function safePools(rows, slots, stock, people, days, books, profile, favorites) {
@@ -157,10 +190,11 @@ function safePools(rows, slots, stock, people, days, books, profile, favorites) 
     if (likes.some(value => `${row.name} ${row.ings.map(item => item[0]).join(' ')}`.toLowerCase().includes(value))) row.preference++;
     row.family = Core.proteinFamily(row);
     row.quality = recipeQuality(row, profile);
+    row.quality.penalty += recipeRankingAdjustment(row);
     row.priceable = row.known && [...row.amounts].every(([key, quantity]) => Number.isFinite(books.get(key)?.unitCost) || (stock.get(key) || 0) + EPS >= quantity * people * days * 2);
   }
   return slots.map(slot => {
-    const eligible = rows.filter(row => row.n.complete && row.priceable && (row.cat === slot || slot === 'Snack' && row.cat === 'Fruit'));
+    const eligible = rows.filter(row => !row.cookedOnly && row.n.complete && row.priceable && (row.cat === slot || slot === 'Snack' && row.cat === 'Fruit'));
     const value = eligible.slice().sort((a, b) => a.linear / Math.max(1, a.n.kcal + a.n.p * 10) - b.linear / Math.max(1, b.n.kcal + b.n.p * 10) || a.id.localeCompare(b.id));
     const protein = eligible.slice().sort((a, b) => a.linear / Math.max(.1, a.n.p) - b.linear / Math.max(.1, b.n.p) || a.id.localeCompare(b.id));
     const favoritesSorted = eligible.filter(row => row.preference).sort((a, b) => b.preference - a.preference || a.linear - b.linear);
@@ -181,16 +215,17 @@ function currentDay(request, name, rowsById, slots, people) {
   if (!day || day.meals?.length !== slots.length) return null;
   const rows = day.meals.map(id => rowsById.get(id)); if (rows.some((row, slot) => !row || !(row.cat === slots[slot] || slots[slot] === 'Snack' && row.cat === 'Fruit'))) return null;
   const factors = rows.map((_, slot) => Number(request.mealServings?.[`${name}::${slot}`]) / people || 1);
-  return { rows, factors };
+  if (rows.some((row, slot) => row.cookedOnly && (request.cookedMeals?.[`${name}::${slot}`]?.servings || 0) + EPS < factors[slot] * people)) return null;
+  return { rows, factors, name };
 }
 
 function withLocks(template, name, request, rowsById, targets, people, slots) {
   const locked = slots.map((_, slot) => Boolean(request.locked?.[`${name}::${slot}`]));
-  if (!locked.some(Boolean)) return template;
+  if (!locked.some(Boolean)) return { ...template, name };
   const current = currentDay(request, name, rowsById, slots, people); if (!current) return null;
   const rows = template.rows.map((row, slot) => locked[slot] ? current.rows[slot] : row), fixed = locked.map((value, slot) => value ? current.factors[slot] : null);
   if (rows.some(row => !row.n.complete) || !Core.distinctDishes(rows)) return null;
-  const choices = portionChoices(rows, targets, fixed, request.profile); return choices[0] ? { rows, factors: choices[0].factors } : null;
+  const choices = portionChoices(rows, targets, fixed, request.profile); return choices[0] ? { rows, factors: choices[0].factors, name } : null;
 }
 
 // Main-meal pairs anchor the candidate set. Breakfast/snack combinations are
@@ -342,7 +377,7 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
       if (template.rows.some((row, i) => state.distinct[i].size + (state.distinct[i].has(row.id) ? 0 : 1) + remainingDays < minimumDistinct[i])) continue;
       const familyCount = new Set([...state.families.keys(), ...increments.keys()]).size;
       if (familyCount + remainingDays * 2 < requiredFamilies) continue;
-      const cost = candidateCost(state, template, stock, books); if (!Number.isFinite(cost)) continue;
+      const cost = Object.keys(request.cookedMeals || {}).length || request.leftovers?.length ? basketCost([...state.days,template],people,stock,books,request) : candidateCost(state, template, stock, books); if (!Number.isFinite(cost)) continue;
       const novelBatches = template.rows.filter(row => !state.batches.has(row.id)), batchPenalty = easy ? novelBatches.reduce((sum, row) => sum + (row.quality?.cookMinutes || 45) * .7, 0) : 0;
       const quality = state.quality + (template.quality ?? dailyQuality(template.rows, template.factors, profile)) - template.rows.reduce((sum, row) => sum + row.preference * 25, 0) + batchPenalty;
       const novelty = template.rows.reduce((sum, row, i) => sum + (state.distinct[i].has(row.id) ? 0 : 1), 0);
@@ -398,10 +433,14 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   const slots = Core.mealSlots(clamp(profile.meals, 2, 4, 4)), names = Core.dayNames(daysCount), weeklyBudgetGBP = clamp(profile.budget, 0, 10000, 45), budgetGBP = weeklyBudgetGBP * daysCount / 7;
   const targets = { min: clamp(profile.calories, 200, 10000, 2000) * .9, max: clamp(profile.calories, 200, 10000, 2000) * 1.1, protein: clamp(profile.protein, 0, 1000, 200) };
   const budgetCents = pennies(budgetGBP), pantry = Array.isArray(request.pantry) ? request.pantry : [], favorites = Array.isArray(request.favorites) ? request.favorites : [];
-  const recipes = (Array.isArray(request.recipes) ? request.recipes : []).filter(recipe => recipe && Array.isArray(recipe.ings) && allowedRecipe(recipe, profile)).map(prepareRecipe);
+  const excludedRecipeIds=new Set(Array.isArray(request.excludedRecipeIds)?request.excludedRecipeIds:[]);
+  for(const row of Array.isArray(request.recipes)?request.recipes:[])if(row?.excludedByFeedback===true)excludedRecipeIds.add(row.id);
+  const cookedIds = new Set(Object.values(request.cookedMeals || {}).map(row => row.recipeId));
+  const recipes = (Array.isArray(request.recipes) ? request.recipes : []).filter(recipe => recipe && Array.isArray(recipe.ings) && (cookedIds.has(recipe.id) || !excludedRecipeIds.has(recipe.id) && allowedRecipe(recipe, profile))).map(recipe => prepareRecipe({ ...recipe, cookedOnly: cookedIds.has(recipe.id) && (excludedRecipeIds.has(recipe.id) || !allowedRecipe(recipe, profile)) }));
   const byId = new Map(recipes.map(recipe => [recipe.id, recipe])), items = new Map();
   for (const recipe of recipes) for (const [name, , unit] of recipe.ings) { if (Core.isCookingWater(name)) continue; const meta = Core.unitMeta(unit, name), key = bookKey(name, meta.dim); if (!items.has(key)) items.set(key, { key, name, dimension: meta.dim }); }
   const unavailable = reason => ({ store, status: 'unavailable', week: request.week || [], mealServings: request.mealServings || {}, basket: { store, complete: false, totalCostGBP: null, recommendations: [] }, budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP) }, variety: Core.inspectVariety(request.week || [], recipes, profile), goals: goalReport(profile), warnings: [reason], diagnostics: { elapsedMs: Date.now() - started } });
+  if((request.week||[]).some(day=>(day.meals||[]).some((id,index)=>excludedRecipeIds.has(id)&&request.locked?.[`${day.day}::${index}`]&&!request.cookedMeals?.[`${day.day}::${index}`])))return unavailable('A locked meal is marked Skip next time. Unlock that meal or clear its preference before fitting your plan. Your saved plan was kept.');
   if (!recipes.length) return unavailable('No allowed recipes are available. Add recipes with complete ingredient quantities and nutrition.');
   if (items.size > 400) return unavailable('This recipe selection contains more than 400 different ingredient requirements. Select a smaller recipe library to calculate the budget safely.');
   signal?.throwIfAborted();
@@ -414,29 +453,30 @@ export async function optimizeMealPlan(request, { signal } = {}) {
     if (index % 8 === 7) { signal?.throwIfAborted(); await yieldToWorker(); }
   }
   const pools = safePools(recipes, slots, stock, people, daysCount, books, profile, favorites), warnings = [];
-  if (pools.some(pool => !pool.length)) return unavailable(`At least one meal category has no suitable recipe with complete nutrition and published ${store} ingredient prices.${store === 'Lidl' ? ' Lidl does not publish prices for many everyday products, so this budget cannot be verified automatically yet.' : ''} Your saved plan was kept.`);
-  const generated = await dailyTemplates(pools, slots, targets, profile, people, stock, books, signal), { templates, examined, combinations } = generated;
-  if (!templates.length) return unavailable('The search could not find complete daily meals within the nutrition range. No dietary or nutrition needs have been reduced; add suitable recipes or review the targets.');
-  const searched = await searchWeek(templates, names, request, byId, slots, targets, people, stock, books, budgetCents, signal);
+  const emptyPools = pools.some(pool => !pool.length);
+  const generated = emptyPools ? { templates: [], examined: 0, combinations: 0 } : await dailyTemplates(pools, slots, targets, profile, people, stock, books, signal), { templates, examined, combinations } = generated;
+  const searched = templates.length ? await searchWeek(templates, names, request, byId, slots, targets, people, stock, books, budgetCents, signal) : { best: null, expansions: 0, stages: [], searchVarietyViolations: [] };
   let best = searched.best;
   // A valid existing plan is another starting point; it never overrides locks.
   const existing = names.map(name => currentDay(request, name, byId, slots, people));
   if (existing.every(day => day && day.rows.every(row => row.n.complete) && nutritionValid(day.rows, day.factors, targets))) {
-    const cost = basketCost(existing, people, stock, books), variety = Core.inspectVariety(planFromDays(existing, names, people).week, recipes, profile);
+    const cost = basketCost(existing, people, stock, books, request), variety = Core.inspectVariety(planFromDays(existing, names, people).week, recipes, profile);
     if (Number.isFinite(cost) && variety.met && cost <= budgetCents && (!best || best.cost > budgetCents || cost < best.cost && (profile.priority === 'Cheapest' || profile.varietyMode === 'Budget focus'))) best = { days: existing, cost, preference: 0 };
   }
+  if (!best && emptyPools) return unavailable(`At least one meal category has no suitable recipe with complete nutrition and published ${store} ingredient prices.${store === 'Lidl' ? ' Lidl does not publish prices for many everyday products, so this budget cannot be verified automatically yet.' : ''} Your saved plan was kept.`);
+  if (!best && !templates.length) return unavailable('The search could not find complete daily meals within the nutrition range. No dietary or nutrition needs have been reduced; add suitable recipes or review the targets.');
   if (!best) {
     // A clearly rejected, priced proposal explains the constraints. It cannot
     // overwrite the user's plan because its status is never feasible.
     for (const template of templates) {
       const days = names.map(name => withLocks(template, name, request, byId, targets, people, slots));
       if (days.some(day => !day)) continue;
-      const cost = basketCost(days, people, stock, books);
+      const cost = basketCost(days, people, stock, books, request);
       if (Number.isFinite(cost) && (!best || cost < best.cost)) best = { days, cost, rejectedVariety: true };
     }
   }
   if (!best) return unavailable('Locked meals or the nutrition targets prevent a complete plan. Your saved meals have been retained; unlock conflicting meals or add suitable recipes.');
-  const plan = planFromDays(best.days, names, people), shopping = Core.buildShopping({ ...plan, recipes, people, pantry }), recommendations = [], basketItems = [];
+  const plan = planFromDays(best.days, names, people), shopping = shoppingForPlan(plan, recipes, people, pantry, request), recommendations = [], basketItems = [];
   let complete = true, totalCents = 0;
   for (const [key, item] of Object.entries(shopping)) {
     if (item.unknown) complete = false;

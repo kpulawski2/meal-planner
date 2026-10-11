@@ -48,6 +48,9 @@ export function normalizePlannerRequest(body) {
       cookTime: row.cookTime === undefined || row.cookTime === null || row.cookTime === '' ? null : number(row.cookTime, null, 0, 1440, 'Recipe cooking time'),
       equipment: Array.isArray(row.equipment) ? [...new Set(row.equipment.map(value => text(value, 60)).filter(Boolean))].slice(0, 4) : [],
       fixedBatch: row.fixedBatch === true, freezeMinutes: row.freezeMinutes == null ? null : number(row.freezeMinutes, null, 0, 10080, 'Recipe freeze time'),
+      preferenceScore: number(row.preferenceScore, 0, -40, 40, 'Recipe taste score'),
+      useUpScore: number(row.useUpScore, 0, 0, 10, 'Recipe use-up score'),
+      excludedByFeedback: row.excludedByFeedback === true,
       dishFamily: text(row.dishFamily, 80),
       tags: Array.isArray(row.tags) ? row.tags.slice(0, 20).map(value => text(value, 60)) : [] };
   });
@@ -61,5 +64,26 @@ export function normalizePlannerRequest(body) {
   const mealServings = Object.fromEntries(Object.entries(body.mealServings || {}).slice(0, 112).map(([key, value]) => [text(key, 100), number(value, 1, .25, 100, 'Meal portions')]));
   const locked = Object.fromEntries(Object.entries(body.locked || {}).slice(0, 112).map(([key, value]) => [text(key, 100), Boolean(value)]));
   const favorites = Array.isArray(body.favorites) ? body.favorites.slice(0, 250).map(id => text(id, 120)).filter(id => ids.has(id)) : [];
-  return { profile, recipes, pantry, week, mealServings, locked, favorites };
+  if(body.excludedRecipeIds!==undefined&&(!Array.isArray(body.excludedRecipeIds)||body.excludedRecipeIds.length>5000))fail('Recipe preferences must contain at most 5000 excluded recipe IDs.');
+  const excludedRecipeIds=[...new Set((body.excludedRecipeIds||[]).map(id=>text(id,120)).filter(Boolean))];
+  if (body.cookedMeals !== undefined && (!body.cookedMeals || typeof body.cookedMeals !== 'object' || Array.isArray(body.cookedMeals) || Object.keys(body.cookedMeals).length > 112)) fail('Cooking records must describe at most 112 planned meals.');
+  const cookedMeals = {};
+  for (const [key, row] of Object.entries(body.cookedMeals || {})) {
+    const cleanKey = text(key, 100), recipeId = text(row?.recipeId, 120);
+    const day = week.find(day => day.meals.some((id, index) => `${day.day}::${index}` === cleanKey && id === recipeId));
+    if (!day || !ids.has(recipeId)) fail('A cooking record no longer agrees with the current plan.');
+    const servings = number(row?.servings, 0, .000001, 100, 'Cooked portions');
+    const planned = mealServings[cleanKey] || profile.people;
+    if (servings > planned + .000001) fail('Cooked portions exceed this planned meal.');
+    cookedMeals[cleanKey] = { recipeId, servings }; locked[cleanKey] = true;
+  }
+  if (body.leftovers !== undefined && (!Array.isArray(body.leftovers) || body.leftovers.length > 300)) fail('Leftovers must contain at most 300 entries.');
+  const leftoverIds = new Set();
+  const leftovers = (body.leftovers || []).map(row => {
+    const id = text(row?.id, 180), recipeId = text(row?.recipeId, 120);
+    if (!id || leftoverIds.has(id) || !ids.has(recipeId)) fail('Each leftover needs a unique identity and a known recipe.');
+    leftoverIds.add(id);
+    return { id, recipeId, servings: number(row?.servings, 0, .000001, 1000, 'Leftover portions') };
+  });
+  return { profile, recipes, pantry, week, mealServings, locked, favorites, excludedRecipeIds, cookedMeals, leftovers };
 }
