@@ -87,3 +87,20 @@ Pantry stock, leftovers, taste preferences, cooking history and saved baskets ar
 ## Catalogue limits
 
 Prices are supermarket catalogue snapshots, not guaranteed store checkout prices or stock reservations. Lidl does not publish prices for every essential product, so the app cannot certify a complete Lidl budget when required prices are missing. It preserves existing plans when no fully verified replacement can be found.
+
+## Favourites
+
+The Favourites tab shows every saved recipe independently of the Recipes tab's
+filters. Tap a recipe's heart to save or remove it. Search by meal or ingredient,
+filter by meal category, view the recipe, or add it to a plan. Saved favourites
+survive reloads, backup restore and starting a new week. A missing web recipe's
+saved link is retained while the collection is offline.
+
+## Browse Lidl ingredients
+
+Select Lidl in Settings, then open Shopping and choose **Browse Lidl ingredients**.
+You can browse the full saved food range before generating a plan, including
+unpriced entries, or search and filter by food category and price availability.
+Additional official range references show their source year/month and link.
+Their current pack, price and stock remain unknown until checked in store.
+Browsing does not change your shopping list, pantry or budget.

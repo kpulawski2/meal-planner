@@ -10,6 +10,8 @@ const creami=await readFile(new URL('../public/creami-recipes.js',import.meta.ur
 const libraryCore=await readFile(new URL('../public/recipe-library-core.js',import.meta.url),'utf8');
 const world=await readFile(new URL('../public/world-recipes.js',import.meta.url),'utf8').catch(()=> 'globalThis.WORLD_RECIPES=[];');
 const foodCore=await readFile(new URL('../public/food-log-core.js',import.meta.url),'utf8');
+const favouritesUI=await readFile(new URL('../public/favourites-ui.js',import.meta.url),'utf8');
+const catalogueBrowser=await readFile(new URL('../public/catalogue-browser.js',import.meta.url),'utf8');
 const foodUI=await readFile(new URL('../public/food-log-ui.js',import.meta.url),'utf8');
 const lighter=await readFile(new URL('../public/lighter-recipes.js',import.meta.url),'utf8');
 const worldContext={};vm.runInNewContext(world,worldContext);const shippedRecipeCount=232+worldContext.WORLD_RECIPES.length;
@@ -34,18 +36,18 @@ test('consumer inline script compiles and affordable recipes load before the lib
 test('the complete app starts and renders every panel with a new or saved plan',()=>{
  const inline=Array.from(html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)).map(block=>block[1]).filter(block=>block.trim()).join('\n');
  for(const existingPlan of [false,true,'first-use','draft']){
-  const elements=Object.fromEntries(['home','week','shop','pantry','recipes','profile','toast','modal','sheet','recipeResults','recipeResultCount','recipeSearch'].map(id=>[id,element()]));
+  const elements=Object.fromEntries(['home','week','shop','pantry','recipes','favourites','profile','toast','modal','sheet','recipeResults','recipeResultCount','recipeSearch'].map(id=>[id,element()]));
   for(const item of Object.values(elements)){item.classList.add=()=>{};item.classList.remove=()=>{};}
-  const nav=['home','week','recipes','shop','pantry','profile'].map(id=>({...element(),dataset:{tab:id}}));
+  const nav=['home','week','recipes','favourites','shop','pantry','profile'].map(id=>({...element(),dataset:{tab:id}}));
   const state={profile:{days:7,meals:4,budget:45,people:1,calories:2000,protein:200},week:existingPlan?[{day:'Monday',meals:['overnightoats','chickenwrap','beefpasta','snack']}]:[],shopping:{},locked:{},pantry:[],favorites:[],customRecipes:[],mealServings:{}};
   if(existingPlan==='draft'){state.setupComplete=false;state.profile.supermarket='Lidl';state.profile.protein=120;}
   const storage=new Map(existingPlan==='first-use'?[]:[['mealPlannerState',JSON.stringify(state)]]);
   const appElement={inert:false};
-  const context={AbortController,DOMException,AbortSignal,FormData,Blob,console,navigator:{},location:{origin:'https://meal-planner.example',protocol:'https:',hostname:'meal-planner.example'},localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)},document:{body:element(),hidden:false,getElementById:id=>elements[id]||(elements[id]=element()),querySelectorAll:selector=>selector==='.tabs button'?nav:selector==='.screen'?['home','week','shop','pantry','recipes','profile'].map(id=>elements[id]):[],querySelector:selector=>selector==='.screen.active'?{id:'home'}:selector==='.app'?appElement:null,addEventListener(){}},setTimeout:()=>0,clearTimeout(){},fetch:async()=>({ok:false,status:503,text:async()=>''})};
+  const context={AbortController,DOMException,AbortSignal,FormData,Blob,console,navigator:{},location:{origin:'https://meal-planner.example',protocol:'https:',hostname:'meal-planner.example'},localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)},document:{body:element(),hidden:false,getElementById:id=>elements[id]||(elements[id]=element()),querySelectorAll:selector=>selector==='.tabs button'?nav:selector==='.screen'?['home','week','shop','pantry','recipes','favourites','profile'].map(id=>elements[id]):[],querySelector:selector=>selector==='.screen.active'?{id:'home'}:selector==='.app'?appElement:null,addEventListener(){}},setTimeout:()=>0,clearTimeout(){},fetch:async()=>({ok:false,status:503,text:async()=>''})};
   const scrolls=[];context.window=context;context.addEventListener=()=>{};context.scrollTo=options=>scrolls.push(options);
-  vm.runInNewContext(core+'\n'+affordable+'\n'+creami+'\n'+world+'\n'+lighter+'\n'+libraryCore+'\n'+foodCore+'\n'+foodUI+'\n'+inline,context);
+  vm.runInNewContext(core+'\n'+affordable+'\n'+creami+'\n'+world+'\n'+lighter+'\n'+libraryCore+'\n'+foodCore+'\n'+foodUI+'\n'+favouritesUI+'\n'+catalogueBrowser+'\n'+inline,context);
   if(existingPlan==='first-use'||existingPlan==='draft'){assert.equal(elements.setup.hidden,false);assert.equal(appElement.inert,true);assert.match(elements.setupContent.innerHTML,/Your supermarket/);assert.match(elements.setupContent.innerHTML,/Goals/);assert.equal(elements.profile.innerHTML,'');assert.equal(context.selectedShoppingStore(),existingPlan==='draft'?'Lidl':'Asda');assert.match(html,/if\(!state.setupComplete\)openSetup/);continue;}
-  for(const id of ['home','week','shop','pantry','recipes','profile'])assert.ok(elements[id].innerHTML.length>30,id+' rendered on '+(existingPlan?'saved':'fresh')+' startup');
+  for(const id of ['home','week','shop','pantry','recipes','favourites','profile'])assert.ok(elements[id].innerHTML.length>30,id+' rendered on '+(existingPlan?'saved':'fresh')+' startup');
   assert.ok(elements.recipes.innerHTML.includes(shippedRecipeCount+' recipes'));
   assert.match(elements.recipeResults.innerHTML,/View recipe/);
   assert.match(elements.profile.innerHTML,/Make it your week/);

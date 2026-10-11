@@ -4,6 +4,12 @@ A phone-friendly meal planner with recipes, pantry tracking, shopping lists and 
 
 The free consumer app also includes a dated food diary (common-food estimates, recipe portions and reusable food labels), a measured personal-recipe builder, and an explicit **Repeat favourites** planning mode. Choose three meals per day and a daily recipe for breakfast, lunch and dinner to keep a simple routine. Logged intake stays separate from planned meals, pantry and spending. See [consumer features](docs/consumer-features.md) for behaviour and limits.
 
+The **Favourites** tab keeps saved recipes searchable independently of the main
+recipe filters. Lidl shoppers can browse the saved food catalogue from Shopping,
+including unpriced products and additional source-linked range references.
+Historical source prices do not become current basket prices; see
+[Lidl ingredient coverage](docs/lidl-catalogue.md#browse-the-food-range).
+
 ## ASDA catalogue
 
 

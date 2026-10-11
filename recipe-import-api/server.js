@@ -14,7 +14,7 @@ import { createImportAccess, createAiImportBudget, ImportLimitError } from './im
 import { fetchPublicRecipePage } from './public-recipe-fetch.js';
 import { PRICE_LOOKUP_STORES, lookupStoreItem, splitBatches } from './price-search-adapter.js';
 import { catalogStoreInfo } from './catalog-adapter.js';
-import { searchCatalog, recommendCatalogItems, optimizeMealPlan, fetchProductPage, clearCatalogCache, catalogueStatus, cachedCatalogueStatus } from './catalog-service.js';
+import { searchCatalog, browseCatalog, recommendCatalogItems, optimizeMealPlan, fetchProductPage, clearCatalogCache, catalogueStatus, cachedCatalogueStatus } from './catalog-service.js';
 import { normalizePlannerRequest } from './planner-request.js';
 
 const execFileAsync = promisify(execFile);
@@ -793,6 +793,14 @@ app.get('/api/connection-check', authenticated, (_req, res) => res.json({ ok: tr
 
 app.get('/api/catalog/stores', catalogRateLimit, (_req, res) => res.json({ ok: true, stores: catalogStoreInfo(), mode: 'official-retailer-catalogue-snapshots' }));
 app.get('/api/catalog/status', async (req, res) => { const store=cleanString(req.query.store || 'Asda',40); if(!['Asda','Lidl'].includes(store))return res.status(400).json({error:'Store must be Asda or Lidl.'}); res.json({ok:true,catalogue:await catalogueStatus(store)}); });
+app.get('/api/catalog/browse', catalogRateLimit, async (req, res) => {
+  const store = cleanString(req.query.store || 'Lidl', 40);
+  if (store !== 'Lidl') return res.status(400).json({ error: 'Ingredient browsing is currently available for Lidl.' });
+  try {
+    const result = await browseCatalog(store, { query: cleanString(req.query.q, 120), category: cleanString(req.query.category, 120), price: cleanString(req.query.price, 20), offset: req.query.offset, limit: req.query.limit });
+    res.json({ ok: true, ...result });
+  } catch { res.status(503).json({ error: 'The Lidl ingredient catalogue is unavailable. Your shopping list is saved. Please retry.' }); }
+});
 app.get('/api/catalog/search', catalogRateLimit, async (req, res) => {
   try {
     const store = cleanString(req.query.store || '', 40);

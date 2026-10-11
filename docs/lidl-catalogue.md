@@ -55,6 +55,31 @@ Sources: [official robots](https://www.lidl.co.uk/robots.txt),
 [cucumber regular-price label](https://www.lidl.co.uk/p/cucumber/p10055848),
 [example milk page with an unpublished price](https://www.lidl.co.uk/p/milbona-uht-skimmed-milk/p10000029).
 
+## Browse the food range
+
+Shopping at Lidl now includes **Browse Lidl ingredients**, available even before
+creating a meal plan. Search, food-category and price filters cover the entire
+saved food catalogue with stable, bounded pages. Health, household, pets and
+plants departments are excluded. A price filter means a usable website price;
+it does not verify local stock.
+
+`data/lidl-range-references.json` adds 61 named food references from Lidl's
+[May 2026 shopping list](https://www.lidl.co.uk/static/assets/Lidl5-for-20-May2026-2204485.pdf)
+and [2025 most-loved range survey](https://www.lidl.co.uk/c/your-lidl-favourites/s10049239).
+After name deduplication against the current product snapshot, **45** additional
+entries join **1,246** food product pages: **1,291** browsable food entries.
+Counts may change as the daily product catalogue refreshes.
+
+These sources include light mayonnaise, tortilla wraps, wholemeal rolls,
+cannellini beans, fresh herbs, cheese and frozen vegetables. Range references
+show their source period and source link. Any published pack is labelled as
+historical information; current pack, price and stock must be checked in store.
+The old PDF prices are deliberately omitted. References have no invented product
+page, SKU, nutrition, price or current availability assertion. They never enter
+the validated matching index or budget optimiser, and a daily product refresh
+cannot erase them. This expands the ingredient directory without claiming a
+complete priced branch inventory.
+
 `refresh-lidl.yml` runs daily at 05:55 UTC, validates the scraper first and commits
 only successful snapshots. ASDA continues on its own daily refresh. Changing
 the selected supermarket invalidates both matching and planner requests.

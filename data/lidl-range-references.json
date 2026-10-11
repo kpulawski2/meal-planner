@@ -1,0 +1,509 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-10-11",
+  "note": "Official Lidl GB range references. Source documents establish a named product, not current price, pack, or local stock. No reference can enter an automatic basket.",
+  "sources": [
+    {
+      "id": "may-2026",
+      "url": "https://www.lidl.co.uk/static/assets/Lidl5-for-20-May2026-2204485.pdf",
+      "label": "Lidl GB shopping list — May 2026",
+      "publishedPeriod": "2026-05"
+    },
+    {
+      "id": "favourites-2025",
+      "url": "https://www.lidl.co.uk/c/your-lidl-favourites/s10049239",
+      "label": "Lidl GB most-loved range — 2025 survey",
+      "publishedPeriod": "2025"
+    }
+  ],
+  "references": [
+    {
+      "id": "range-0",
+      "name": "Garlic",
+      "category": "Fruit & Veg",
+      "sourceId": "may-2026",
+      "publishedPack": "Each",
+      "price": null
+    },
+    {
+      "id": "range-1",
+      "name": "Cooked Beetroot",
+      "category": "Fruit & Veg",
+      "sourceId": "may-2026",
+      "publishedPack": "500g",
+      "price": null
+    },
+    {
+      "id": "range-2",
+      "name": "Lemons",
+      "category": "Fruit & Veg",
+      "sourceId": "may-2026",
+      "publishedPack": "4 pack",
+      "price": null
+    },
+    {
+      "id": "range-3",
+      "name": "Cucumber",
+      "category": "Fruit & Veg",
+      "sourceId": "may-2026",
+      "publishedPack": "Each",
+      "price": null
+    },
+    {
+      "id": "range-4",
+      "name": "Dill",
+      "category": "Fruit & Veg",
+      "sourceId": "may-2026",
+      "publishedPack": "20g",
+      "price": null
+    },
+    {
+      "id": "range-5",
+      "name": "Baby Leaf Salad",
+      "category": "Fruit & Veg",
+      "sourceId": "may-2026",
+      "publishedPack": "110g",
+      "price": null
+    },
+    {
+      "id": "range-6",
+      "name": "Celery",
+      "category": "Fruit & Veg",
+      "sourceId": "may-2026",
+      "publishedPack": "Each",
+      "price": null
+    },
+    {
+      "id": "range-7",
+      "name": "Mint",
+      "category": "Fruit & Veg",
+      "sourceId": "may-2026",
+      "publishedPack": "30g",
+      "price": null
+    },
+    {
+      "id": "range-8",
+      "name": "Freshona Pickled Cornichons",
+      "category": "Food Cupboard",
+      "sourceId": "may-2026",
+      "publishedPack": "190g",
+      "price": null
+    },
+    {
+      "id": "range-9",
+      "name": "Freshona Cannellini Beans",
+      "category": "Food Cupboard",
+      "sourceId": "may-2026",
+      "publishedPack": "240g",
+      "price": null
+    },
+    {
+      "id": "range-10",
+      "name": "Simply Fat-Free Natural Yogurt",
+      "category": "Cheese, Dairy & Eggs",
+      "sourceId": "may-2026",
+      "publishedPack": "500g",
+      "price": null
+    },
+    {
+      "id": "range-11",
+      "name": "Baresa Wholewheat Fusili",
+      "category": "Food Cupboard",
+      "sourceId": "may-2026",
+      "publishedPack": "500g",
+      "price": null
+    },
+    {
+      "id": "range-12",
+      "name": "Simply Sparkling Mineral Water",
+      "category": "Drinks",
+      "sourceId": "may-2026",
+      "publishedPack": "2L",
+      "price": null
+    },
+    {
+      "id": "range-13",
+      "name": "Carrick Glen Sparkling Mineral Water",
+      "category": "Drinks",
+      "sourceId": "may-2026",
+      "publishedPack": "2L",
+      "price": null
+    },
+    {
+      "id": "range-14",
+      "name": "Freshona Frozen Pineapple",
+      "category": "Frozen",
+      "sourceId": "may-2026",
+      "publishedPack": "500g",
+      "price": null
+    },
+    {
+      "id": "range-15",
+      "name": "Batts Light Mayonnaise",
+      "category": "Oils, Condiments & Sauces",
+      "sourceId": "may-2026",
+      "publishedPack": "500ml",
+      "price": null
+    },
+    {
+      "id": "range-16",
+      "name": "Taste Of... Mango Chutney",
+      "category": "Oils, Condiments & Sauces",
+      "sourceId": "may-2026",
+      "publishedPack": "370g",
+      "price": null
+    },
+    {
+      "id": "range-17",
+      "name": "Rowan Hill Wholemeal Rolls",
+      "category": "Bakery",
+      "sourceId": "may-2026",
+      "publishedPack": "6 pack",
+      "price": null
+    },
+    {
+      "id": "range-18",
+      "name": "Alba Bakeries Brown Baps",
+      "category": "Bakery",
+      "sourceId": "may-2026",
+      "publishedPack": "4 pack",
+      "price": null
+    },
+    {
+      "id": "range-19",
+      "name": "Woodcote Medium Free Range Eggs",
+      "category": "Cheese, Dairy & Eggs",
+      "sourceId": "may-2026",
+      "publishedPack": "6 pack",
+      "price": null
+    },
+    {
+      "id": "range-20",
+      "name": "Chef Select Ready-rolled Puff Pastry",
+      "category": "Bakery",
+      "sourceId": "may-2026",
+      "publishedPack": "375g",
+      "price": null
+    },
+    {
+      "id": "range-21",
+      "name": "Deluxe Sausages (Chorizo Style)",
+      "category": "Meat & Poultry",
+      "sourceId": "may-2026",
+      "publishedPack": "400g",
+      "price": null
+    },
+    {
+      "id": "range-22",
+      "name": "Deluxe Sausages (Other Variants)",
+      "category": "Meat & Poultry",
+      "sourceId": "may-2026",
+      "publishedPack": "400g",
+      "price": null
+    },
+    {
+      "id": "range-23",
+      "name": "Deluxe Wholemeal Seeded Farmhouse Loaf",
+      "category": "Bakery",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-24",
+      "name": "Rowan Hill 5 New York Style Plain Bagels",
+      "category": "Bakery",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-25",
+      "name": "Rowan Hill 8 Both in One Tortilla Wraps",
+      "category": "Bakery",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-26",
+      "name": "Rowan Hill Thick White Farmhouse Loaf",
+      "category": "Bakery",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-27",
+      "name": "Rowan Hill 6 White Part-Baked Petits Pains",
+      "category": "Bakery",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-28",
+      "name": "Rowan Hill 6 Seeded Folded Flatbreads",
+      "category": "Bakery",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-29",
+      "name": "Simply Medium Sliced Wholemeal Loaf",
+      "category": "Bakery",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-30",
+      "name": "Newgate Baked Beans",
+      "category": "Food Cupboard",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-31",
+      "name": "Newgate Baked Beans & Pork Sausages",
+      "category": "Food Cupboard",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-32",
+      "name": "Newgate Chicken Meatballs in Tomato Sauce",
+      "category": "Food Cupboard",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-33",
+      "name": "Newgate Spaghetti Loops in Tomato Sauce",
+      "category": "Food Cupboard",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-34",
+      "name": "Newgate Spaghetti with Sausages",
+      "category": "Food Cupboard",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-35",
+      "name": "Tower Gate Milk Chocolate Digestives",
+      "category": "Confectionery & Snacks",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-36",
+      "name": "Deluxe All Butter Scottish Shortbread Fingers",
+      "category": "Confectionery & Snacks",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-37",
+      "name": "Tower Gate Oaties Biscuits",
+      "category": "Confectionery & Snacks",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-38",
+      "name": "Tower Gate Custard Creams",
+      "category": "Confectionery & Snacks",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-39",
+      "name": "Tower Gate Choco Nussa Biscuits",
+      "category": "Confectionery & Snacks",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-40",
+      "name": "Tower Gate Neo Biscuits",
+      "category": "Confectionery & Snacks",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-41",
+      "name": "Tower Gate Mini Chocolate Chip Cookies",
+      "category": "Confectionery & Snacks",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-42",
+      "name": "Valley Spire British Mature Cheddar",
+      "category": "Cheese, Dairy & Eggs",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-43",
+      "name": "Milbona Halloumi",
+      "category": "Cheese, Dairy & Eggs",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-44",
+      "name": "Milbona Shaved Parmigiano Reggiano",
+      "category": "Cheese, Dairy & Eggs",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-45",
+      "name": "Milbona Greek Feta Cheese",
+      "category": "Cheese, Dairy & Eggs",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-46",
+      "name": "Milbona Full Fat Soft Cheese",
+      "category": "Cheese, Dairy & Eggs",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-47",
+      "name": "Milbona Mozzarella",
+      "category": "Cheese, Dairy & Eggs",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-48",
+      "name": "Valley Spire 30% Reduced Fat Grated Mature Cheese",
+      "category": "Cheese, Dairy & Eggs",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-49",
+      "name": "Deluxe 2 Extra Large Battered Cod Fillets",
+      "category": "Frozen",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-50",
+      "name": "Deluxe Raw Jumbo King Prawns",
+      "category": "Frozen",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-51",
+      "name": "Ocean Sea 10 Cod Fish Fingers",
+      "category": "Frozen",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-52",
+      "name": "Ocean Sea 4 Breaded Chunky Cod Fillets",
+      "category": "Frozen",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-53",
+      "name": "Deluxe Salmon Wellington",
+      "category": "Frozen",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-54",
+      "name": "Ocean Sea Breaded Wholetail Scampi",
+      "category": "Frozen",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-55",
+      "name": "Ocean Sea Yellowfin Tuna Steaks",
+      "category": "Frozen",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-56",
+      "name": "Freshona British Frozen Garden Peas",
+      "category": "Frozen",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-57",
+      "name": "Freshona Mixed Vegetables",
+      "category": "Frozen",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-58",
+      "name": "Freshona Supersweet Sweetcorn",
+      "category": "Frozen",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-59",
+      "name": "Freshona Asian Style Stir Fry Veg Mix",
+      "category": "Frozen",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    },
+    {
+      "id": "range-60",
+      "name": "Freshona Diced Onions",
+      "category": "Frozen",
+      "sourceId": "favourites-2025",
+      "publishedPack": null,
+      "price": null
+    }
+  ]
+}

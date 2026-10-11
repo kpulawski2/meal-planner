@@ -2,6 +2,7 @@ import { parentPort } from 'node:worker_threads';
 import { optimizeMealPlan } from './budget-planner.js';
 import {
   searchCatalog,
+  browseCatalog,
   recommendCatalogItems,
   fetchProductPage,
   catalogueStatus,
@@ -11,7 +12,7 @@ import {
 
 if (!parentPort) throw new Error('Catalogue worker must run in a worker thread.');
 
-const operations = { searchCatalog, recommendCatalogItems, fetchProductPage, catalogueStatus, clearCatalogCache, optimizeMealPlan };
+const operations = { searchCatalog, browseCatalog, recommendCatalogItems, fetchProductPage, catalogueStatus, clearCatalogCache, optimizeMealPlan };
 const controllers = new Map();
 const statuses = () => Object.fromEntries(['Asda', 'Lidl'].map(store => [store, cachedCatalogueStatus(store)]));
 

@@ -30,6 +30,54 @@ function element(value = '') {
     click() {}, appendChild() {}, remove() {}, addEventListener() {},
   };
 }
+
+test('the dedicated Favourites tab keeps saved recipes across filters, reload, backup and removal', async () => {
+  const app = harness({ state: { favorites: [basic.id, 'everyday-tuna-crunch-pitta', 'missing-web-recipe'] } }); await app.flush();
+  app.context.showTab('favourites');
+  assert.match(app.node('favouritesResults').innerHTML, /Measured milk oats/); assert.match(app.node('favouritesResults').innerHTML, /Tuna/);
+  assert.match(app.node('favourites').innerHTML, /1 saved recipe is currently unavailable/);
+  app.context.FavouritesUI.category('Breakfast'); assert.doesNotMatch(app.node('favouritesResults').innerHTML, /Tuna/);
+  app.context.FavouritesUI.search('does not exist'); assert.match(app.node('favouritesResults').innerHTML, /No favourites match/);
+  app.context.FavouritesUI.reset();
+  const before = app.state().week; app.context.toggleFavorite(basic.id);
+  assert.doesNotMatch(app.node('favouritesResults').innerHTML, /Measured milk oats/); assert.deepEqual(app.state().week, before);
+  assert.deepEqual(JSON.parse(app.storage.get('mealPlannerState')).favorites, ['everyday-tuna-crunch-pitta', 'missing-web-recipe']);
+  const restored = harness({ state: app.state() }); await restored.flush(); restored.context.showTab('favourites');
+  assert.match(restored.node('favouritesResults').innerHTML, /Tuna/);
+  restored.context.restoreData({ target: { files: [{ contents: JSON.stringify({ ...app.state(), favorites: [basic.id] }) }] } });
+  assert.match(restored.node('favouritesResults').innerHTML, /Measured milk oats/);
+});
+test('Favourites can show saved recipes independently of restrictive library filters and paginate', async () => {
+  const app = harness(); await app.flush();
+  app.run('activeRecipeCollection="Ninja CREAMi";activeRecipeCategory="Dinner";activeRecipeQuery="no matches";state.favorites=["user_measured_oats"];');
+  app.context.showTab('favourites'); assert.match(app.node('favouritesResults').innerHTML, /Measured milk oats/);
+  app.run('for(let i=0;i<75;i++){const r={...state.customRecipes[0],id:"saved_"+i,name:"Saved oats "+i};recipes.push(r);state.favorites.push(r.id)}');
+  app.context.FavouritesUI.render(); assert.equal((app.node('favouritesResults').innerHTML.match(/<article/g) || []).length, 60);
+  app.context.FavouritesUI.more(); assert.equal((app.node('favouritesResults').innerHTML.match(/<article/g) || []).length, 76);
+});
+test('Lidl catalogue browser shows price uncertainty and prevents late search responses replacing newer results', async () => {
+  const app = harness({ state: { profile: { supermarket: 'Lidl' } } }); await app.flush();
+  assert.match(app.node('shop').innerHTML, /Browse Lidl ingredients/);
+  const replies = [];
+  app.context.fetch = (url, options) => new Promise(resolve => replies.push({ url, options, resolve }));
+  app.context.CatalogueBrowser.open('mayonnaise');
+  app.node('lidlBrowseQuery').value = 'tuna'; app.node('lidlBrowsePrice').value = 'all'; app.context.CatalogueBrowser.search();
+  const response = name => ({ ok: true, json: async () => ({ ok: true, total: 1200, matched: 1, rangeReferences: 30, priced: 200, nextOffset: null, categories: ['Food Cupboard'], results: [{ productName: name, category: 'Food Cupboard', kind: 'range_reference', priceGBP: null, sourcePeriod: '2026-05', url: 'https://www.lidl.co.uk/static/assets/example.pdf' }] }) });
+  replies[1].resolve(response('Tuna')); await app.flush();
+  replies[0].resolve(response('Mayonnaise')); await app.flush();
+  assert.match(app.node('lidlBrowseResults').innerHTML, /Tuna/); assert.doesNotMatch(app.node('lidlBrowseResults').innerHTML, /Mayonnaise/);
+  assert.match(app.node('lidlBrowseResults').innerHTML, /Price unknown|Check today/); assert.match(app.node('lidlBrowseResults').innerHTML, /2026-05/);
+  assert.deepEqual(app.state().shopping, {}); app.context.CatalogueBrowser.close();
+});
+test('an unavailable ingredient browser offers retry without changing saved shopping or pantry data', async () => {
+  const app = harness(); await app.flush(); const before = app.state();
+  app.context.CatalogueBrowser.open(); await app.flush();
+  assert.match(app.node('lidlBrowseStatus').innerHTML, /catalogue is unavailable/); assert.match(app.node('lidlBrowseStatus').innerHTML, /Retry/);
+  app.context.fetch = async () => ({ ok: true, json: async () => ({ ok: true, total: 1, matched: 1, rangeReferences: 0, priced: 1, nextOffset: null, categories: ['Food Cupboard'], results: [{ productName: 'Canned beans', category: 'Food Cupboard', kind: 'product', priceGBP: .49, url: 'https://www.lidl.co.uk/p/canned-beans/p10000001' }] }) });
+  app.context.CatalogueBrowser.retry(); await app.flush();
+  assert.match(app.node('lidlBrowseResults').innerHTML, /Canned beans/); assert.match(app.node('lidlBrowseResults').innerHTML, /£0.49/);
+  assert.deepEqual(app.state().shopping, before.shopping); assert.deepEqual(app.state().pantry, before.pantry); assert.deepEqual(app.state().week, before.week);
+});
 function harness(options = {}) {
   const seed = {
     profile: { days: 7, meals: 3, budget: 45, people: 1, calories: 1200, protein: 60, cookTime: 30, supermarket: 'Asda' },
@@ -42,16 +90,16 @@ function harness(options = {}) {
   const elements = new Map();
   // Keep value's DOM string conversion when creating lazily allocated inputs.
   const node = id => { if (!elements.has(id)) { const result = element(); result.id = id; elements.set(id, result); } return elements.get(id); };
-  const nav = ['home', 'week', 'recipes', 'shop', 'pantry', 'profile'].map(id => { const result = element(); result.dataset.tab = id; return result; });
+  const nav = ['home', 'week', 'recipes', 'favourites', 'shop', 'pantry', 'profile'].map(id => { const result = element(); result.dataset.tab = id; return result; });
   const requests = [], downloads = [], errors = [], listeners = new Map();
   const context = {
-    AbortController, AbortSignal, DOMException, FormData, Blob, URL,
+    AbortController, AbortSignal, DOMException, FormData, Blob, URL, URLSearchParams,
     console: { log() {}, warn() {}, error: (...values) => errors.push(values) },
     location: { origin: 'https://meal-planner.example', protocol: 'https:', hostname: 'meal-planner.example' },
     navigator: { onLine: options.online !== false },
     localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, String(value)), removeItem: key => storage.delete(key) },
     document: { hidden: false, body: element(), getElementById: node,
-      querySelectorAll: selector => selector === '.tabs button' ? nav : selector === '.screen' ? ['home', 'week', 'recipes', 'shop', 'pantry', 'profile'].map(node) : [],
+      querySelectorAll: selector => selector === '.tabs button' ? nav : selector === '.screen' ? ['home', 'week', 'recipes', 'favourites', 'shop', 'pantry', 'profile'].map(node) : [],
       querySelector: selector => selector === '.screen.active' ? { id: options.active || 'home' } : selector === '.app' ? node('app') : null,
       createElement: () => element(), addEventListener: (event, callback) => listeners.set(event, callback),
     },
