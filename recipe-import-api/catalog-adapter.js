@@ -231,6 +231,11 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   if (/\b(?:home & entertainment|toys?|pets?|pet food|laundry|household|toiletries|beauty|garden|furniture|electrical|stationery|craft|baby|toddler)\b/i.test(category)) return false;
   const frozenRequested = fullWords.has('frozen');
   const driedRequested = fullWords.has('dried');
+  if (asked('mayonnaise')) {
+    if (!name.has('mayonnaise') || !/sauce|condiment|mayonnaise|dressing/i.test(category)) return false;
+    for (const word of ['light','lighter','vegan','garlic','chilli','chipotle','truffle','egg','tuna','salad','sandwich','burger'])
+      if (name.has(word) && !asked(word)) return false;
+  }
   if (frozenRequested && !/frozen/i.test(category) && !/\bfrozen\b/i.test(title)) return false;
   if (driedRequested && !/dried|dry herbs|herbs & spices|spices/i.test(category) && !/\bdried\b/i.test(title)) return false;
 

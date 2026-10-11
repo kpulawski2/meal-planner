@@ -20,7 +20,7 @@ test('the shipped complete source snapshot streams to the phone without blocking
  const response=await libraryRequest;
  assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/json/);
  assert.equal(response.headers.get('cache-control'),'no-cache');
- for(const asset of ['/index.html','/service-worker.js','/consumer-experience.css?v=17']){
+ for(const asset of ['/index.html','/service-worker.js','/consumer-experience.css?v=18']){
   const shipped=await fetch(base+asset);
   assert.equal(shipped.status,200,asset);
   assert.equal(shipped.headers.get('cache-control'),'no-cache',asset+' must revalidate in existing phone browsers');

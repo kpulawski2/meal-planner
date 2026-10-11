@@ -68,7 +68,9 @@
     return 'plant';
   }
   function varietyPolicy(profile = {}, count = Number(profile.days) || 7) {
-    const days = Math.max(1, Math.min(14, count)), mode = ['Balanced', 'More variety', 'Budget focus'].includes(profile.varietyMode) ? profile.varietyMode : 'Balanced';
+    const days = Math.max(1, Math.min(14, count)), mode = ['Balanced', 'More variety', 'Budget focus', 'Repeat favourites'].includes(profile.varietyMode) ? profile.varietyMode : 'Balanced';
+    if (mode === 'Repeat favourites') return { mode, days, repeatLimit: days, minimumDistinct: 1,
+      sideRepeatLimit: days, minimumSideDistinct: 1, requiredFamilies: 0, dominantFamilyLimit: days * 2, avoidConsecutive: false };
     return { mode, days, repeatLimit: Math.min(days, (mode === 'More variety' ? 2 : 3) * Math.ceil(days / 7)),
       minimumDistinct: Math.min(days, Math.ceil(days / (mode === 'More variety' ? 2 : 3))),
       sideRepeatLimit: Math.min(days, (mode === 'More variety' ? 3 : mode === 'Budget focus' ? 5 : 4) * Math.ceil(days / 7)),
@@ -105,9 +107,10 @@
     const availableFamilies = [...new Set(recipes.filter(recipe => ['Lunch', 'Dinner'].includes(recipe.cat)).map(proteinFamily))];
     const requiredFamilies = Math.min(policy.requiredFamilies, availableFamilies.length);
     if (proteinFamilies.length < requiredFamilies) violations.push(`Main meals need ${requiredFamilies} protein families; this plan has ${proteinFamilies.length}.`);
-    if (mainMeals && dominantFamilyCount > Math.ceil(mainMeals / 2)) violations.push(`One protein family supplies ${dominantFamilyCount} of ${mainMeals} main meals; the limit is half.`);
+    const dominantFamilyLimit = policy.mode === 'Repeat favourites' ? mainMeals : Math.ceil(mainMeals / 2);
+    if (mainMeals && dominantFamilyCount > dominantFamilyLimit) violations.push(`One protein family supplies ${dominantFamilyCount} of ${mainMeals} main meals; the limit is half.`);
     return { met: !violations.length, mode: policy.mode, repeatLimit: policy.repeatLimit, repeatLimitByCategory, minimumDistinctByCategory, distinctRecipes, proteinFamilies,
-      availableFamilies, requiredFamilies, familyCounts: { ...families }, dominantFamilyCount, dominantFamilyLimit: Math.ceil(mainMeals / 2),
+      availableFamilies, requiredFamilies, familyCounts: { ...families }, dominantFamilyCount, dominantFamilyLimit,
       recipeCounts: { ...recipeCounts }, mainMeals, violations };
   }
   function buildShopping({ week = [], recipes = [], mealServings = {}, people = 1, pantry = [] } = {}) {

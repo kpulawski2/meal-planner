@@ -2,6 +2,24 @@
 
 These features use the existing app and browser storage. There is no subscription or paid AI requirement for stock tracking, supermarket matching, planning, swaps or cooking mode.
 
+## Food diary
+
+Home has a dated **Food diary** for your own intake. **Log food** searches common foods, your saved food labels and recipes with complete nutrition estimates. Choose the amount you ate; calories, protein, carbs and fat scale to that amount. Common-food values are generic estimates, not supermarket product labels. Dry grains and raw chicken are identified by weight basis; cooked rice and cooked pasta have separate entries. Unsupported quantity conversions cannot be logged as complete estimates.
+
+For packaged snacks or drinks, **Enter label** accepts the calories and optional macros for a measured label amount (g, ml or a portion). The app calculates the amount eaten and can save that label for next time. Missing macros remain unknown rather than being represented as a complete zero. This is a food diary with a small common-food reference list, not a complete branded-food database, barcode scanner or micronutrient tracker.
+
+**Log eaten** on a planned meal opens its per-person portion for review. It never automatically logs the whole household's portions. Repeating that action for the same plan slot and date cannot add a second copy: edit or remove its diary entry instead. You can edit an entry's date and quantity, or remove it. Diary entries retain their recorded nutrition even if a recipe changes later.
+
+Logged intake and planned nutrition are separate. Planning, shopping, cooking and leftovers do not automatically record consumption. Food logging does not change pantry stock, remaining shopping or recorded spending, and snacks in the diary do not silently replace a planned meal or alter planner targets. Dates are real calendar dates on this device, independent of the plan's weekday labels. The diary and saved labels stay in backups and carry over when starting a new week.
+
+## Repeated daily meals
+
+In Settings, **Meals per day → 3** creates Breakfast, Lunch and Dinner without an automatic snack slot. **Variety → Repeat favourites** permits the same recipes on consecutive days and removes the weekly minimum variety and protein-family mix requirements. The other variety modes retain their existing requirements.
+
+Choose an **Every day** recipe for each active meal type, or leave a type to the planner. A recipe's **Repeat this breakfast/lunch/dinner** action selects it in these settings. Review all choices and use **Save & fit my plan**. Selected recipes are retained in the bounded planner library; they are not silently replaced when unavailable, unpriced or incompatible. Recipe portions may adjust to the configured daily calorie range and protein minimum.
+
+Meal roles, distinct dishes within a day, dietary exclusions, measured nutrition, full-pack supermarket pricing, pantry/leftover deductions and recorded spending still apply. A conflicting kept meal requires reviewing the lock; cooked meals and their portions remain fixed. A failed fit retains the saved plan. Existing overnight-oats recipes, the measured **Tuna, Pickle, Egg & Mayo Wrap**, and chicken dinners can be selected for a repeated three-meal routine.
+
 ## Purchases and pantry stock
 
 The app cannot detect a checkout at ASDA or Lidl. To record a purchase:
@@ -45,6 +63,8 @@ When a complete quote would exceed the budget or miss nutrition or variety targe
 Already consumed meals remain part of the day's nutrition and the plan's history after a preference change. This exception does not allow a future occurrence or an uncooked portion of an excluded recipe.
 
 ## Preferences and recipe details
+
+**Create recipe** opens personal recipe entry without requiring an import. Add measured ingredients using the name/amount/unit helper, or edit the full ingredient list. Nutrition previews show calories and macros per recipe serving, including oils and sauces. **My recipes** filters the collection to your local recipes. Editing the yield or ingredient amounts previews the recalculated estimate and clears outdated verified values when saved; incomplete ingredients remain flagged for review. Unknown foods are not assigned invented nutrition. Regular mayonnaise and drained pickled gherkins use labelled generic estimates in the new wrap.
 
 **Would eat again** raises a recipe's preference score. **Skip next time** excludes it from future automatic choices. Recent cooking history reduces the preference for meals cooked recently; it does not override nutrition, pricing, diet or variety checks.
 

@@ -79,7 +79,7 @@ test('the actual shipped external modules and whole inline app start and render 
       assert.equal(typeof button.onclick, 'function'); button.onclick();
       assert.ok(app.node(button.dataset.tab).innerHTML.length > 30, button.dataset.tab);
     }
-    assert.equal(app.run('recipes.filter(row=>row.id.startsWith("everyday-")).length'), 24);
+    assert.equal(app.run('recipes.filter(row=>row.id.startsWith("everyday-")).length'), 25);
     assert.equal(app.errors.length, 0);
     assert.match(app.node('week').innerHTML, /PantryUI.openCook/);
     assert.match(app.node('pantry').innerHTML, /Confirm purchases in Shopping/);
@@ -256,4 +256,49 @@ test('saved offline basket keeps its price date while changed quantities require
   app.run('state.mealServings["Monday::0"]=2;requestAutomaticCatalogMatches(Object.entries(buildShopping()),"Asda")');
   assert.equal(app.run('automaticCatalogState.status'), 'error');
   assert.match(app.run('automaticCatalogState.error'), /Go online to price this changed list/);
+});
+
+test('the actual diary scales personal food, preserves history in backups and leaves household planning unchanged', async () => {
+  const app = harness(); await app.flush();
+  const original = app.state();
+  assert.match(app.node('home').innerHTML, /Food diary/);
+  app.context.FoodLogUI.mode(true);
+  for (const [id, value] of Object.entries({ diaryDate: '2026-10-11', diaryName: 'Snack bar', diaryBasis: '100', diaryBasisUnit: 'g', 'diary-kcal': '400', 'diary-p': '', 'diary-c': '50', 'diary-f': '18', diaryAmount: '25' })) app.node(id).value = value;
+  app.node('diarySaveFood').checked = true;
+  app.context.FoodLogUI.preview(); assert.match(app.node('diaryPreview').textContent, /100 kcal/);
+  app.context.FoodLogUI.commit();
+  const saved = app.state(); assert.equal(saved.foodLog[0].nutrition.kcal, 100); assert.equal(saved.foodLog[0].nutrition.p, null); assert.equal(saved.savedFoods.length, 1);
+  assert.deepEqual(saved.week, original.week); assert.deepEqual(saved.pantry, original.pantry);
+  assert.match(app.node('home').innerHTML, /some macros missing/);
+  assert.equal(app.context.budgetPlannerPayload().foodLog, undefined);
+  app.context.backupData(); const backup = app.downloads.at(-1).contents;
+  app.context.confirmNextPlan(); assert.equal(app.state().foodLog.length, 1);
+  app.context.restoreData({ target: { files: [{ contents: backup }] } }); assert.equal(app.state().foodLog[0].nutrition.kcal, 100);
+});
+
+test('logging a planned meal uses personal portions and rejects a second entry for the same date and slot', async () => {
+  const app = harness({ state: { mealServings: { 'Monday::0': 3 } } }); await app.flush();
+  app.run('state.profile.people=2');
+  app.context.FoodLogUI.openRecipe(basic.id, 'Monday', 0);
+  assert.equal(Number(app.node('diaryAmount').value), 1.5);
+  app.node('diaryDate').value = '2026-10-11'; app.context.FoodLogUI.commit();
+  assert.equal(app.state().foodLog.length, 1);
+  const originalCalories = app.state().foodLog[0].nutrition.kcal;
+  app.context.FoodLogUI.openRecipe(basic.id, 'Monday', 0); app.node('diaryDate').value = '2026-10-11'; app.context.FoodLogUI.commit();
+  assert.equal(app.state().foodLog.length, 1); assert.equal(app.state().foodLog[0].nutrition.kcal, originalCalories);
+  app.context.FoodLogUI.edit(app.state().foodLog[0].id); app.node('diaryDate').value = '2026-10-11'; app.node('diaryAmount').value = '1'; app.context.FoodLogUI.commit();
+  assert.ok(app.state().foodLog[0].nutrition.kcal < originalCalories);
+});
+
+test('daily favourites persist in settings and planner payloads without waiving ingredient nutrition', async () => {
+  const app = harness(); await app.flush();
+  app.context.repeatRecipeEveryDay(basic.id);
+  assert.equal(app.state().profile.varietyMode, 'Repeat favourites'); assert.equal(app.state().profile.repeatMeals.Breakfast, basic.id);
+  assert.match(app.node('profile').innerHTML, /Every day · Breakfast/);
+  const payload = app.context.budgetPlannerPayload(); assert.equal(payload.profile.meals, 3); assert.equal(payload.profile.repeatMeals.Breakfast, basic.id);
+  const wrap = app.run('recipeNutrition(getRecipe("everyday-tuna-pickle-egg-mayo-wrap"))'); assert.equal(wrap.complete, true); assert.ok(wrap.kcal > 400);
+  app.context.openEditRecipe(basic.id); app.node('editServings').value = '2'; app.context.updateEditedNutritionPreview();
+  assert.match(app.node('editNutritionPreview').innerHTML, /Estimate per serving/);
+  app.node('editIngredientName').value = 'Olive oil'; app.node('editIngredientAmount').value = '5'; app.node('editIngredientUnit').value = 'g'; app.context.appendMeasuredIngredient('edit');
+  assert.match(app.node('editIngredients').value, /Olive oil \| 5 \| g/);
 });
