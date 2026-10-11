@@ -84,7 +84,7 @@ const PUBLIC_DIR = path.resolve(process.cwd(), 'public');
 app.use(express.static(PUBLIC_DIR, {
   etag: true, maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0,
   setHeaders(res, filename) {
-    if (filename.endsWith('.html') || filename.endsWith('.js')) res.setHeader('Cache-Control', 'no-cache');
+    if (filename.endsWith('.html') || filename.endsWith('.js') || filename.endsWith('.css')) res.setHeader('Cache-Control', 'no-cache');
   },
 }));
 

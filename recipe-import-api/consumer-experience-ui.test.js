@@ -176,3 +176,12 @@ test('weekly overview is compact and explanatory text is behind expandable detai
  const panel=source('function budgetPlannerPanel(){','function getRecipe(');assert.match(panel,/weekly-overview/);assert.match(panel,/selectedShoppingStore/);assert.match(panel,/Meal variety/);assert.match(panel,/<details class="planner-help"/);
  const styles=html.slice(html.indexOf('/* Keep the navigation reachable'),html.indexOf('</style>'));assert.match(styles,/\.tabs\{position:fixed;bottom:0/);assert.doesNotMatch(styles,/\.tabs\{position:sticky/);
 });
+
+test('the versioned interface stylesheet is included in the offline shell',async()=>{
+ const href=html.match(/<link rel="stylesheet" href="(\/consumer-experience\.css\?v=\d+)"/)?.[1];
+ assert.ok(href,'existing browsers must request the revised stylesheet URL');
+ const worker=await readFile(new URL('../public/service-worker.js',import.meta.url),'utf8');
+ assert.ok(worker.includes("'"+href+"'"),'offline installation must cache the exact stylesheet URL used by the page');
+ const css=await readFile(new URL('../public/consumer-experience.css',import.meta.url),'utf8');
+ assert.match(css,/grid-template-columns:48px minmax\(0,1fr\)/);
+});
