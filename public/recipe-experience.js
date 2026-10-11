@@ -100,7 +100,8 @@
    for(const label of notes.length?notes:['Check the source details before automatic planning.'])add('source_review',String(label));
   }
   const profile=options.profile||{},available=new Set((Array.isArray(profile.equipment)?profile.equipment:[]).map(v=>String(v).toLowerCase()));
-  for(const name of Array.isArray(recipe.equipment)?recipe.equipment:[])if(!available.has(String(name).toLowerCase()))add('equipment','Enable '+String(name)+' in your kitchen equipment.');
+  const missingEquipment=root.KitchenEquipment?root.KitchenEquipment.missing(recipe,profile):(Array.isArray(recipe.equipment)?recipe.equipment:[]).filter(name=>!available.has(String(name).toLowerCase()));
+  for(const name of missingEquipment)add('equipment','Enable '+String(name)+' in your kitchen equipment.');
   if(options.state&&!allowedFeedback(recipe,options.state))add('feedback','You chose Skip next time. Clear that preference to use this recipe again.');
   // Unchecked prices are not an error. Only report gaps from an actual catalogue check.
   const pricing=options.pricing;
@@ -122,7 +123,7 @@
  }
  function applyCorrections(recipe,patch={}){
   if(recipe.custom!==true)throw new TypeError('Make an editable copy before changing this recipe.');
-  const next=clone(recipe),fields=['name','cat','icon','servings','ings','method','cookTime','equipment','kcal','p','c','f','nutritionStatus'];
+  const next=clone(recipe),fields=['name','cat','icon','servings','ings','method','cookTime','passiveMinutes','passiveLabel','equipment','kcal','p','c','f','nutritionStatus'];
   for(const field of fields)if(Object.hasOwn(patch,field))next[field]=clone(patch[field]);
   const quantitiesChanged=JSON.stringify(next.ings)!==JSON.stringify(recipe.ings)||next.servings!==recipe.servings;
   if(quantitiesChanged){next.nutritionStatus='estimated';next.kcal=null;next.p=null;next.c=null;next.f=null;delete next.nutrition;}

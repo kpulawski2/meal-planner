@@ -4,6 +4,8 @@ import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 
 const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
+const equipment=await readFile(new URL('../public/equipment-core.js',import.meta.url),'utf8');
+const social=await readFile(new URL('../public/social-recipes.js',import.meta.url),'utf8');
 const core=await readFile(new URL('../public/budget-core.js',import.meta.url),'utf8');
 const affordable=await readFile(new URL('../public/affordable-recipes.js',import.meta.url),'utf8');
 const creami=await readFile(new URL('../public/creami-recipes.js',import.meta.url),'utf8');
@@ -14,7 +16,7 @@ const favouritesUI=await readFile(new URL('../public/favourites-ui.js',import.me
 const catalogueBrowser=await readFile(new URL('../public/catalogue-browser.js',import.meta.url),'utf8');
 const foodUI=await readFile(new URL('../public/food-log-ui.js',import.meta.url),'utf8');
 const lighter=await readFile(new URL('../public/lighter-recipes.js',import.meta.url),'utf8');
-const worldContext={};vm.runInNewContext(world,worldContext);const shippedRecipeCount=232+worldContext.WORLD_RECIPES.length;
+const worldContext={};vm.runInNewContext(world,worldContext);const shippedRecipeCount=292+worldContext.WORLD_RECIPES.length;
 function source(start,end){const from=html.indexOf(start),to=html.indexOf(end,from+start.length);assert.ok(from>=0&&to>from,start);return html.slice(from,to);}
 function element(value=''){const classes=new Set();return {value,files:[],style:{},textContent:'',innerHTML:'',disabled:false,attributes:{},dataset:{},classList:{add(name){classes.add(name)},remove(name){classes.delete(name)},toggle(name,on){if(on)classes.add(name);else classes.delete(name);},contains:name=>classes.has(name)},setAttribute(name,value){this.attributes[name]=value;},focus(){this.focused=true;},scrollIntoView(){}};}
 function importHarness(options={}){
@@ -45,7 +47,7 @@ test('the complete app starts and renders every panel with a new or saved plan',
   const appElement={inert:false};
   const context={AbortController,DOMException,AbortSignal,FormData,Blob,console,navigator:{},location:{origin:'https://meal-planner.example',protocol:'https:',hostname:'meal-planner.example'},localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)},document:{body:element(),hidden:false,getElementById:id=>elements[id]||(elements[id]=element()),querySelectorAll:selector=>selector==='.tabs button'?nav:selector==='.screen'?['home','week','shop','pantry','recipes','favourites','profile'].map(id=>elements[id]):[],querySelector:selector=>selector==='.screen.active'?{id:'home'}:selector==='.app'?appElement:null,addEventListener(){}},setTimeout:()=>0,clearTimeout(){},fetch:async()=>({ok:false,status:503,text:async()=>''})};
   const scrolls=[];context.window=context;context.addEventListener=()=>{};context.scrollTo=options=>scrolls.push(options);
-  vm.runInNewContext(core+'\n'+affordable+'\n'+creami+'\n'+world+'\n'+lighter+'\n'+libraryCore+'\n'+foodCore+'\n'+foodUI+'\n'+favouritesUI+'\n'+catalogueBrowser+'\n'+inline,context);
+  vm.runInNewContext(equipment+'\n'+social+'\n'+core+'\n'+affordable+'\n'+creami+'\n'+world+'\n'+lighter+'\n'+libraryCore+'\n'+foodCore+'\n'+foodUI+'\n'+favouritesUI+'\n'+catalogueBrowser+'\n'+inline,context);
   if(existingPlan==='first-use'||existingPlan==='draft'){assert.equal(elements.setup.hidden,false);assert.equal(appElement.inert,true);assert.match(elements.setupContent.innerHTML,/Your supermarket/);assert.match(elements.setupContent.innerHTML,/Goals/);assert.equal(elements.profile.innerHTML,'');assert.equal(context.selectedShoppingStore(),existingPlan==='draft'?'Lidl':'Asda');assert.match(html,/if\(!state.setupComplete\)openSetup/);continue;}
   for(const id of ['home','week','shop','pantry','recipes','favourites','profile'])assert.ok(elements[id].innerHTML.length>30,id+' rendered on '+(existingPlan?'saved':'fresh')+' startup');
   assert.ok(elements.recipes.innerHTML.includes(shippedRecipeCount+' recipes'));
@@ -149,7 +151,7 @@ test('imported recipes save cook time and automatically calculated nutrition wit
 function settingsHarness(profile={}){
  const elements={profile:element(),cal:element('2100'),pro:element('125'),bud:element('32'),cook:element('30'),people:element('2'),dis:element('Pork'),likes:element('Beans'),custom:element('no fish'),goalDetails:element()},buttons=Object.keys({'Lose weight':1,'Gain muscle':1,'Eat healthy':1,'Save money':1,'Make cooking easier':1}).map(goal=>({...element(),dataset:{goal}}));
  let saved=0;const context={state:{profile:{days:7,meals:3,budget:45,calories:2000,protein:100,cookTime:45,people:1,supermarkets:['Asda'],goal:['Eat healthy'],varietyMode:'Balanced',...profile}},defaultProfile:{goal:['Eat healthy','Save money','Make cooking easier']},document:{getElementById:id=>elements[id],querySelectorAll:()=>buttons},setupActive:false,selectedShoppingStore:()=>profile.supermarket||'Asda',RETAILER_NAMES:['Asda','Lidl'],escape:String,save(){saved++;},cancelBudgetPlan(){},renderAll(){},generateWeek(){},budgetPlannerState:{status:'idle'}};
- vm.runInNewContext(core+'\n'+source('function selectedPlannerGoals(){','function budgetPlannerPanel(){')+'\n'+source('function migratePlannerPreferences(){','function save(){')+'\n'+source('function presetButtons(','let pendingSwap=null;'),context);
+ vm.runInNewContext(core+'\n'+source('function equipmentSettingsHtml(){','function recipeDiscoveryFiltersHtml(')+'\n'+source('function selectedPlannerGoals(){','function budgetPlannerPanel(){')+'\n'+source('function migratePlannerPreferences(){','function save(){')+'\n'+source('function presetButtons(','let pendingSwap=null;'),context);
  return {context,elements,buttons,get saved(){return saved;}};
 }
 

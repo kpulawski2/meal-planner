@@ -3,6 +3,7 @@
  'use strict';
  const category=r=>r.cat==='Fruit'||r.cat==='Snacks'?'Snack':r.cat;
  function equipmentAllowed(recipe,profile={}){
+  if(root.KitchenEquipment)return root.KitchenEquipment.allowed(recipe,profile);
   const available=new Set((Array.isArray(profile.equipment)?profile.equipment:[]).map(v=>String(v).toLowerCase()));
   return (Array.isArray(recipe.equipment)?recipe.equipment:[]).every(v=>available.has(String(v).toLowerCase()));
  }
@@ -26,7 +27,7 @@
   const week=Math.floor(Date.now()/604800000),seed=JSON.stringify([week,profile.diet,profile.goal,profile.varietyMode,profile.dislikes,profile.likes]);
   const groups=new Map();
   for(const row of ready){
-   const source=/^(web-|world-)/.test(row.id)?'web':row.id.startsWith('creami-')?'creami':'everyday';
+   const source=row.collection==='social'?'social':/^(web-|world-)/.test(row.id)?'web':row.id.startsWith('creami-')?'creami':'everyday';
    const family=root.MealBudgetCore?.proteinFamily(row)||row.proteinFamily||'other';
    const key=[category(row),source,family].join('::');
    if(!groups.has(key))groups.set(key,[]);groups.get(key).push(row);
