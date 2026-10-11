@@ -1,4 +1,4 @@
-const CACHE='meal-planner-shell-v15-everyday-lifecycle';
+const CACHE='meal-planner-shell-v16-phone-meal-cards';
 const CORE=['/','/index.html','/budget-core.js','/pantry-core.js','/pantry-ui.js','/consumer-tools.js','/consumer-experience.css','/swap-core.js','/swap-ui.js','/recipe-experience.js','/everyday-recipes.js','/affordable-recipes.js','/lighter-recipes.js','/creami-recipes.js','/world-recipes.js','/recipe-library-core.js','/recipe-library.json','/manifest.webmanifest','/icon.svg'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
