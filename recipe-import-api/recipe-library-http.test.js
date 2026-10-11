@@ -9,6 +9,7 @@ import '../public/recipe-library-core.js';
 
 test('the shipped complete source snapshot streams to the phone without blocking health checks',async t=>{
  process.env.PORT='0';
+ process.env.NODE_ENV='production';
  const {httpServer}=await import('./server.js');
  t.after(async()=>{httpServer.closeAllConnections();await new Promise(resolve=>httpServer.close(resolve));});
  if(!httpServer.listening)await once(httpServer,'listening');
@@ -19,6 +20,11 @@ test('the shipped complete source snapshot streams to the phone without blocking
  const response=await libraryRequest;
  assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/json/);
  assert.equal(response.headers.get('cache-control'),'no-cache');
+ for(const asset of ['/index.html','/service-worker.js','/consumer-experience.css?v=17']){
+  const shipped=await fetch(base+asset);
+  assert.equal(shipped.status,200,asset);
+  assert.equal(shipped.headers.get('cache-control'),'no-cache',asset+' must revalidate in existing phone browsers');
+ }
  const library=await response.json();
  assert.equal(validateRecipeLibrary(library).valid,true);
  assert.equal(globalThis.RecipeLibraryCore.validLibrary(library),true);
