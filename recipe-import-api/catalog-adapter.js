@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setImmediate as yieldToServer } from 'node:timers/promises';
 import { createHash } from 'node:crypto';
+import { loadRangeReferences } from './lidl-range-references.js';
 
 const CATALOG_STORES = {
   Asda: {
@@ -937,6 +938,43 @@ export async function searchCatalog(storeName, query, limit = 8, dimension = '')
       verified: index.snapshotStatus === 'complete' && productPriceUsable(product) && Number(product.packQuantity) > 0,
     }) : ({ url, score })),
   };
+}
+
+// Browsing includes unpriced food and separately labelled range references.
+// References never enter the matching index or automatic budget calculations.
+export async function browseCatalog(storeName, { query = '', category = '', price = 'all', offset = 0, limit = 40 } = {}) {
+  if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new TypeError('Store must be Asda or Lidl.');
+  const index = await getIndex(storeName), now = new Date();
+  const refs = storeName === 'Lidl' ? await loadRangeReferences() : [];
+  const nameKey = value => productTokens(value).sort().join(' ');
+  const categoryOf = product => {
+    const parts = String(product.category || '').split(' > ');
+    if (storeName === 'Lidl' && (parts[0] !== 'Food & Drink' || ['Health & Beauty', 'Household', 'Pet', 'Plants & Flowers'].includes(parts[1]))) return null;
+    const group = parts[storeName === 'Lidl' ? 1 : 0] || 'Other food';
+    return /^fruit & veg$/i.test(group) ? 'Fruit & Veg' : group;
+  };
+  const rows = index.products.flatMap(product => {
+    const group = categoryOf(product); if (!group) return [];
+    return [{ id: String(product.id || product.sku || product.url), productName: product.name, category: group, url: product.url, packSize: product.packSize || null,
+      priceGBP: productPriceUsable(product, now) ? Number(product.price) : null, kind: 'product', availability: product.available === false ? 'unavailable' : 'check_in_store',
+      checkedAt: product.checkedAt || null, sourceLabel: storeName + ' official product page', sourcePeriod: null, publishedPack: null }];
+  });
+  const known = new Set(rows.map(row => nameKey(row.productName)));
+  for (const ref of refs) {
+    const key = nameKey(ref.name); if (known.has(key)) continue; known.add(key);
+    rows.push({ id: ref.id, productName: ref.name, category: ref.category, url: ref.sourceUrl, packSize: null, priceGBP: null, kind: 'range_reference',
+      availability: 'check_in_store', checkedAt: ref.reviewedAt, sourceLabel: ref.sourceLabel, sourcePeriod: ref.sourcePeriod, publishedPack: ref.publishedPack });
+  }
+  const categories = [...new Set(rows.map(row => row.category))].sort();
+  const words = productTokens(clean(query, 120)), selectedCategory = clean(category, 120);
+  const filterPrice = ['all', 'priced', 'unpriced'].includes(price) ? price : 'all';
+  const filtered = rows.filter(row => (!selectedCategory || row.category === selectedCategory) && (filterPrice === 'all' || (row.priceGBP !== null) === (filterPrice === 'priced')) && words.every(word => productTokens(row.productName).includes(word)));
+  filtered.sort((a, b) => a.productName.localeCompare(b.productName) || a.id.localeCompare(b.id));
+  const start = Number.isFinite(Number(offset)) ? Math.max(0, Math.trunc(Number(offset))) : 0;
+  const count = Number.isFinite(Number(limit)) ? Math.max(1, Math.min(100, Math.trunc(Number(limit) || 40))) : 40;
+  return { store: storeName, total: rows.length, matched: filtered.length, priced: rows.filter(row => row.priceGBP !== null).length,
+    rangeReferences: rows.filter(row => row.kind === 'range_reference').length, categories, refreshedAt: index.metadata.refreshed_at, offset: start,
+    nextOffset: start + count < filtered.length ? start + count : null, results: filtered.slice(start, start + count) };
 }
 
 function firstNumber(text) {

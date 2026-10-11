@@ -20,11 +20,15 @@ test('the shipped complete source snapshot streams to the phone without blocking
  const response=await libraryRequest;
  assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/json/);
  assert.equal(response.headers.get('cache-control'),'no-cache');
- for(const asset of ['/index.html','/service-worker.js','/consumer-experience.css?v=18']){
+ for(const asset of ['/index.html','/service-worker.js','/consumer-experience.css?v=19','/favourites-ui.js','/catalogue-browser.js']){
   const shipped=await fetch(base+asset);
   assert.equal(shipped.status,200,asset);
   assert.equal(shipped.headers.get('cache-control'),'no-cache',asset+' must revalidate in existing phone browsers');
  }
+ const ingredients=await fetch(base+'/api/catalog/browse?store=Lidl&q=mayonnaise');
+ assert.equal(ingredients.status,200);const directory=await ingredients.json();assert.equal(directory.ok,true);
+ assert.ok(directory.results.some(row=>row.productName==='Batts Light Mayonnaise'&&row.priceGBP===null));
+ assert.equal((await fetch(base+'/api/catalog/browse?store=Other')).status,400);
  const library=await response.json();
  assert.equal(validateRecipeLibrary(library).valid,true);
  assert.equal(globalThis.RecipeLibraryCore.validLibrary(library),true);

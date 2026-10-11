@@ -96,6 +96,10 @@ export function searchCatalog(storeName, query, limit = 8, dimension = '') {
   return callWorker('searchCatalog', [storeName, query, limit, dimension]);
 }
 
+export function browseCatalog(storeName, filters = {}) {
+  return callWorker('browseCatalog', [storeName, filters]);
+}
+
 export function recommendCatalogItems(storeName, items, { signal } = {}) {
   return callWorker('recommendCatalogItems', [storeName, items], { signal });
 }
