@@ -1,0 +1,259 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import { readFile } from 'node:fs/promises';
+
+const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
+const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
+const modules = [];
+for (const script of scripts) {
+  const path = script[0].match(/\bsrc="\/([a-z0-9-]+\.js)"/i)?.[1];
+  if (path) modules.push(await readFile(new URL('../public/' + path, import.meta.url), 'utf8'));
+  else if (script[1].trim()) modules.push(script[1]);
+}
+const fullSource = modules.join('\n');
+const basic = {
+  id: 'user_measured_oats', name: 'Measured milk oats', cat: 'Breakfast', icon: '🥣',
+  servings: 1, ings: [['Oats', 40, 'g'], ['Milk', 150, 'ml']],
+  method: ['Measure the oats and milk.', 'Simmer and stir until tender.'],
+  cookTime: 8, custom: true, cost: null, kcal: null, p: null, c: null, f: null, nutritionStatus: 'estimated',
+};
+const copy = value => JSON.parse(JSON.stringify(value));
+function element(value = '') {
+  const classes = new Set(); let current = String(value);
+  return {
+    get value() { return current; }, set value(value) { current = String(value); },
+    files: [], innerHTML: '', textContent: '', disabled: false, checked: false, hidden: false,
+    style: {}, dataset: {}, attributes: {}, inert: false,
+    classList: { add: name => classes.add(name), remove: name => classes.delete(name), contains: name => classes.has(name), toggle(name, active) { if (active === undefined ? !classes.has(name) : active) classes.add(name); else classes.delete(name); } },
+    setAttribute(name, value) { this.attributes[name] = value; }, focus() {}, scrollIntoView() {},
+    click() {}, appendChild() {}, remove() {}, addEventListener() {},
+  };
+}
+function harness(options = {}) {
+  const seed = {
+    profile: { days: 7, meals: 3, budget: 45, people: 1, calories: 1200, protein: 60, cookTime: 30, supermarket: 'Asda' },
+    setupComplete: true, week: [{ day: 'Monday', meals: [basic.id, 'everyday-tuna-crunch-pitta', 'everyday-turkey-sweet-potato'] }],
+    shopping: {}, locked: {}, pantry: [{ name: 'Oats', qty: 1000, unit: 'g', place: 'Pantry' }, { name: 'Milk', qty: 1000, unit: 'ml', place: 'Fridge' }],
+    leftovers: [], favorites: [], customRecipes: [copy(basic)], mealServings: {}, recipeFeedback: [], recentMeals: [],
+    ...copy(options.state || {}),
+  };
+  const storage = new Map(options.fresh ? [] : [['mealPlannerState', JSON.stringify(seed)]]);
+  const elements = new Map();
+  // Keep value's DOM string conversion when creating lazily allocated inputs.
+  const node = id => { if (!elements.has(id)) { const result = element(); result.id = id; elements.set(id, result); } return elements.get(id); };
+  const nav = ['home', 'week', 'recipes', 'shop', 'pantry', 'profile'].map(id => { const result = element(); result.dataset.tab = id; return result; });
+  const requests = [], downloads = [], errors = [], listeners = new Map();
+  const context = {
+    AbortController, AbortSignal, DOMException, FormData, Blob, URL,
+    console: { log() {}, warn() {}, error: (...values) => errors.push(values) },
+    location: { origin: 'https://meal-planner.example', protocol: 'https:', hostname: 'meal-planner.example' },
+    navigator: { onLine: options.online !== false },
+    localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, String(value)), removeItem: key => storage.delete(key) },
+    document: { hidden: false, body: element(), getElementById: node,
+      querySelectorAll: selector => selector === '.tabs button' ? nav : selector === '.screen' ? ['home', 'week', 'recipes', 'shop', 'pantry', 'profile'].map(node) : [],
+      querySelector: selector => selector === '.screen.active' ? { id: options.active || 'home' } : selector === '.app' ? node('app') : null,
+      createElement: () => element(), addEventListener: (event, callback) => listeners.set(event, callback),
+    },
+    setTimeout: () => 0, clearTimeout() {}, setInterval: () => 1, clearInterval() {},
+    fetch: async (url, request) => { requests.push({ url, request }); return { ok: false, status: 503, text: async () => '', headers: { get: () => null } }; },
+    FileReader: class { readAsText(file) { this.result = file.contents; this.onload?.(); } },
+  };
+  context.window = context; context.addEventListener = () => {}; context.scrollTo = () => {};
+  const sandbox = vm.createContext(context);
+  vm.runInContext(fullSource, sandbox, { timeout: 10_000 });
+  context.downloadFile = (name, contents, type) => downloads.push({ name, contents, type });
+  return { context, elements, storage, requests, downloads, errors, listeners, node,
+    run: source => vm.runInContext(source, sandbox, { timeout: 10_000 }),
+    state: () => copy(vm.runInContext('state', sandbox)),
+    flush: async () => { await new Promise(resolve => setImmediate(resolve)); },
+  };
+}
+
+test('the actual shipped external modules and whole inline app start and render every mobile panel', async () => {
+  for (const fresh of [false, true]) {
+    const app = harness({ fresh }); await app.flush();
+    for (const name of ['MealBudgetCore', 'PantryCore', 'PantryUI', 'ConsumerTools', 'ConsumerUI', 'MealSwapCore', 'MealSwapUI', 'RecipeExperience', 'RecipeLibraryCore']) assert.ok(app.context[name], name);
+    if (fresh) { assert.equal(app.node('setup').hidden, false); assert.equal(app.node('app').inert, true); continue; }
+    for (const button of app.run('document.querySelectorAll(".tabs button")')) {
+      assert.equal(typeof button.onclick, 'function'); button.onclick();
+      assert.ok(app.node(button.dataset.tab).innerHTML.length > 30, button.dataset.tab);
+    }
+    assert.equal(app.run('recipes.filter(row=>row.id.startsWith("everyday-")).length'), 24);
+    assert.equal(app.errors.length, 0);
+    assert.match(app.node('week').innerHTML, /PantryUI.openCook/);
+    assert.match(app.node('pantry').innerHTML, /Confirm purchases in Shopping/);
+  }
+});
+
+test('taste controls persist, show selected states and remove skipped recipes from future payloads', async () => {
+  const app = harness(); await app.flush();
+  app.context.showRecipe(basic.id, 'Monday', 0);
+  assert.match(app.node('sheet').innerHTML, /Would eat again/);
+  app.context.setRecipeFeedback(basic.id, 'again');
+  assert.match(app.node('sheet').innerHTML, /aria-pressed="true" onclick="setRecipeFeedback\('user_measured_oats','again'\)"/);
+  assert.equal(app.state().recipeFeedback[0].value, 'again');
+  assert.equal(JSON.parse(app.storage.get('mealPlannerState')).recipeFeedback[0].value, 'again');
+  let payload = copy(app.context.budgetPlannerPayload());
+  assert.ok(payload.recipes.find(row => row.id === basic.id).preferenceScore > 0);
+  app.context.setRecipeFeedback(basic.id, 'skip');
+  payload = copy(app.context.budgetPlannerPayload());
+  assert.ok(payload.excludedRecipeIds.includes(basic.id));
+  assert.ok(!payload.recipes.some(row => row.id === basic.id));
+  assert.match(app.node('sheet').innerHTML, /You chose Skip next time/);
+  app.context.setRecipeFeedback(basic.id, null);
+  assert.equal(app.state().recipeFeedback.length, 0);
+  assert.ok(app.context.budgetPlannerPayload().recipes.some(row => row.id === basic.id));
+});
+
+test('editable-copy controls keep source rows and provenance untouched while saving measured corrections', async () => {
+  const app = harness(); await app.flush();
+  const sourceId = 'everyday-chicken-pepper-couscous';
+  const original = copy(app.context.getRecipe(sourceId));
+  app.context.showRecipe(sourceId);
+  assert.match(app.node('sheet').innerHTML, /Make editable copy/);
+  app.context.makeRecipeCopy(sourceId);
+  const copied = app.state().customRecipes.find(row => row.copiedFrom?.recipeId === sourceId);
+  assert.ok(copied); assert.equal(copied.custom, true); assert.equal(copied.cost, null);
+  assert.match(app.node('sheet').innerHTML, /Edit recipe/);
+  app.node('editName').value = 'My lighter chicken couscous';
+  app.node('editServings').value = '2';
+  app.node('editIngredients').value = 'Chicken breast | 180 | g\nCouscous | 60 | g\nFrozen mixed peppers | 240 | g\nCooking oil | 6 | g';
+  app.node('editMethod').value = 'Prepare weighed dry couscous.\nCook chicken and peppers in all the measured oil until fully cooked.';
+  app.context.saveEditedRecipe(copied.id);
+  const edited = app.state().customRecipes.find(row => row.id === copied.id);
+  assert.equal(edited.servings, 2); assert.equal(edited.nutritionStatus, 'estimated');
+  assert.equal(edited.kcal, null); assert.equal(edited.p, null); assert.equal(edited.correctionDraft, false);
+  assert.equal(edited.copiedFrom.recipeId, sourceId);
+  assert.equal(app.context.recipeNutrition(edited).complete, true);
+  assert.deepEqual(copy(app.context.getRecipe(sourceId)), original);
+});
+
+test('recipe review reasons and ready filter use calculated nutrition and measured corrections', async () => {
+  const incomplete = { ...copy(basic), id: 'user_unknown', servings: null, ings: [['Oats', null, 'g']], method: [], needsReview: true };
+  const app = harness({ state: { customRecipes: [copy(basic), incomplete] } }); await app.flush();
+  app.context.showRecipe(incomplete.id);
+  assert.match(app.node('sheet').innerHTML, /Confirm how many portions/);
+  assert.match(app.node('sheet').innerHTML, /Confirm the quantity/);
+  assert.match(app.node('sheet').innerHTML, /Add the cooking steps/);
+  assert.match(app.node('sheet').innerHTML, /Fix recipe details/);
+  app.run('activeRecipeReady=true;renderRecipes()');
+  assert.doesNotMatch(app.node('recipeResults').innerHTML, /user_unknown/);
+  app.context.openEditRecipe(incomplete.id);
+  app.node('editServings').value = '1'; app.node('editIngredients').value = 'Oats | 40 | g\nMilk | 150 | ml'; app.node('editMethod').value = 'Simmer the measured oats and milk until tender.';
+  app.context.saveEditedRecipe(incomplete.id);
+  const corrected = app.state().customRecipes.find(row => row.id === incomplete.id);
+  assert.equal(app.context.recipeNutrition(corrected).complete, true);
+  assert.equal(app.context.recipeReadinessHtml(corrected), '');
+});
+
+test('cooking mode runs the shipped step controls and confirmation deducts stock once with recent meal history', async () => {
+  const app = harness(); await app.flush();
+  const before = app.state().pantry;
+  app.context.ConsumerUI.start(basic.id, 'Monday', 0);
+  assert.match(app.node('sheet').innerHTML, /Step 1 of 2/);
+  assert.match(app.node('sheet').innerHTML, /Measure the oats and milk/);
+  app.context.ConsumerUI.step(1);
+  assert.match(app.node('sheet').innerHTML, /Step 2 of 2/);
+  app.context.ConsumerUI.step(5);
+  assert.match(app.node('sheet').innerHTML, /Step 2 of 2/);
+  app.context.ConsumerUI.setTimer(2);
+  assert.match(app.node('cookTimer').textContent, /^1:5\d|2:00$/);
+  app.context.ConsumerUI.cancelTimer(); assert.equal(app.node('cookTimer').textContent, 'No timer running');
+  app.context.ConsumerUI.finishCooking();
+  assert.match(app.node('sheet').innerHTML, /Confirm cooking & update pantry/);
+  app.context.PantryUI.confirmCook(false);
+  let current = app.state();
+  assert.equal(current.pantry.find(row => row.name === 'Oats').qty, before.find(row => row.name === 'Oats').qty - 40);
+  assert.equal(current.pantry.find(row => row.name === 'Milk').qty, before.find(row => row.name === 'Milk').qty - 150);
+  assert.equal(current.recentMeals.length, 1); assert.equal(current.recentMeals[0].recipeId, basic.id);
+  assert.equal(current.pantryLedger.transactions.length, 1);
+  app.context.PantryUI.confirmCook(false);
+  current = app.state(); assert.equal(current.recentMeals.length, 1); assert.equal(current.pantryLedger.transactions.length, 1);
+  assert.match(app.context.PantryUI.mealActions('Monday', 0), /Cooked \/ served/);
+  assert.doesNotMatch(app.context.PantryUI.mealActions('Monday', 0), /Meal cooked/);
+  app.context.PantryUI.undo(current.recentMeals[0].transactionId);
+  assert.equal(app.state().recentMeals.length, 0);
+  assert.equal(app.state().pantry.find(row => row.name === 'Oats').qty, 1000);
+});
+
+test('cooked meals remain locked in payload even after a skip preference or diet change', async () => {
+  const app = harness(); await app.flush();
+  app.context.PantryUI.openCook('Monday', 0); app.context.PantryUI.confirmCook(false);
+  app.context.setRecipeFeedback(basic.id, 'skip');
+  app.run('state.profile.diet="Vegan"');
+  const payload = copy(app.context.budgetPlannerPayload());
+  assert.equal(payload.locked['Monday::0'], true);
+  assert.equal(payload.cookedMeals['Monday::0'].recipeId, basic.id);
+  assert.equal(payload.cookedMeals['Monday::0'].servings, 1);
+  assert.ok(payload.recipes.some(row => row.id === basic.id), 'Keep past recipe nutrition and identity in the payload');
+  assert.ok(payload.excludedRecipeIds.includes(basic.id), 'The past slot is retained, while future uncooked occurrences remain excluded');
+});
+
+test('changing extra cooked portions at confirmation first shows the revised ingredient preview', async () => {
+  const app = harness(); await app.flush();
+  app.context.PantryUI.openCook('Monday', 0);
+  app.context.document.getElementById('cookExtra').value = '.25';
+  app.context.PantryUI.confirmCook(false);
+  assert.equal(app.state().pantryLedger.transactions.length, 0);
+  assert.match(app.elements.get('sheet').innerHTML, /0.25 cooked portions/);
+  app.context.PantryUI.confirmCook(false);
+  assert.equal(app.state().leftovers[0].servings, .25);
+  assert.equal(app.state().pantry.find(row => row.name === 'Oats').qty, 950);
+});
+
+test('next up advances past cooked meals and shows a finished day once every slot is served', async () => {
+  const app = harness(); await app.flush();
+  app.context.PantryUI.openCook('Monday', 0); app.context.PantryUI.confirmCook(false);
+  assert.notEqual(app.context.nextMealIndex(app.state().week[0]), 0);
+  app.run('for(const [index,id] of state.week[0].meals.entries()){const recipe=getRecipe(id);state.pantryLedger.cooked[PantryCore.slotKey(state,"Monday",index)]={recipeId:id,recipeSignature:PantryCore.recipeSignature(recipe),servings:getMealServings("Monday",index)};}renderHome();');
+  assert.equal(app.context.nextMealIndex(app.state().week[0]), -1);
+  assert.match(app.elements.get('home').innerHTML, /You’re done for today/);
+});
+
+test('export and actual backup import retain pantry transactions, taste and cooking history', async () => {
+  const app = harness(); await app.flush();
+  app.context.setRecipeFeedback(basic.id, 'again');
+  app.context.PantryUI.openCook('Monday', 0); app.context.PantryUI.confirmCook(false);
+  app.context.backupData();
+  assert.equal(app.downloads.length, 1); assert.match(app.downloads[0].name, /backup/);
+  const saved = JSON.parse(app.downloads[0].contents);
+  app.context.setRecipeFeedback(basic.id, 'skip');
+  app.context.restoreData({ target: { files: [{ contents: JSON.stringify(saved) }] } });
+  const restored = app.state();
+  assert.deepEqual(restored.recipeFeedback, saved.recipeFeedback);
+  assert.deepEqual(restored.recentMeals, saved.recentMeals);
+  assert.deepEqual(restored.pantry, saved.pantry);
+  assert.deepEqual(restored.pantryLedger, saved.pantryLedger);
+  assert.deepEqual(restored.customRecipes, saved.customRecipes);
+  assert.equal(app.node('toast').textContent, 'Backup imported');
+  const before = app.state();
+  app.context.restoreData({ target: { files: [{ contents: '{invalid' }] } });
+  assert.equal(app.node('toast').textContent, 'Invalid backup file');
+  assert.deepEqual(app.state(), before);
+});
+
+test('dashboard includes real paid spend and payload reduces the remaining full-pack budget', async () => {
+  const app = harness(); await app.flush();
+  app.run('state.pantryLedger.transactions.push({id:"paid",type:"purchase",planId:state.pantryLedger.planId,createdAt:new Date().toISOString(),store:"Asda",totalCostGBP:20,changes:[]});state.profile.days=7;state.week=Array.from({length:7},(_,i)=>({day:MealBudgetCore.dayNames(7)[i],meals:["user_measured_oats","everyday-tuna-crunch-pitta","everyday-turkey-sweet-potato"]}));renderHome()');
+  assert.match(app.node('home').innerHTML, /This week · Asda/);
+  assert.match(app.node('home').innerHTML, /Still to buy/);
+  assert.match(app.node('home').innerHTML, /Daily targets/);
+  assert.match(app.node('home').innerHTML, /Meal variety/);
+  assert.match(app.node('home').innerHTML, /£20\.00 purchases recorded/);
+  assert.equal(app.context.planCashSpent(), 20);
+  assert.equal(app.context.budgetPlannerPayload().profile.budget, 25);
+  assert.ok(app.context.budgetPlannerPayload().pantry.every(row => row.qty > 0));
+});
+
+test('saved offline basket keeps its price date while changed quantities require a new online quote', async () => {
+  const app = harness({ online: false }); await app.flush();
+  app.run('state.week=[{day:"Monday",meals:["user_measured_oats"]}];state.pantry=[];const items=automaticCatalogItems(Object.entries(buildShopping()));const results=Object.fromEntries(items.map(item=>[item.key,{key:item.key,query:item.name,confidence:"high",match:{productName:item.name},plan:{requestedQuantity:item.quantity,totalQuantity:1000,totalCostGBP:1,products:[{packs:1,costGBP:1,url:"https://www.asda.com/groceries/product/1"}]}}]));state.savedBaskets={Asda:ConsumerTools.snapshot({store:"Asda",status:"ready",items,results,fingerprint:automaticCatalogFingerprint("Asda",items),loadedAt:Date.now()-60000})};automaticCatalogState={store:"",status:"idle",items:[],results:{},fingerprint:"",error:""};requestAutomaticCatalogMatches(Object.entries(buildShopping()),"Asda")');
+  assert.equal(app.run('automaticCatalogState.offline'), true);
+  app.context.renderShop();
+  assert.match(app.node('shop').innerHTML, /Offline · saved prices checked/);
+  assert.match(app.node('shop').innerHTML, /Refresh online before confirming a purchase or swap/);
+  app.run('state.mealServings["Monday::0"]=2;requestAutomaticCatalogMatches(Object.entries(buildShopping()),"Asda")');
+  assert.equal(app.run('automaticCatalogState.status'), 'error');
+  assert.match(app.run('automaticCatalogState.error'), /Go online to price this changed list/);
+});

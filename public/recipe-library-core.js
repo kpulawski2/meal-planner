@@ -7,19 +7,20 @@
   return (Array.isArray(recipe.equipment)?recipe.equipment:[]).every(v=>available.has(String(v).toLowerCase()));
  }
  function planReady(recipe){
-  return recipe.needsReview!==true&&Number(recipe.servings)>0&&recipe.nutrition?.complete===true&&Number(recipe.nutrition.kcal)>0&&Array.isArray(recipe.ings)&&recipe.ings.length>0&&recipe.ings.length<=40&&recipe.ings.every(row=>row[0]&&Number(row[1])>0);
+  return recipe.needsReview!==true&&Number(recipe.servings)>0&&Number.isFinite(Number(recipe.servings))&&recipe.nutrition?.complete===true&&Number(recipe.nutrition.kcal)>0&&Number.isFinite(Number(recipe.nutrition.kcal))&&recipe.nutrition.p!=null&&Number.isFinite(Number(recipe.nutrition.p))&&Number(recipe.nutrition.p)>=0&&Array.isArray(recipe.ings)&&recipe.ings.length>0&&recipe.ings.length<=40&&recipe.ings.every(row=>Array.isArray(row)&&row[0]&&Number(row[1])>0&&Number.isFinite(Number(row[1])));
  }
  function hash(value){let h=2166136261;for(const c of String(value)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
  // Bound calculation work, not discovery or browsing. Round-robin category,
  // source and protein groups prevents appended collections being cut off.
  function selectPlannerRecipes(rows,state={},limit=250){
   const max=Math.max(1,Math.min(250,Number(limit)||250)),profile=state.profile||{};
-  const allowed=rows.filter(r=>r&&r.id&&equipmentAllowed(r,profile));
+  const allowed=rows.filter(r=>r&&r.id&&(r.cookedOnly===true||equipmentAllowed(r,profile)&&(!root.RecipeExperience||root.RecipeExperience.allowedFeedback(r,state))));
   const byId=new Map(allowed.map(r=>[r.id,r])),selected=new Map();
   const keep=id=>{if(selected.size<max&&byId.has(id))selected.set(id,byId.get(id));};
   for(const day of state.week||[])for(const id of day.meals||[])keep(id);
   for(const id of state.favorites||[])keep(id);
-  const ready=allowed.filter(planReady);
+  for(const row of root.RecipeExperience?root.RecipeExperience.rank(allowed,state):[])if(root.RecipeExperience.feedbackValue(row,state)==='again')keep(row.id);
+  const ready=allowed.filter(r=>r.cookedOnly!==true&&planReady(r));
   if(ready.length+selected.size<=max){for(const row of ready)keep(row.id);return [...selected.values()];}
   const week=Math.floor(Date.now()/604800000),seed=JSON.stringify([week,profile.diet,profile.goal,profile.varietyMode,profile.dislikes,profile.likes]);
   const groups=new Map();
@@ -29,7 +30,7 @@
    const key=[category(row),source,family].join('::');
    if(!groups.has(key))groups.set(key,[]);groups.get(key).push(row);
   }
-  for(const group of groups.values())group.sort((a,b)=>hash(seed+a.id)-hash(seed+b.id)||a.id.localeCompare(b.id));
+  for(const group of groups.values())group.sort((a,b)=>(root.RecipeExperience?root.RecipeExperience.feedbackScore(b,state)-root.RecipeExperience.feedbackScore(a,state):0)||hash(seed+a.id)-hash(seed+b.id)||a.id.localeCompare(b.id));
   const ordered=[...groups].sort(([a],[b])=>a.localeCompare(b));
   let more=true;
   while(selected.size<max&&more){more=false;for(const [,group] of ordered){if(!group.length)continue;more=true;keep(group.shift().id);if(selected.size>=max)break;}}
