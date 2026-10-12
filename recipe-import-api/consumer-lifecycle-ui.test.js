@@ -125,6 +125,28 @@ function tailoredForm(app,overrides={}){
   const original=app.context.document.querySelectorAll;
   app.context.document.querySelectorAll=selector=>selector==='[data-tailored-equipment]:checked'?[{value:'Hob'}]:original(selector);
 }
+test('the redesigned daily browser keeps week-two choices and plan views separate from saved meal and stock data',async()=>{
+  const week=Array.from({length:14},(_,i)=>({day:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][i%7]+(i>6?' (Week 2)':''),meals:[basic.id,'tailored-tuna-wrap','tailored-lemon-chicken']}));
+  const app=harness({state:{week}});await app.flush();const before=app.state();
+  app.context.AppExperienceUI.selectDay('home',7);assert.equal(app.state().interfacePreferences.homeDay,'Monday (Week 2)');assert.match(app.node('home').innerHTML,/Monday \(Week 2\)/);
+  app.context.AppExperienceUI.selectDay('week',13);assert.match(app.node('week').innerHTML,/Sunday \(Week 2\)/);assert.equal((app.node('week').innerHTML.match(/class="card meal-plan-card"/g)||[]).length,3);
+  app.context.AppExperienceUI.planView('all');assert.equal((app.node('week').innerHTML.match(/class="card meal-plan-card"/g)||[]).length,42);
+  for(const key of ['week','mealServings','profile','pantry','pantryLedger','foodLog'])assert.deepEqual(app.state()[key],before[key],key);
+  const restored=harness({state:app.state()});await restored.flush();assert.equal(restored.state().interfacePreferences.homeDay,'Monday (Week 2)');assert.equal(restored.state().interfacePreferences.planView,'all');
+});
+test('appearance and the kitchen menu persist while retaining direct access to saved recipes, inventory and preferences',async()=>{
+  const app=harness();await app.flush();app.context.showTab('more');assert.match(app.node('more').innerHTML,/Your favourites/);assert.match(app.node('more').innerHTML,/Pantry &amp; leftovers|Pantry & leftovers/);
+  const before=app.state();app.context.AppExperienceUI.theme('dark');assert.equal(app.state().interfacePreferences.theme,'dark');assert.match(app.node('more').innerHTML,/aria-pressed="true" class="selected" onclick="AppExperienceUI.theme\('dark'\)/);
+  const restored=harness({state:app.state()});await restored.flush();assert.equal(restored.state().interfacePreferences.theme,'dark');
+  for(const key of ['week','profile','pantry','pantryLedger','foodLog'])assert.deepEqual(app.state()[key],before[key],key);
+});
+test('the actual recipe view searches separate words, sorts known nutrition and previews a suitable recipe without adding a meal',async()=>{
+  const app=harness();await app.flush();app.node('recipeSearch').value='tuna pickles wrap';app.context.renderRecipeResults();
+  assert.match(app.node('recipeResults').innerHTML,/Tuna, Pickle, Egg/);assert.match(app.node('recipeResults').innerHTML,/data-recipe-id="tailored-tuna-wrap"/);
+  app.context.AppExperienceUI.sort('protein');assert.equal(app.state().interfacePreferences.recipeSort,'protein');
+  const before=app.state();app.context.AppExperienceUI.surprise();assert.match(app.node('sheet').innerHTML,/Tuna, Pickle, Egg/);
+  for(const key of ['week','profile','pantry','pantryLedger','foodLog'])assert.deepEqual(app.state()[key],before[key],key);
+});
 test('tailored requests roll back failed settings without changing the plan, pantry, cooked history or food diary',async()=>{
   const app=harness();await app.flush();await app.context.TailoredPlanUI.open();app.context.TailoredPlanUI.manual();tailoredForm(app,{tailoredFat:0});
   const before=app.state();app.run('fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({status:"unavailable",warnings:["A zero-fat cap cannot fit."],basket:{complete:false}})})');
