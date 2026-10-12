@@ -4,6 +4,7 @@ import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
 const core = await readFile(new URL('../public/budget-core.js', import.meta.url), 'utf8');
+const macros = await readFile(new URL('../public/macro-goals-core.js', import.meta.url), 'utf8');
 const source = html.slice(html.indexOf('let budgetPlannerState='), html.indexOf('function getRecipe('));
 const recipes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((cat, id) => ({ id: String(id), name: cat, cat, servings: 1, ings: [['Oats', 100, 'g']], nutrition: { kcal: 500, p: 50, complete: true } }));
 for (const [id, cat, ingredient] of [['l1','Lunch','Chicken breast'],['l2','Lunch','Kidney beans'],['d1','Dinner','Eggs'],['d2','Dinner','Red lentils']]) recipes.push({id,name:id,cat,servings:1,ings:[['Oats',100,'g'],[ingredient,.01,'g']],nutrition:{kcal:500,p:50,complete:true}});
@@ -27,7 +28,7 @@ function harness(options = {}) {
     save() { saved++; },
     fetch: async (_url, init) => { requestedBody = JSON.parse(init.body); if (options.deferred) await new Promise(resolve => { activeRequest = resolve; }); return { ok: true, status: 200, text: async () => JSON.stringify(options.result || context.makeFeasible()) }; },
   };
-  vm.runInNewContext(core + '\n' + source + '\n globalThis.run=generateWeek;globalThis.cancel=cancelBudgetPlan;globalThis.validate=budgetPlanValidation;globalThis.planner=()=>budgetPlannerState;globalThis.targetsMet=dailyTargetsMet;', context);
+  vm.runInNewContext(macros + '\n' + core + '\n' + source + '\n globalThis.run=generateWeek;globalThis.cancel=cancelBudgetPlan;globalThis.validate=budgetPlanValidation;globalThis.planner=()=>budgetPlannerState;globalThis.targetsMet=dailyTargetsMet;', context);
   context.buildShopping = () => context.MealBudgetCore.buildShopping({ ...state, recipes, people: state.profile.people });
   context.makeFeasible = () => {
     const week = context.MealBudgetCore.dayNames(7).map((day,index) => ({ day, meals: [['0','b1'][index%2], ['1','l1','l2'][index%3], ['2','d1','d2'][(index+1)%3], ['3','s1'][index%2]] }));

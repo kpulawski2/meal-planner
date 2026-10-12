@@ -1,6 +1,8 @@
 // Bound browser input before transferring it to the catalogue worker. Recipe
 // methods, source URLs and any unrelated saved device data are never needed.
 import '../public/equipment-core.js';
+import '../public/macro-goals-core.js';
+import '../public/meal-intent-core.js';
 const text = (value, length = 120) => typeof value === 'string' ? value.trim().slice(0, length) : '';
 const fail = message => { throw new TypeError(message); };
 function number(value, fallback, min, max, label, integer = false) {
@@ -23,7 +25,9 @@ export function normalizePlannerRequest(body) {
     people: number(input.people, 1, 1, 50, 'People', true),
     diet: ['No restrictions', 'Vegetarian', 'Vegan'].includes(input.diet) ? input.diet : 'No restrictions',
     priority: ['Balanced', 'Cheapest', 'Protein value', 'Variety'].includes(input.priority) ? input.priority : 'Balanced',
-    varietyMode: ['Balanced', 'More variety', 'Budget focus', 'Repeat favourites'].includes(input.varietyMode) ? input.varietyMode : 'Balanced',
+    varietyMode: ['Balanced', 'More variety', 'Budget focus', 'Repeat favourites', 'Tailored'].includes(input.varietyMode) ? input.varietyMode : 'Balanced',
+    nutritionTargets: globalThis.MacroGoalsCore.normalise(input.nutritionTargets, true),
+    tailoredMeals: globalThis.MealIntentCore.rules(input.tailoredMeals, true),
     repeatMeals: Object.fromEntries(['Breakfast','Lunch','Dinner','Snack'].map(category => [category, text(input.repeatMeals?.[category], 120)]).filter(([, id]) => id)),
     goal: (Array.isArray(input.goal) ? input.goal : Array.isArray(input.goals) ? input.goals : ['Eat healthy', 'Save money', 'Make cooking easier']).filter((goal, index, values) => ['Lose weight', 'Gain muscle', 'Eat healthy', 'Save money', 'Make cooking easier'].includes(goal) && values.indexOf(goal) === index).slice(0, 5),
     dislikes: text(input.dislikes, 1000), likes: text(input.likes, 1000), custom: text(input.custom, 2000),
@@ -48,7 +52,7 @@ export function normalizePlannerRequest(body) {
     const requiredEquipment = Array.isArray(row.equipment) ? [...new Set(row.equipment.map(value => text(value, 60)).filter(Boolean))] : [];
     if (requiredEquipment.length > globalThis.KitchenEquipment.names.length) fail('A recipe may require at most 21 appliances.');
     return { id, name, cat: text(row.cat, 40), servings: number(row.servings, 1, 1, 1000, 'Recipe yield'),
-      ings, nutrition: { kcal: nutrient('kcal'), p: nutrient('p'), complete: source.complete === true, source: text(source.source, 40) },
+      ings, nutrition: { kcal: nutrient('kcal'), p: nutrient('p'), c: nutrient('c'), f: nutrient('f'), complete: source.complete === true, source: text(source.source, 40) },
       cookTime: row.cookTime === undefined || row.cookTime === null || row.cookTime === '' ? null : number(row.cookTime, null, 0, 1440, 'Recipe cooking time'),
       equipment: requiredEquipment,
       fixedBatch: row.fixedBatch === true, batchStorage: row.batchStorage === 'recipe' ? 'recipe' : null, freezeMinutes: row.freezeMinutes == null ? null : number(row.freezeMinutes, null, 0, 10080, 'Recipe freeze time'),
@@ -59,6 +63,10 @@ export function normalizePlannerRequest(body) {
       dishFamily: text(row.dishFamily, 80),
       tags: Array.isArray(row.tags) ? row.tags.slice(0, 20).map(value => text(value, 60)) : [] };
   });
+  for (const [category, rule] of Object.entries(profile.tailoredMeals)) for (const id of rule.recipeIds) {
+    const recipe = recipes.find(row => row.id === id);
+    if (!recipe || !(recipe.cat === category || category === 'Snack' && recipe.cat === 'Fruit')) fail('A tailored meal choice is missing or belongs to another meal.');
+  }
   if (body.pantry !== undefined && (!Array.isArray(body.pantry) || body.pantry.length > 300)) fail('Inventory must contain at most 300 entries.');
   const pantry = (body.pantry || []).map(row => ({ name: text(row?.name), qty: number(row?.qty, 0, 0, 10000000, 'Inventory quantity'), unit: text(row?.unit, 40) })).filter(row => row.name);
   if (body.week !== undefined && (!Array.isArray(body.week) || body.week.length > 14)) fail('Current plan may contain at most 14 days.');

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 
-const files = ['budget-core', 'pantry-core', 'recipe-experience', 'swap-core', 'swap-ui'];
+const files = ['macro-goals-core', 'meal-intent-core', 'budget-core', 'pantry-core', 'recipe-experience', 'swap-core', 'swap-ui'];
 const scripts = await Promise.all(files.map(name => readFile(new URL(`../public/${name}.js`, import.meta.url), 'utf8')));
 const plain = value => JSON.parse(JSON.stringify(value));
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };

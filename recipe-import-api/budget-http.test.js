@@ -15,6 +15,16 @@ test('the phone budget request checks a real whole-catalogue plan while health r
   t.after(async () => { httpServer.closeAllConnections(); await new Promise(resolve => httpServer.close(resolve)); });
   if (!httpServer.listening) await once(httpServer, 'listening');
   const base = `http://127.0.0.1:${httpServer.address().port}`;
+  await t.test('meal interpretation works without AI and bounds same-origin requests',async()=>{
+    const send=(body,origin=base)=>fetch(base+'/api/planner/interpret',{method:'POST',headers:{'Content-Type':'application/json',...(origin?{Origin:origin}:{})},body:JSON.stringify(body)});
+    assert.equal((await send({text:'chicken for dinner'},null)).status,401);
+    assert.equal((await send({text:'chicken for dinner'},'https://another.example')).status,403);
+    const response=await send({text:'For the next 7 days, variety of overnight oats for breakfast, tuna pickles eggs mayo wrap for lunch and chicken for dinner. 1800 calories a day or under, 180g protein, 90g carbs',defaults:{days:7,meals:3,calories:2000,protein:100}});
+    assert.equal(response.status,200);const data=await response.json();assert.equal(data.calories,1800);assert.equal(data.protein,180);assert.equal(data.nutritionTargets.calorieMode,'max');assert.equal(data.requests.Breakfast.mode,'vary');assert.match(data.requests.Lunch.query,/pickles eggs mayo/);
+    assert.equal((await send({text:'x'.repeat(2001)})).status,400);
+    assert.equal((await send({text:'oats for breakfast',defaults:{days:99}})).status,400);
+    const unsupported=await send({text:'For a month, overnight oats for breakfast'});assert.equal(unsupported.status,200);assert.equal((await unsupported.json()).days,30,'Unsupported periods remain visible for review, never silently shortened.');
+  });
   let done = false;
   const started = performance.now();
   const request = fetch(`${base}/api/planner/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal: AbortSignal.timeout(110000) })

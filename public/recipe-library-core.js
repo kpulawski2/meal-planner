@@ -15,14 +15,15 @@
  // source and protein groups prevents appended collections being cut off.
  function selectPlannerRecipes(rows,state={},limit=250){
   const max=Math.max(1,Math.min(250,Number(limit)||250)),profile=state.profile||{};
-  const allowed=rows.filter(r=>r&&r.id&&(r.cookedOnly===true||equipmentAllowed(r,profile)&&(!root.RecipeExperience||root.RecipeExperience.allowedFeedback(r,state))));
+  const allowed=rows.filter(r=>r&&r.id&&(r.cookedOnly===true||equipmentAllowed(r,profile)&&(!root.MealIntentCore||root.MealIntentCore.allowed(r,profile))&&(!root.RecipeExperience||root.RecipeExperience.allowedFeedback(r,state))));
   const byId=new Map(allowed.map(r=>[r.id,r])),selected=new Map();
   const keep=id=>{if(selected.size<max&&byId.has(id))selected.set(id,byId.get(id));};
   if(profile.varietyMode==='Repeat favourites')for(const id of Object.values(profile.repeatMeals||{}))keep(id);
+  if(profile.varietyMode==='Tailored')for(const rule of Object.values(profile.tailoredMeals||{}))for(const id of rule.recipeIds||[])keep(id);
   for(const day of state.week||[])for(const id of day.meals||[])keep(id);
   for(const id of state.favorites||[])keep(id);
   for(const row of root.RecipeExperience?root.RecipeExperience.rank(allowed,state):[])if(root.RecipeExperience.feedbackValue(row,state)==='again')keep(row.id);
-  const ready=allowed.filter(r=>r.cookedOnly!==true&&planReady(r));
+  const ready=allowed.filter(r=>r.cookedOnly!==true&&planReady(r)&&(!root.MacroGoalsCore||root.MacroGoalsCore.complete(r.nutrition,profile)));
   if(ready.length+selected.size<=max){for(const row of ready)keep(row.id);return [...selected.values()];}
   const week=Math.floor(Date.now()/604800000),seed=JSON.stringify([week,profile.diet,profile.goal,profile.varietyMode,profile.dislikes,profile.likes]);
   const groups=new Map();

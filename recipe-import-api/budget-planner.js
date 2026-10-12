@@ -1,6 +1,10 @@
 import '../public/budget-core.js';
 import '../public/equipment-core.js';
 import '../public/recipe-library-core.js';
+import '../public/macro-goals-core.js';
+import '../public/meal-intent-core.js';
+import { macroPortionVertices } from './macro-portions.js';
+const Macros = globalThis.MacroGoalsCore, Intent = globalThis.MealIntentCore;
 import { catalogPurchaseOffers, calculatePackPurchase } from './catalog-adapter.js';
 import { setImmediate as yieldToWorker } from 'node:timers/promises';
 import { activeGoals, recipeQuality, dailyQuality, goalReport } from './planner-quality.js';
@@ -13,7 +17,7 @@ const round = (value, digits = 2) => Number(value.toFixed(digits));
 const bookKey = (name, dimension) => `${Core.canonicalIngredientName(name)}::${dimension}`;
 
 function allowedRecipe(recipe, profile) {
-  if (!globalThis.RecipeLibraryCore.equipmentAllowed(recipe, profile)) return false;
+  if (!Intent.allowed(recipe, profile) || !globalThis.RecipeLibraryCore.equipmentAllowed(recipe, profile)) return false;
   const ingredients = (recipe.ings || []).map(row => String(row[0]).toLowerCase()), hay = `${recipe.name} ${ingredients.join(' ')}`.toLowerCase();
   const dislikes = String(profile.dislikes || '').toLowerCase().split(',').map(value => value.trim()).filter(Boolean);
   if (dislikes.some(value => hay.includes(value))) return false;
@@ -62,7 +66,7 @@ function priceBook(row, maximumCents) {
 
 function nutritionOf(recipe) {
   const n = recipe.nutrition || {};
-  return { kcal: Number(n.kcal), p: Number(n.p), complete: n.complete === true && Number.isFinite(Number(n.kcal)) && Number(n.kcal) > 0 && Number.isFinite(Number(n.p)) && Number(n.p) >= 0 };
+  return { kcal: Macros.known(n.kcal) ? Number(n.kcal) : null, p: Macros.known(n.p) ? Number(n.p) : null, c: Macros.known(n.c) ? Number(n.c) : null, f: Macros.known(n.f) ? Number(n.f) : null, complete: n.complete === true && Macros.known(n.kcal) && Number(n.kcal) > 0 && Macros.known(n.p) };
 }
 
 function prepareRecipe(recipe) {
@@ -78,6 +82,7 @@ function prepareRecipe(recipe) {
 }
 
 function nutritionValid(rows, factors, targets) {
+  if (targets.profile) return rows.every(row => Macros.complete(row.n, targets.profile)) && Macros.meets(Macros.total(rows, factors), targets.profile);
   const kcal = rows.reduce((sum, recipe, index) => sum + recipe.n.kcal * factors[index], 0), p = rows.reduce((sum, recipe, index) => sum + recipe.n.p * factors[index], 0);
   return kcal + EPS >= targets.min && kcal <= targets.max + EPS && p + EPS >= targets.protein;
 }
@@ -101,7 +106,8 @@ function portionChoices(rows, targets, fixed = [], profile = {}) {
       factors[index] = bounds[index][0]; step(index + 1); if (bounds[index][1] !== bounds[index][0]) { factors[index] = bounds[index][1]; step(index + 1); } };
     step(0);
   }
-  for (let i = 0; i < count; i++) {
+  if (Macros.active(profile)) { for (const factors of macroPortionVertices(rows, profile, fixed)) add(factors); }
+  else for (let i = 0; i < count; i++) {
     otherBounds([i], factors => {
       const knownK = rows.reduce((sum, row, index) => index === i ? sum : sum + row.n.kcal * factors[index], 0), knownP = rows.reduce((sum, row, index) => index === i ? sum : sum + row.n.p * factors[index], 0);
       for (const calories of [targets.min, (targets.min + targets.max) / 2 * (activeGoals(profile).includes('Lose weight') ? .95 : 1), targets.max]) { const next = factors.slice(); next[i] = (calories - knownK) / rows[i].n.kcal; add(next); }
@@ -196,13 +202,14 @@ function safePools(rows, slots, stock, people, days, books, profile, favorites) 
   }
   return slots.map(slot => {
     const chosen = profile.varietyMode === 'Repeat favourites' ? profile.repeatMeals?.[slot] : null;
-    const eligible = rows.filter(row => (!chosen || row.id === chosen) && !row.cookedOnly && row.n.complete && row.priceable && (row.cat === slot || slot === 'Snack' && row.cat === 'Fruit'));
+    const eligible = rows.filter(row => (!chosen || row.id === chosen) && !row.cookedOnly && Macros.complete(row.n, profile) && Intent.allowed(row, profile) && row.priceable && (row.cat === slot || slot === 'Snack' && row.cat === 'Fruit'));
     const value = eligible.slice().sort((a, b) => a.linear / Math.max(1, a.n.kcal + a.n.p * 10) - b.linear / Math.max(1, b.n.kcal + b.n.p * 10) || a.id.localeCompare(b.id));
     const protein = eligible.slice().sort((a, b) => a.linear / Math.max(.1, a.n.p) - b.linear / Math.max(.1, b.n.p) || a.id.localeCompare(b.id));
     const favoritesSorted = eligible.filter(row => row.preference).sort((a, b) => b.preference - a.preference || a.linear - b.linear);
     const families = [...new Set(eligible.map(row => row.family))].flatMap(family => value.filter(row => row.family === family).slice(0, 2));
     const goalChoices = eligible.slice().sort((a, b) => a.quality.penalty - b.quality.penalty || a.linear - b.linear);
-    return [...new Map([...families, ...value.slice(0, 12), ...protein.slice(0, 6), ...goalChoices.slice(0, 4), ...favoritesSorted.slice(0, 2)].map(row => [row.id, row])).values()].slice(0, 24);
+    const nutrientChoices = Macros.active(profile) ? [...eligible.slice().sort((a,b)=>(a.n.c || 0)/Math.max(.1,a.n.p)-(b.n.c || 0)/Math.max(.1,b.n.p)).slice(0,4),...eligible.slice().sort((a,b)=>(a.n.f || 0)/Math.max(.1,a.n.p)-(b.n.f || 0)/Math.max(.1,b.n.p)).slice(0,4)] : [];
+    return [...new Map([...families, ...nutrientChoices, ...value.slice(0, 12), ...protein.slice(0, 6), ...goalChoices.slice(0, 4), ...favoritesSorted.slice(0, 2)].map(row => [row.id, row])).values()].slice(0, 24);
   });
 }
 
@@ -228,6 +235,7 @@ function withLocks(template, name, request, rowsById, targets, people, slots) {
   if (slots.some((category, slot) => locked[slot] && !request.cookedMeals?.[`${name}::${slot}`]
     && request.profile.varietyMode === 'Repeat favourites' && request.profile.repeatMeals?.[category]
     && current.rows[slot].id !== request.profile.repeatMeals[category])) return null;
+  if (slots.some((category, slot) => locked[slot] && !request.cookedMeals?.[`${name}::${slot}`] && !Intent.allowed(current.rows[slot], request.profile))) return null;
   const rows = template.rows.map((row, slot) => locked[slot] ? current.rows[slot] : row), fixed = locked.map((value, slot) => value ? current.factors[slot] : null);
   if (rows.some(row => !row.n.complete) || !Core.distinctDishes(rows)) return null;
   const choices = portionChoices(rows, targets, fixed, request.profile); return choices[0] ? { rows, factors: choices[0].factors, name } : null;
@@ -351,7 +359,8 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
   const cheapest = profile.priority === 'Cheapest' || profile.varietyMode === 'Budget focus';
   const saveMoney = activeGoals(profile).includes('Save money'), easy = activeGoals(profile).includes('Make cooking easier');
   const width = names.length > 7 ? 90 : 72;
-  const repeatLimits = slots.map(slot => ['Lunch', 'Dinner'].includes(slot) ? policy.repeatLimit : policy.sideRepeatLimit), minimumDistinct = slots.map(slot => ['Lunch', 'Dinner'].includes(slot) ? policy.minimumDistinct : policy.minimumSideDistinct);
+  const slotPolicies = slots.map(slot => Core.slotVarietyPolicy(profile, slot, names.length));
+  const repeatLimits = slotPolicies.map(row => row.repeatLimit), minimumDistinct = slotPolicies.map(row => row.minimumDistinct);
   const clean = { days: [], amounts: new Map(), batchPortions: new Map(), cost: 0, quality: 0, batches: new Set(), counts: new Map(), distinct: slots.map(() => new Set()), families: new Map(), rank: 0 };
   const shapeOf = proposal => {
     const familyCounts = new Map(proposal.state.families);
@@ -375,7 +384,7 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
       for (const template of options) {
       expansions++;
       const previous = state.days.at(-1), main = mainIndexes.map(index => template.rows[index]);
-      if (template.rows.some((row, i) => (state.counts.get(row.id) || 0) >= repeatLimits[i] || policy.avoidConsecutive && mainIndexes.includes(i) && previous?.rows[i].id === row.id)) continue;
+      if (template.rows.some((row, i) => (state.counts.get(row.id) || 0) >= repeatLimits[i] || slotPolicies[i].avoidConsecutive && previous?.rows[i].id === row.id)) continue;
       const increments = new Map(); for (const row of main) increments.set(row.family, (increments.get(row.family) || 0) + 1);
       if ([...increments].some(([family, count]) => (state.families.get(family) || 0) + count > policy.dominantFamilyLimit)) continue;
       const remainingDays = names.length - dayIndex - 1;
@@ -424,7 +433,7 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
     signal?.throwIfAborted(); await yieldToWorker();
     if (!beam.length) break;
   }
-  const rawFinalists = beam.filter(state => state.days.length === names.length).map(state => ({ ...state, variety: Core.inspectVariety(planFromDays(state.days, names, people).week, [...byId.values()], profile) }));
+  const rawFinalists = beam.filter(state => state.days.length === names.length).map(state => ({ ...state, variety: Core.inspectVariety(planFromDays(state.days, names, people).week, [...byId.values()], profile, request.cookedMeals) }));
   const finalists = rawFinalists.filter(state => state.variety.met);
   const feasible = finalists.filter(state => state.cost <= budgetCents);
   const choices = feasible.length ? feasible : finalists;
@@ -436,7 +445,7 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   const started = Date.now(), profile = request.profile || {}, daysCount = Math.round(clamp(profile.days, 1, 14, 7)), people = clamp(profile.people, 1, 50, 1);
   const store = profile.supermarket || 'Asda';
   const slots = Core.mealSlots(clamp(profile.meals, 2, 4, 4)), names = Core.dayNames(daysCount), weeklyBudgetGBP = clamp(profile.budget, 0, 10000, 45), budgetGBP = weeklyBudgetGBP * daysCount / 7;
-  const targets = { min: clamp(profile.calories, 200, 10000, 2000) * .9, max: clamp(profile.calories, 200, 10000, 2000) * 1.1, protein: clamp(profile.protein, 0, 1000, 200) };
+  const targets = { ...Macros.targets(profile), profile };
   const budgetCents = pennies(budgetGBP), pantry = Array.isArray(request.pantry) ? request.pantry : [], favorites = Array.isArray(request.favorites) ? request.favorites : [];
   const excludedRecipeIds=new Set(Array.isArray(request.excludedRecipeIds)?request.excludedRecipeIds:[]);
   for(const row of Array.isArray(request.recipes)?request.recipes:[])if(row?.excludedByFeedback===true)excludedRecipeIds.add(row.id);
@@ -444,7 +453,7 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   const recipes = (Array.isArray(request.recipes) ? request.recipes : []).filter(recipe => recipe && Array.isArray(recipe.ings) && (cookedIds.has(recipe.id) || !excludedRecipeIds.has(recipe.id) && allowedRecipe(recipe, profile))).map(recipe => prepareRecipe({ ...recipe, cookedOnly: cookedIds.has(recipe.id) && (excludedRecipeIds.has(recipe.id) || !allowedRecipe(recipe, profile)) }));
   const byId = new Map(recipes.map(recipe => [recipe.id, recipe])), items = new Map();
   for (const recipe of recipes) for (const [name, , unit] of recipe.ings) { if (Core.isCookingWater(name)) continue; const meta = Core.unitMeta(unit, name), key = bookKey(name, meta.dim); if (!items.has(key)) items.set(key, { key, name, dimension: meta.dim }); }
-  const unavailable = reason => ({ store, status: 'unavailable', week: request.week || [], mealServings: request.mealServings || {}, basket: { store, complete: false, totalCostGBP: null, recommendations: [] }, budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP) }, variety: Core.inspectVariety(request.week || [], recipes, profile), goals: goalReport(profile), warnings: [reason], diagnostics: { elapsedMs: Date.now() - started } });
+  const unavailable = reason => ({ store, status: 'unavailable', week: request.week || [], mealServings: request.mealServings || {}, basket: { store, complete: false, totalCostGBP: null, recommendations: [] }, budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP) }, variety: Core.inspectVariety(request.week || [], recipes, profile, request.cookedMeals), goals: goalReport(profile), warnings: [reason], diagnostics: { elapsedMs: Date.now() - started } });
   if((request.week||[]).some(day=>(day.meals||[]).some((id,index)=>excludedRecipeIds.has(id)&&request.locked?.[`${day.day}::${index}`]&&!request.cookedMeals?.[`${day.day}::${index}`])))return unavailable('A locked meal is marked Skip next time. Unlock that meal or clear its preference before fitting your plan. Your saved plan was kept.');
   if (!recipes.length) return unavailable('No allowed recipes are available. Add recipes with complete ingredient quantities and nutrition.');
   if (profile.varietyMode === 'Repeat favourites') for (const category of slots) {
@@ -469,8 +478,8 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   let best = searched.best;
   // A valid existing plan is another starting point; it never overrides locks.
   const existing = names.map(name => currentDay(request, name, byId, slots, people));
-  if (existing.every(day => day && day.rows.every((row, index) => row.n.complete && (profile.varietyMode !== 'Repeat favourites' || !profile.repeatMeals?.[slots[index]] || row.id === profile.repeatMeals[slots[index]] || request.cookedMeals?.[`${day.name}::${index}`])) && nutritionValid(day.rows, day.factors, targets))) {
-    const cost = basketCost(existing, people, stock, books, request), variety = Core.inspectVariety(planFromDays(existing, names, people).week, recipes, profile);
+  if (existing.every(day => day && day.rows.every((row, index) => Macros.complete(row.n, profile) && (Intent.allowed(row, profile) || request.cookedMeals?.[`${day.name}::${index}`]) && (profile.varietyMode !== 'Repeat favourites' || !profile.repeatMeals?.[slots[index]] || row.id === profile.repeatMeals[slots[index]] || request.cookedMeals?.[`${day.name}::${index}`])) && nutritionValid(day.rows, day.factors, targets))) {
+    const cost = basketCost(existing, people, stock, books, request), variety = Core.inspectVariety(planFromDays(existing, names, people).week, recipes, profile, request.cookedMeals);
     if (Number.isFinite(cost) && variety.met && cost <= budgetCents && (!best || best.cost > budgetCents || cost < best.cost && (profile.priority === 'Cheapest' || profile.varietyMode === 'Budget focus'))) best = { days: existing, cost, preference: 0 };
   }
   if (!best && emptyPools) return unavailable(`At least one meal category has no suitable recipe with complete nutrition and published ${store} ingredient prices.${store === 'Lidl' ? ' Lidl does not publish prices for many everyday products, so this budget cannot be verified automatically yet.' : ''} Your saved plan was kept.`);
@@ -500,10 +509,10 @@ export async function optimizeMealPlan(request, { signal } = {}) {
     }
   }
   const nutritionDays = best.days.map((day, index) => {
-    const kcal = day.rows.reduce((sum, row, slot) => sum + row.n.kcal * day.factors[slot], 0), p = day.rows.reduce((sum, row, slot) => sum + row.n.p * day.factors[slot], 0);
-    return { day: names[index], kcal: round(kcal), p: round(p), complete: day.rows.every(row => row.n.complete), meetsTargets: nutritionValid(day.rows, day.factors, targets) };
+    const total = Macros.total(day.rows, day.factors);
+    return { day: names[index], ...Object.fromEntries(Object.entries(total).map(([key,value]) => [key,value === null ? null : round(value)])), complete: day.rows.every(row => Macros.complete(row.n, profile)), meetsTargets: nutritionValid(day.rows, day.factors, targets) };
   });
-  const variety = Core.inspectVariety(plan.week, recipes, profile), goals = goalReport(profile, best.days);
+  const variety = Core.inspectVariety(plan.week, recipes, profile, request.cookedMeals), goals = goalReport(profile, best.days);
   const feasible = complete && totalCents <= budgetCents && nutritionDays.every(day => day.complete && day.meetsTargets) && variety.met;
   if (!complete) warnings.push('Some ingredients could not be priced. Unpriced ingredients are not counted as free, so this proposal cannot be accepted as within budget.');
   else if (totalCents > budgetCents) warnings.push('No plan inside this budget was found. This is the lowest-cost complete proposal found by the bounded search, not proof that a cheaper plan is impossible.');
