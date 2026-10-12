@@ -134,6 +134,73 @@ test('the actual shipped external modules and whole inline app start and render 
   }
 });
 
+test('prep centre records a partially covered batch once, keeps edited storage and can undo the stock change', async () => {
+  const app = harness({ state: { week: ['Monday', 'Tuesday', 'Wednesday'].map(day => ({ day, meals: [basic.id] })) } }); await app.flush();
+  app.run('state.leftovers.push({id:"old-quarter",recipeId:"user_measured_oats",recipeSignature:PantryCore.recipeSignature(getRecipe("user_measured_oats")),servings:0.25,storage:"Fridge",expiry:""});renderAll();');
+  const before = app.state(); app.context.MealPrepUI.openSession();
+  assert.match(app.node('sheet').innerHTML, /Prepare 2.75 portions/);
+  app.context.MealPrepUI.record(basic.id); assert.match(app.node('sheet').innerHTML, /Serve 0.75 portions/);
+  app.node('cookExtra').value = '2'; app.node('cookStorage').value = 'Freezer'; app.node('cookExpiry').value = '2099-01-01';
+  app.context.PantryUI.updateCookPreview(); assert.match(app.node('sheet').innerHTML, /Serve 0.75 portions/);
+  app.context.PantryUI.confirmCook(false); app.context.PantryUI.confirmCook(false);
+  let current = app.state();
+  assert.equal(current.pantry[0].qty, before.pantry[0].qty - 110);
+  assert.equal(current.pantry[1].qty, before.pantry[1].qty - 412.5);
+  assert.equal(current.leftovers.find(row => row.id === 'old-quarter').servings, .25);
+  const saved = current.leftovers.find(row => row.id !== 'old-quarter');
+  assert.equal(saved.servings, 2); assert.equal(saved.storage, 'Freezer'); assert.equal(saved.expiry, '2099-01-01');
+  assert.equal(current.pantryLedger.transactions.length, 1); assert.deepEqual(current.foodLog, []);
+  assert.deepEqual(current.week, before.week); assert.equal(current.profile.calories, before.profile.calories);
+  app.context.MealPrepUI.openSession(); assert.match(app.node('sheet').innerHTML, /already cooked or covered by leftovers/);
+  app.context.PantryUI.undo(current.pantryLedger.transactions[0].id);
+  current = app.state(); assert.equal(current.pantry[0].qty, before.pantry[0].qty); assert.equal(current.leftovers.length, 1);
+  app.context.MealPrepUI.openSession(); assert.match(app.node('sheet').innerHTML, /Prepare 2.75 portions/);
+  app.run('state.pantry[0].qty-=1'); const stale = app.state();
+  app.context.MealPrepUI.record(basic.id);
+  assert.match(app.node('toast').textContent, /plan or stock changed/); assert.deepEqual(app.state(), stale);
+});
+test('prep cooking, checklist export and portion shortcuts preview amounts without changing intake, stock or plan', async () => {
+  const app = harness({ state: { week: ['Monday', 'Tuesday', 'Wednesday'].map(day => ({ day, meals: [basic.id] })) } }); await app.flush();
+  const before = app.state(); app.context.MealPrepUI.openSession(); app.context.MealPrepUI.cook(basic.id);
+  assert.match(app.node('sheet').innerHTML, /3 household portions/); assert.match(app.node('sheet').innerHTML, /120 g/);
+  assert.doesNotMatch(app.node('sheet').innerHTML, />Meal cooked</);
+  app.context.ConsumerUI.closeCooking(); app.context.MealPrepUI.openSession(); app.context.MealPrepUI.exportSession();
+  assert.equal(app.downloads[0].name, 'meal-prep-session.txt'); assert.match(app.downloads[0].contents, /Oats: 120 g/);
+  app.context.MealPrepUI.check(basic.id, true);
+  assert.equal(app.run('MealPrepCore.session(state,recipes).tasks[0].checked'), true);
+  app.context.showRecipe(basic.id); app.context.MealPrepUI.choosePortions(3);
+  assert.match(app.node('recipeNutritionPreview').innerHTML, /For 3 portions/); assert.match(app.node('recipeIngredientPreview').innerHTML, /120 g/);
+  app.context.MealPrepUI.choosePortions(3, true); app.context.openAddToPlan(basic.id, true);
+  assert.equal(app.run('pendingPlanServings'), 1, 'A multi-day batch preview adds normal household portions for one meal');
+  assert.match(app.node('sheet').innerHTML, /1 household portion for the selected meal/);
+  app.context.closeModal(); app.context.showRecipe(basic.id); app.context.MealPrepUI.choosePortions(3, true);
+  app.node('recipeTargetServings').value = '2'; app.context.updateRecipeServingPreview(); app.context.openAddToPlan(basic.id, true);
+  assert.equal(app.run('pendingPlanServings'), 2, 'Explicitly edited meal portions still apply after a batch preview');
+  app.context.closeModal();
+  const after = app.state(); for (const field of ['week', 'pantry', 'leftovers', 'pantryLedger', 'foodLog']) assert.deepEqual(after[field], before[field]);
+  const reload = harness({ state: after }); await reload.flush();
+  assert.equal(reload.run('MealPrepCore.session(state,recipes).tasks[0].checked'), true);
+  app.run('state.mealServings["Monday::0"]=2'); assert.equal(app.run('MealPrepCore.session(state,recipes).tasks[0].checked'), false);
+  app.run('state.week=[{day:"Monday",meals:["social-chocolate-yoghurt-bark"]}];renderAll()');
+  app.context.MealPrepUI.openSession(); app.context.MealPrepUI.cook('social-chocolate-yoghurt-bark');
+  assert.match(app.node('sheet').innerHTML, /Whole batches prepare 4 portions/);
+  app.context.ConsumerUI.closeCooking(); app.context.MealPrepUI.openSession(); app.context.MealPrepUI.record('social-chocolate-yoghurt-bark');
+  assert.match(app.node('sheet').innerHTML, /<option selected>Freezer<\/option>/, 'Frozen recipes start with freezer storage');
+});
+test('use-soon reminders save real dates without creating stock, spending or food-log transactions', async () => {
+  const app = harness(); await app.flush();
+  app.run('state.pantry[0].expiry=PantryCore.today();renderAll()');
+  assert.match(app.node('home').innerHTML, /Due today/); assert.match(app.node('pantry').innerHTML, /Use soon &amp; check dates|Use soon & check dates/);
+  const before = app.state(), id = before.pantry[0].id;
+  app.context.MealPrepUI.openDates(); assert.match(app.node('sheet').innerHTML, /Recorded expiry/);
+  app.context.MealPrepUI.date('pantry', id, '2026-02-30', 0);
+  assert.match(app.node('toast').textContent, /valid expiry date/); assert.equal(app.state().pantry[0].expiry, before.pantry[0].expiry);
+  app.context.MealPrepUI.date('pantry', id, '2099-01-01', 0);
+  assert.equal(app.state().pantry[0].expiry, '2099-01-01'); assert.match(app.node('prepDateStatus-0').textContent, /Date saved/);
+  const after = app.state(); for (const field of ['week', 'pantryLedger', 'foodLog']) assert.deepEqual(after[field], before[field]);
+  assert.equal(after.pantry[0].qty, before.pantry[0].qty);
+});
+
 test('taste controls persist, show selected states and remove skipped recipes from future payloads', async () => {
   const app = harness(); await app.flush();
   app.context.showRecipe(basic.id, 'Monday', 0);
