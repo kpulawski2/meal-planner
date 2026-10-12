@@ -15,6 +15,9 @@ test('the phone budget request checks a real whole-catalogue plan while health r
   t.after(async () => { httpServer.closeAllConnections(); await new Promise(resolve => httpServer.close(resolve)); });
   if (!httpServer.listening) await once(httpServer, 'listening');
   const base = `http://127.0.0.1:${httpServer.address().port}`;
+  await t.test('invalid product barcodes are rejected locally before any external lookup',async()=>{
+    for(const code of ['wrong','3017620422004']){const response=await fetch(base+'/api/foods/barcode/'+code);assert.equal(response.status,400);assert.equal(typeof (await response.json()).error,'string');}
+  });
   await t.test('meal interpretation works without AI and bounds same-origin requests',async()=>{
     const send=(body,origin=base)=>fetch(base+'/api/planner/interpret',{method:'POST',headers:{'Content-Type':'application/json',...(origin?{Origin:origin}:{})},body:JSON.stringify(body)});
     assert.equal((await send({text:'chicken for dinner'},null)).status,401);
@@ -48,6 +51,8 @@ test('the phone budget request checks a real whole-catalogue plan while health r
   assert.equal(result.basket.complete, true);
   assert.ok(result.basket.indexSize >= 10000);
   assert.equal(result.week.length, 7);
+  assert.equal(result.diagnostics.mealCoverage.length,4);
+  assert.ok(result.diagnostics.mealCoverage.every(row=>row.selected>=row.complete&&row.complete>=row.priced&&row.unpricedIngredients.length<=12));
   assert.ok(result.week.every(day => day.meals.length === 4));
   assert.ok(result.nutrition.days.every(day => day.complete && day.kcal >= 1800 - .05 && day.kcal <= 2200 + .05 && day.p >= 200 - .05));
   const sum = result.basket.recommendations.reduce((total, row) => { assert.ok(row.plan); assert.ok(row.plan.totalQuantity + .00001 >= row.plan.requestedQuantity); return total + row.plan.totalCostGBP; }, 0);

@@ -16,6 +16,8 @@ import { PRICE_LOOKUP_STORES, lookupStoreItem, splitBatches } from './price-sear
 import { catalogStoreInfo } from './catalog-adapter.js';
 import { searchCatalog, browseCatalog, recommendCatalogItems, optimizeMealPlan, fetchProductPage, clearCatalogCache, catalogueStatus, cachedCatalogueStatus } from './catalog-service.js';
 import { normalizePlannerRequest } from './planner-request.js';
+import { createBarcodeLookup } from './barcode-products.js';
+const lookupBarcodeProduct = createBarcodeLookup();
 import { interpretMealRequest } from './meal-intent.js';
 
 const execFileAsync = promisify(execFile);
@@ -816,6 +818,12 @@ app.get('/api/catalog/search', catalogRateLimit, async (req, res) => {
   }
 });
 let activeBudgetPlans = 0;
+app.get('/api/foods/barcode/:code', catalogRateLimit, async (req,res) => {
+  const controller=new AbortController(),closed=()=>controller.abort();res.once('close',closed);
+  try{const result=await lookupBarcodeProduct(req.params.code,{signal:controller.signal});if(!res.destroyed)res.json({ok:true,...result});}
+  catch(error){if(!res.destroyed&&!res.headersSent){if(error.status===429)res.set('Retry-After','30');res.status(error instanceof TypeError?400:error.status===429?429:502).json({error:cleanString(error.message||'Product lookup is unavailable. Enter the pack label.',300)});}}
+  finally{res.off('close',closed);}
+});
 app.post('/api/planner/interpret', importAccess, async (req, res) => {
   let releaseAi;
   try {
