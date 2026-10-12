@@ -65,6 +65,17 @@ A plan replaces saved meals only after both the worker and browser independently
 
 Tinned tuna, beans and sweetcorn use drained contents where ASDA's declared unit-price data exposes them; that inference is labelled beside the selected packs. Generic salmon cannot match a plant-based substitute, and Greek-style yoghurt cannot silently receive the higher protein profile used for strained Greek yoghurt.
 
+## Plan explanations, barcode diary and weekly check-in
+
+**Why this plan?** explains the latest fit request, including missing prices,
+conflicting kept meals and specific meal or macro limits. Suggested changes
+remain editable until saved. **Scan barcode** finds community product data
+through Open Food Facts, then requires an editable pack-label review before
+food is logged. Saved reviewed labels can be reused offline. **Weekly check-in**
+summarises dated food, active purchases, cooking confirmations and liked meals;
+unlogged days and unknown values never count as zero. See
+[kitchen insights](docs/kitchen-insights.md) for data handling, limits and licences.
+
 ## Shopping, stock and cooking
 
 Tick the items you purchased in Shopping, then choose **Shopping done → Confirm purchase**. The app adds the selected full packs to your pantry and records their checked catalogue cost against this plan’s budget. It cannot detect an external supermarket purchase. Only checked items with a current verified pack quantity and price can be confirmed. Saved offline baskets are dated and read-only for purchase confirmation until refreshed online.

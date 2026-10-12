@@ -125,6 +125,33 @@ function tailoredForm(app,overrides={}){
   const original=app.context.document.querySelectorAll;
   app.context.document.querySelectorAll=selector=>selector==='[data-tailored-equipment]:checked'?[{value:'Hob'}]:original(selector);
 }
+test('barcode results require label review and preserve corrected nutrition through reload and repeat scans',async()=>{
+ const app=harness();await app.flush();const before=app.state(),code='3017620422003';
+ app.context.fetch=async()=>({ok:true,json:async()=>({status:'found',product:{barcode:code,name:'Pack snack',quantity:100,unit:'g',nutrition:{kcal:500,p:10,c:50,f:null},source:'Open Food Facts',warnings:['Check your pack.']}})});
+ app.context.BarcodeUI.open('2026-10-12');app.node('barcodeNumber').value=code;await app.context.BarcodeUI.lookup();
+ for(const [id,value] of Object.entries({diaryDate:'2026-10-12',diaryBasis:100,diaryAmount:25,'diary-kcal':400}))app.node(id).value=value;
+ app.node('diarySaveFood').checked=true;app.context.FoodLogUI.commit();assert.equal(app.state().foodLog.length,0);
+ app.node('barcodeConfirmed').checked=true;app.context.FoodLogUI.commit();assert.equal(app.state().foodLog[0].nutrition.kcal,100);assert.equal(app.state().foodLog[0].nutrition.f,null);assert.equal(app.state().savedFoods[0].provenance.barcode,code);
+ for(const key of ['week','profile','pantry','pantryLedger'])assert.deepEqual(app.state()[key],before[key]);
+ const restored=harness({state:app.state()});await restored.flush();restored.context.fetch=()=>{throw new Error('Saved labels must work offline');};restored.context.BarcodeUI.open('2026-10-12');restored.node('barcodeNumber').value=code;await restored.context.BarcodeUI.lookup();assert.equal(restored.node('diary-kcal').value,'400');assert.match(restored.node('sheet').innerHTML,/saved reviewed label/);
+});
+test('camera permission, detection and lookup results arriving after close cannot reopen a scanner or log food',async()=>{
+ const app=harness();await app.flush();let release,stopped=0,detect;app.context.isSecureContext=true;app.node('barcodeVideo').play=async()=>{};
+ app.context.BarcodeDetector=class {static async getSupportedFormats(){return ['ean_13','ean_8','upc_a'];}detect(){return new Promise(resolve=>{detect=resolve;});}};
+ app.context.navigator.mediaDevices={getUserMedia:()=>new Promise(resolve=>{release=resolve;})};const stream={getTracks:()=>[{stop:()=>stopped++}]};
+ app.context.BarcodeUI.open();const permission=app.context.BarcodeUI.camera();await app.flush();app.context.closeModal();release(stream);await permission;assert.equal(stopped,1);assert.equal(app.node('modal').style.display,'none');
+ app.context.navigator.mediaDevices.getUserMedia=async()=>stream;app.context.BarcodeUI.open();await app.context.BarcodeUI.camera();await app.flush();app.context.closeModal();detect([{rawValue:'3017620422003'}]);await app.flush();assert.equal(stopped,2);assert.equal(app.node('modal').style.display,'none');assert.equal(app.state().foodLog.length,0);
+ app.context.BarcodeUI.open();app.node('barcodeNumber').value='3017620422003';app.context.fetch=()=>new Promise(resolve=>{release=resolve;});const lookup=app.context.BarcodeUI.lookup();app.context.closeModal();release({ok:true,json:async()=>({status:'found',product:{barcode:'3017620422003'}})});await lookup;assert.equal(app.node('modal').style.display,'none');
+});
+test('fallback camera cleanup stops owned tracks during delayed decoder startup and page hiding',async()=>{
+ const app=harness();await app.flush();let release,stopped=0,controls=0;app.context.isSecureContext=true;app.context.navigator.mediaDevices={getUserMedia:async()=>({getTracks:()=>[{stop:()=>stopped++}]})};
+ app.context.ZXingBrowser={BrowserMultiFormatReader:class{decodeFromStream(){return new Promise(resolve=>{release=resolve;});}}};app.context.BarcodeUI.open();const pending=app.context.BarcodeUI.camera();await app.flush();app.context.document.hidden=true;app.listeners.get('visibilitychange')();assert.equal(stopped,1);release({stop:()=>controls++});await pending;assert.equal(controls,1);
+});
+test('check-ins use actual dated food and a failed request explanation retains its unsaved limits',async()=>{
+ const app=harness();await app.flush();app.run('FoodLogCore.record(state,{date:"2026-10-12",food:{name:"Label food",quantity:100,unit:"g",nutrition:{kcal:200,p:20,c:30,f:4,source:"label"}},quantity:100});');const before=app.state();app.context.KitchenInsightsUI.review('2026-10-12');assert.match(app.node('sheet').innerHTML,/1\/7/);assert.match(app.node('sheet').innerHTML,/200 kcal/);assert.match(app.node('sheet').innerHTML,/Unlogged days are excluded/);assert.deepEqual(app.state(),before);
+ app.run('budgetPlannerLastRequest=budgetPlannerPayload();budgetPlannerLastRequest.profile.nutritionTargets={calorieMode:"max",fatMax:0};budgetPlannerState={status:"error",message:"No fit",result:{status:"unavailable"}};');app.context.KitchenInsightsUI.why();assert.match(app.node('sheet').innerHTML,/At most 0 g fat/);assert.match(app.node('sheet').innerHTML,/failed request can differ/);assert.deepEqual(app.state(),before);
+ app.context.KitchenInsightsUI.action('budget','',60);assert.equal(app.node('bud').value,'60');assert.deepEqual(app.state().profile,before.profile);
+});
 test('the redesigned daily browser keeps week-two choices and plan views separate from saved meal and stock data',async()=>{
   const week=Array.from({length:14},(_,i)=>({day:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][i%7]+(i>6?' (Week 2)':''),meals:[basic.id,'tailored-tuna-wrap','tailored-lemon-chicken']}));
   const app=harness({state:{week}});await app.flush();const before=app.state();

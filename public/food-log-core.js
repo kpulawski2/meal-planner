@@ -27,7 +27,8 @@
     const name = text(raw.name), unit = text(raw.unit, 20), quantity = Number(raw.quantity);
     if (!name || !['g', 'ml', 'piece', 'slice', 'tsp', 'tbsp', 'portion'].includes(unit) || !number(raw.quantity) || quantity <= 0 || quantity > 100000)
       throw new Error('Add a food name, serving amount and supported unit.');
-    return { name, unit, quantity, nutrition: nutrition(raw.nutrition), note: text(raw.note, 300) };
+    const provenance = root.BarcodeCore?.provenance(raw.provenance);
+    return { name, unit, quantity, nutrition: nutrition(raw.nutrition), note: text(raw.note, 300), ...(provenance ? { provenance } : {}) };
   }
   function scaled(food, quantity) {
     const base = definition(food), amount = Number(quantity);
@@ -71,6 +72,8 @@
   }
   function saveFood(state, input, { id = root.crypto?.randomUUID?.() || 'label-' + Date.now() } = {}) {
     const food = { ...definition(input), id }, rows = Array.isArray(state.savedFoods) ? state.savedFoods : [];
+    const previous = food.provenance && rows.find(row => root.BarcodeCore?.same(row.provenance?.barcode, food.provenance.barcode));
+    if (previous) { food.id = previous.id; state.savedFoods = rows.map(row => row.id === previous.id ? food : row); return copy(food); }
     if (rows.length >= 300) throw new Error('Your saved food list is full.');
     state.savedFoods = [...rows, food];
     return copy(food);

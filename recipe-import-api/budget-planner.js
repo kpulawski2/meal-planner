@@ -446,6 +446,7 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   const store = profile.supermarket || 'Asda';
   const slots = Core.mealSlots(clamp(profile.meals, 2, 4, 4)), names = Core.dayNames(daysCount), weeklyBudgetGBP = clamp(profile.budget, 0, 10000, 45), budgetGBP = weeklyBudgetGBP * daysCount / 7;
   const targets = { ...Macros.targets(profile), profile };
+  let mealCoverage = [];
   const budgetCents = pennies(budgetGBP), pantry = Array.isArray(request.pantry) ? request.pantry : [], favorites = Array.isArray(request.favorites) ? request.favorites : [];
   const excludedRecipeIds=new Set(Array.isArray(request.excludedRecipeIds)?request.excludedRecipeIds:[]);
   for(const row of Array.isArray(request.recipes)?request.recipes:[])if(row?.excludedByFeedback===true)excludedRecipeIds.add(row.id);
@@ -453,7 +454,7 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   const recipes = (Array.isArray(request.recipes) ? request.recipes : []).filter(recipe => recipe && Array.isArray(recipe.ings) && (cookedIds.has(recipe.id) || !excludedRecipeIds.has(recipe.id) && allowedRecipe(recipe, profile))).map(recipe => prepareRecipe({ ...recipe, cookedOnly: cookedIds.has(recipe.id) && (excludedRecipeIds.has(recipe.id) || !allowedRecipe(recipe, profile)) }));
   const byId = new Map(recipes.map(recipe => [recipe.id, recipe])), items = new Map();
   for (const recipe of recipes) for (const [name, , unit] of recipe.ings) { if (Core.isCookingWater(name)) continue; const meta = Core.unitMeta(unit, name), key = bookKey(name, meta.dim); if (!items.has(key)) items.set(key, { key, name, dimension: meta.dim }); }
-  const unavailable = reason => ({ store, status: 'unavailable', week: request.week || [], mealServings: request.mealServings || {}, basket: { store, complete: false, totalCostGBP: null, recommendations: [] }, budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP) }, variety: Core.inspectVariety(request.week || [], recipes, profile, request.cookedMeals), goals: goalReport(profile), warnings: [reason], diagnostics: { elapsedMs: Date.now() - started } });
+  const unavailable = reason => ({ store, status: 'unavailable', week: request.week || [], mealServings: request.mealServings || {}, basket: { store, complete: false, totalCostGBP: null, recommendations: [] }, budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP) }, variety: Core.inspectVariety(request.week || [], recipes, profile, request.cookedMeals), goals: goalReport(profile), warnings: [reason], diagnostics: { elapsedMs: Date.now() - started, mealCoverage } });
   if((request.week||[]).some(day=>(day.meals||[]).some((id,index)=>excludedRecipeIds.has(id)&&request.locked?.[`${day.day}::${index}`]&&!request.cookedMeals?.[`${day.day}::${index}`])))return unavailable('A locked meal is marked Skip next time. Unlock that meal or clear its preference before fitting your plan. Your saved plan was kept.');
   if (!recipes.length) return unavailable('No allowed recipes are available. Add recipes with complete ingredient quantities and nutrition.');
   if (profile.varietyMode === 'Repeat favourites') for (const category of slots) {
@@ -472,6 +473,7 @@ export async function optimizeMealPlan(request, { signal } = {}) {
     if (index % 8 === 7) { signal?.throwIfAborted(); await yieldToWorker(); }
   }
   const pools = safePools(recipes, slots, stock, people, daysCount, books, profile, favorites), warnings = [];
+  mealCoverage = slots.map(category=>{const selected=recipes.filter(row=>!row.cookedOnly&&(profile.varietyMode!=='Repeat favourites'||!profile.repeatMeals?.[category]||row.id===profile.repeatMeals[category])&&Intent.allowed(row,profile)&&(row.cat===category||category==='Snack'&&row.cat==='Fruit')),complete=selected.filter(row=>Macros.complete(row.n,profile)&&row.known);return {category,selected:selected.length,complete:complete.length,priced:complete.filter(row=>row.priceable).length,unpricedIngredients:[...new Set(complete.filter(row=>!row.priceable).flatMap(row=>row.ings.filter(([name,,unit])=>!Core.isCookingWater(name)&&!Number.isFinite(books.get(bookKey(name,Core.unitMeta(unit,name).dim))?.unitCost)).map(ing=>ing[0])))].slice(0,12)};});
   const emptyPools = pools.some(pool => !pool.length);
   const generated = emptyPools ? { templates: [], examined: 0, combinations: 0 } : await dailyTemplates(pools, slots, targets, profile, people, stock, books, signal), { templates, examined, combinations } = generated;
   const searched = templates.length ? await searchWeek(templates, names, request, byId, slots, targets, people, stock, books, budgetCents, signal) : { best: null, expansions: 0, stages: [], searchVarietyViolations: [] };
@@ -523,5 +525,5 @@ export async function optimizeMealPlan(request, { signal } = {}) {
     basket: { store, totalCostGBP: round(totalCents / 100), complete, items: basketItems, recommendations, indexSize: catalogue.indexSize, refreshedAt: catalogue.refreshedAt },
     nutrition: { days: nutritionDays, calorieMin: targets.min, calorieMax: targets.max, proteinTarget: targets.protein, perPerson: true, source: 'recipe nutrition estimates' },
     budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP), overGBP: round(Math.max(0, totalCents - budgetCents) / 100), household: true },
-    variety, goals, warnings, diagnostics: { elapsedMs: Date.now() - started, searchCostGBP: round(best.cost / 100), combinations, evaluatedPortions: examined, weekExpansions: searched.expansions, stages: searched.stages, searchVarietyViolations: searched.searchVarietyViolations, recipeCount: recipes.length, ingredientCount: books.size, uniqueMeals, search: 'bounded main-meal pairs and weekly beam search, goal-aware portions, shared full-pack basket, hard variety and nutrition limits' } };
+    variety, goals, warnings, diagnostics: { elapsedMs: Date.now() - started, searchCostGBP: round(best.cost / 100), combinations, evaluatedPortions: examined, mealCoverage, weekExpansions: searched.expansions, stages: searched.stages, searchVarietyViolations: searched.searchVarietyViolations, recipeCount: recipes.length, ingredientCount: books.size, uniqueMeals, search: 'bounded main-meal pairs and weekly beam search, goal-aware portions, shared full-pack basket, hard variety and nutrition limits' } };
 }
