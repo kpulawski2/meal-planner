@@ -27,7 +27,8 @@ export function normalizePlannerRequest(body) {
     priority: ['Balanced', 'Cheapest', 'Protein value', 'Variety'].includes(input.priority) ? input.priority : 'Balanced',
     varietyMode: ['Balanced', 'More variety', 'Budget focus', 'Repeat favourites', 'Tailored'].includes(input.varietyMode) ? input.varietyMode : 'Balanced',
     nutritionTargets: globalThis.MacroGoalsCore.normalise(input.nutritionTargets, true),
-    tailoredMeals: globalThis.MealIntentCore.rules(input.tailoredMeals, true),
+    tailoredMeals: input.varietyMode==='Tailored'?globalThis.MealIntentCore.rules(input.tailoredMeals, true):{},
+    scheduledMeals: [],
     repeatMeals: Object.fromEntries(['Breakfast','Lunch','Dinner','Snack'].map(category => [category, text(input.repeatMeals?.[category], 120)]).filter(([, id]) => id)),
     goal: (Array.isArray(input.goal) ? input.goal : Array.isArray(input.goals) ? input.goals : ['Eat healthy', 'Save money', 'Make cooking easier']).filter((goal, index, values) => ['Lose weight', 'Gain muscle', 'Eat healthy', 'Save money', 'Make cooking easier'].includes(goal) && values.indexOf(goal) === index).slice(0, 5),
     dislikes: text(input.dislikes, 1000), likes: text(input.likes, 1000), custom: text(input.custom, 2000),
@@ -36,6 +37,7 @@ export function normalizePlannerRequest(body) {
     cookTime: number(input.cookTime, 45, 1, 1440, 'Cooking time'),
     equipment: globalThis.KitchenEquipment.normalize(input.equipment),
   };
+  profile.scheduledMeals=profile.varietyMode==='Tailored'?globalThis.MealIntentCore.scheduled(input.scheduledMeals,profile.days,true):[];
   if (!Array.isArray(body.recipes) || !body.recipes.length || body.recipes.length > 250) fail('Send between 1 and 250 recipes.');
   const ids = new Set();
   const recipes = body.recipes.map(row => {
@@ -63,7 +65,8 @@ export function normalizePlannerRequest(body) {
       dishFamily: text(row.dishFamily, 80),
       tags: Array.isArray(row.tags) ? row.tags.slice(0, 20).map(value => text(value, 60)) : [] };
   });
-  for (const [category, rule] of Object.entries(profile.tailoredMeals)) for (const id of rule.recipeIds) {
+  for(const row of profile.scheduledMeals)if(!(profile.meals===2?['Lunch','Dinner']:profile.meals===3?['Breakfast','Lunch','Dinner']:globalThis.MealIntentCore.categories).includes(row.category))fail('A scheduled meal must belong to an active meal type.');
+  for (const [category, rule] of [...Object.entries(profile.tailoredMeals),...profile.scheduledMeals.map(row=>[row.category,row])]) for (const id of rule.recipeIds) {
     const recipe = recipes.find(row => row.id === id);
     if (!recipe || !(recipe.cat === category || category === 'Snack' && recipe.cat === 'Fruit')) fail('A tailored meal choice is missing or belongs to another meal.');
   }

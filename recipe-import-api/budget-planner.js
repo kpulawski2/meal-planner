@@ -209,7 +209,8 @@ function safePools(rows, slots, stock, people, days, books, profile, favorites) 
     const families = [...new Set(eligible.map(row => row.family))].flatMap(family => value.filter(row => row.family === family).slice(0, 2));
     const goalChoices = eligible.slice().sort((a, b) => a.quality.penalty - b.quality.penalty || a.linear - b.linear);
     const nutrientChoices = Macros.active(profile) ? [...eligible.slice().sort((a,b)=>(a.n.c || 0)/Math.max(.1,a.n.p)-(b.n.c || 0)/Math.max(.1,b.n.p)).slice(0,4),...eligible.slice().sort((a,b)=>(a.n.f || 0)/Math.max(.1,a.n.p)-(b.n.f || 0)/Math.max(.1,b.n.p)).slice(0,4)] : [];
-    return [...new Map([...families, ...nutrientChoices, ...value.slice(0, 12), ...protein.slice(0, 6), ...goalChoices.slice(0, 4), ...favoritesSorted.slice(0, 2)].map(row => [row.id, row])).values()].slice(0, 24);
+    const scheduledChoices=eligible.filter(row=>(profile.scheduledMeals||[]).some(choice=>choice.category===slot&&choice.recipeIds.includes(row.id)));
+    return [...new Map([...scheduledChoices,...families, ...nutrientChoices, ...value.slice(0, 12), ...protein.slice(0, 6), ...goalChoices.slice(0, 4), ...favoritesSorted.slice(0, 2)].map(row => [row.id, row])).values()].slice(0, 24);
   });
 }
 
@@ -229,14 +230,16 @@ function currentDay(request, name, rowsById, slots, people) {
 }
 
 function withLocks(template, name, request, rowsById, targets, people, slots) {
+  const dayIndex=Core.dayNames(Number(request.profile.days)||7).indexOf(name);
   const locked = slots.map((_, slot) => Boolean(request.locked?.[`${name}::${slot}`]));
-  if (!locked.some(Boolean)) return { ...template, name };
+  if (!locked.some(Boolean)) return template.rows.every(row=>Intent.allowed(row,request.profile,dayIndex))?{ ...template, name }:null;
   const current = currentDay(request, name, rowsById, slots, people); if (!current) return null;
   if (slots.some((category, slot) => locked[slot] && !request.cookedMeals?.[`${name}::${slot}`]
     && request.profile.varietyMode === 'Repeat favourites' && request.profile.repeatMeals?.[category]
     && current.rows[slot].id !== request.profile.repeatMeals[category])) return null;
-  if (slots.some((category, slot) => locked[slot] && !request.cookedMeals?.[`${name}::${slot}`] && !Intent.allowed(current.rows[slot], request.profile))) return null;
+  if (slots.some((category, slot) => locked[slot] && !request.cookedMeals?.[`${name}::${slot}`] && !Intent.allowed(current.rows[slot], request.profile,dayIndex))) return null;
   const rows = template.rows.map((row, slot) => locked[slot] ? current.rows[slot] : row), fixed = locked.map((value, slot) => value ? current.factors[slot] : null);
+  if(rows.some((row,slot)=>!Intent.allowed(row,request.profile,dayIndex)&&!request.cookedMeals?.[`${name}::${slot}`]))return null;
   if (rows.some(row => !row.n.complete) || !Core.distinctDishes(rows)) return null;
   const choices = portionChoices(rows, targets, fixed, request.profile); return choices[0] ? { rows, factors: choices[0].factors, name } : null;
 }
@@ -312,6 +315,13 @@ async function dailyTemplates(pools, slots, targets, profile, people, stock, boo
     mainPairBuckets.set(pairKey, pairBucket);
   }
   for (const bucket of [...recipeBuckets.values(), ...familyBuckets.values(), ...mainPairBuckets.values()]) for (const template of bucket) selected.add(template);
+  if(Macros.active(profile)){
+    // Retain cheap macro-safe portions for each main pair as well as preferred
+    // portions. Otherwise lower-fat scoring can discard the only budget fit.
+    const cheapPairs=new Set();for(const template of templates.slice().sort((a,b)=>a.linear-b.linear||a.cost-b.cost)){
+      const key=mainIndexes.map(index=>template.rows[index].id).join('|');if(cheapPairs.has(key))continue;cheapPairs.add(key);selected.add(template);
+    }
+  }
   return { templates: [...selected].sort((a, b) => a.rank - b.rank), examined, combinations };
 }
 
@@ -353,15 +363,15 @@ function candidateCost(state, template, stock, books) {
   return cost;
 }
 
-async function searchWeek(templates, names, request, byId, slots, targets, people, stock, books, budgetCents, signal) {
+async function searchWeek(templates, names, request, byId, slots, targets, people, stock, books, budgetCents, signal, preferCost = false) {
   const profile = request.profile || {}, policy = Core.varietyPolicy(profile, names.length), mainIndexes = slots.map((slot, index) => ['Lunch', 'Dinner'].includes(slot) ? index : -1).filter(index => index >= 0);
   const requiredFamilies = Math.min(policy.requiredFamilies, new Set(templates.flatMap(template => mainIndexes.map(index => template.rows[index].family))).size);
-  const cheapest = profile.priority === 'Cheapest' || profile.varietyMode === 'Budget focus';
+  const cheapest = preferCost || profile.priority === 'Cheapest' || profile.varietyMode === 'Budget focus';
   const saveMoney = activeGoals(profile).includes('Save money'), easy = activeGoals(profile).includes('Make cooking easier');
   const width = names.length > 7 ? 90 : 72;
   const slotPolicies = slots.map(slot => Core.slotVarietyPolicy(profile, slot, names.length));
   const repeatLimits = slotPolicies.map(row => row.repeatLimit), minimumDistinct = slotPolicies.map(row => row.minimumDistinct);
-  const clean = { days: [], amounts: new Map(), batchPortions: new Map(), cost: 0, quality: 0, batches: new Set(), counts: new Map(), distinct: slots.map(() => new Set()), families: new Map(), rank: 0 };
+  const clean = { days: [], amounts: new Map(), batchPortions: new Map(), cost: 0, quality: 0, batches: new Set(), counts: new Map(), distinct: slots.map(() => new Set()), ordinaryCounts:new Map(),ordinaryDistinct:slots.map(()=>new Set()),families: new Map(), rank: 0 };
   const shapeOf = proposal => {
     const familyCounts = new Map(proposal.state.families);
     for (const index of mainIndexes) { const family = proposal.template.rows[index].family; familyCounts.set(family, (familyCounts.get(family) || 0) + 1); }
@@ -384,21 +394,21 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
       for (const template of options) {
       expansions++;
       const previous = state.days.at(-1), main = mainIndexes.map(index => template.rows[index]);
-      if (template.rows.some((row, i) => (state.counts.get(row.id) || 0) >= repeatLimits[i] || slotPolicies[i].avoidConsecutive && previous?.rows[i].id === row.id)) continue;
+      if (template.rows.some((row, i) => !Intent.exception(profile,slots[i],dayIndex)&&(state.ordinaryCounts.get(row.id) || 0) >= repeatLimits[i] || slotPolicies[i].avoidConsecutive && previous?.rows[i].id === row.id)) continue;
       const increments = new Map(); for (const row of main) increments.set(row.family, (increments.get(row.family) || 0) + 1);
       if ([...increments].some(([family, count]) => (state.families.get(family) || 0) + count > policy.dominantFamilyLimit)) continue;
       const remainingDays = names.length - dayIndex - 1;
-      if (template.rows.some((row, i) => state.distinct[i].size + (state.distinct[i].has(row.id) ? 0 : 1) + remainingDays < minimumDistinct[i])) continue;
+      if (template.rows.some((row, i) => state.ordinaryDistinct[i].size + (Intent.exception(profile,slots[i],dayIndex)||state.ordinaryDistinct[i].has(row.id) ? 0 : 1) + remainingDays < minimumDistinct[i])) continue;
       const familyCount = new Set([...state.families.keys(), ...increments.keys()]).size;
       if (familyCount + remainingDays * 2 < requiredFamilies) continue;
       const cost = Object.keys(request.cookedMeals || {}).length || request.leftovers?.length ? basketCost([...state.days,template],people,stock,books,request) : candidateCost(state, template, stock, books); if (!Number.isFinite(cost)) continue;
       const novelBatches = template.rows.filter(row => !state.batches.has(row.id)), batchPenalty = easy ? novelBatches.reduce((sum, row) => sum + (row.quality?.cookMinutes || 45) * .7, 0) : 0;
       const quality = state.quality + (template.quality ?? dailyQuality(template.rows, template.factors, profile)) - template.rows.reduce((sum, row) => sum + row.preference * 25, 0) + batchPenalty;
       const novelty = template.rows.reduce((sum, row, i) => sum + (state.distinct[i].has(row.id) ? 0 : 1), 0);
-      const unmet = Math.max(0, requiredFamilies - familyCount) + template.rows.reduce((sum, row, i) => sum + Math.max(0, minimumDistinct[i] - state.distinct[i].size - (state.distinct[i].has(row.id) ? 0 : 1)), 0);
+      const unmet = Math.max(0, requiredFamilies - familyCount) + template.rows.reduce((sum, row, i) => sum + Math.max(0, minimumDistinct[i] - state.ordinaryDistinct[i].size - (Intent.exception(profile,slots[i],dayIndex)||state.ordinaryDistinct[i].has(row.id) ? 0 : 1)), 0);
       // Cost remains in integer pence. Quality only ranks complete, target-safe
       // candidates; no amount of preference can waive the budget/variety checks.
-      const rank = cost + quality * (saveMoney ? .3 : .75) + unmet * 55 - (profile.varietyMode === 'More variety' || profile.priority === 'Variety' ? novelty * 35 : 0);
+      const rank = preferCost?cost:cost + quality * (saveMoney ? .3 : .75) + unmet * 55 - (profile.varietyMode === 'More variety' || profile.priority === 'Variety' ? novelty * 35 : 0);
       siblings.push({ state, template, cost, quality, rank, familyCount });
       }
       // Retain a bounded, structurally diverse set from each parent before the
@@ -423,10 +433,11 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
       shapes.set(shape, (shapes.get(shape) || 0) + 1); signatures.add(key); selected.push(proposal); if (selected.length >= width) break;
     }
     beam = selected.map(({ state, template, cost, quality, rank }) => {
-      const next = { days: [...state.days, template], amounts: new Map(state.amounts), batchPortions: new Map(state.batchPortions), cost, quality, rank, batches: new Set([...state.batches, ...template.rows.map(row => row.id)]), counts: new Map(state.counts), distinct: state.distinct.map(value => new Set(value)), families: new Map(state.families) };
+      const next = { days: [...state.days, template], amounts: new Map(state.amounts), batchPortions: new Map(state.batchPortions), cost, quality, rank, batches: new Set([...state.batches, ...template.rows.map(row => row.id)]), counts: new Map(state.counts), distinct: state.distinct.map(value => new Set(value)), ordinaryCounts:new Map(state.ordinaryCounts),ordinaryDistinct:state.ordinaryDistinct.map(value=>new Set(value)),families: new Map(state.families) };
       for (const [key, quantity] of candidateAmounts(state, template)) next.amounts.set(key, (next.amounts.get(key) || 0) + quantity);
       for (const { row, portions } of template.batchRecipes) next.batchPortions.set(row.id, (next.batchPortions.get(row.id) || 0) + portions);
       template.rows.forEach((row, index) => { next.counts.set(row.id, (next.counts.get(row.id) || 0) + 1); next.distinct[index].add(row.id); if (mainIndexes.includes(index)) next.families.set(row.family, (next.families.get(row.family) || 0) + 1); });
+      template.rows.forEach((row,index)=>{if(!Intent.exception(profile,slots[index],dayIndex)){next.ordinaryCounts.set(row.id,(next.ordinaryCounts.get(row.id)||0)+1);next.ordinaryDistinct[index].add(row.id);}});
       return next;
     });
     stages.push({ day: dayIndex + 1, candidates: options.length, survivors: beam.length, distinct: beam[0]?.distinct.map(value => value.size) || [] });
@@ -437,7 +448,7 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
   const finalists = rawFinalists.filter(state => state.variety.met);
   const feasible = finalists.filter(state => state.cost <= budgetCents);
   const choices = feasible.length ? feasible : finalists;
-  choices.sort((a, b) => cheapest ? a.cost - b.cost || a.quality - b.quality : a.rank - b.rank || a.cost - b.cost);
+  choices.sort((a, b) => !feasible.length || profile.priority==='Cheapest' || profile.varietyMode==='Budget focus' ? a.cost - b.cost || a.quality - b.quality : preferCost ? (a.cost+a.quality*(saveMoney?.3:.75))-(b.cost+b.quality*(saveMoney?.3:.75)) || a.cost-b.cost : a.rank - b.rank || a.cost - b.cost);
   return { best: choices[0] || null, expansions, constrained: true, stages, searchVarietyViolations: rawFinalists[0]?.variety.violations || [] };
 }
 
@@ -476,11 +487,18 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   mealCoverage = slots.map(category=>{const selected=recipes.filter(row=>!row.cookedOnly&&(profile.varietyMode!=='Repeat favourites'||!profile.repeatMeals?.[category]||row.id===profile.repeatMeals[category])&&Intent.allowed(row,profile)&&(row.cat===category||category==='Snack'&&row.cat==='Fruit')),complete=selected.filter(row=>Macros.complete(row.n,profile)&&row.known);return {category,selected:selected.length,complete:complete.length,priced:complete.filter(row=>row.priceable).length,unpricedIngredients:[...new Set(complete.filter(row=>!row.priceable).flatMap(row=>row.ings.filter(([name,,unit])=>!Core.isCookingWater(name)&&!Number.isFinite(books.get(bookKey(name,Core.unitMeta(unit,name).dim))?.unitCost)).map(ing=>ing[0])))].slice(0,12)};});
   const emptyPools = pools.some(pool => !pool.length);
   const generated = emptyPools ? { templates: [], examined: 0, combinations: 0 } : await dailyTemplates(pools, slots, targets, profile, people, stock, books, signal), { templates, examined, combinations } = generated;
-  const searched = templates.length ? await searchWeek(templates, names, request, byId, slots, targets, people, stock, books, budgetCents, signal) : { best: null, expansions: 0, stages: [], searchVarietyViolations: [] };
+  let searched = templates.length ? await searchWeek(templates, names, request, byId, slots, targets, people, stock, books, budgetCents, signal) : { best: null, expansions: 0, stages: [], searchVarietyViolations: [] };
+  // Soft lower-fat/ease preferences must not be the only route through a tight
+  // hard budget. Try a second bounded beam ranked by cost with identical rules.
+  if(templates.length&&(!searched.best||searched.best.cost>budgetCents)){
+    const recovery=await searchWeek(templates,names,request,byId,slots,targets,people,stock,books,budgetCents,signal,true);
+    const recovered=recovery.best&&(!searched.best||recovery.best.cost<searched.best.cost);
+    searched={...(recovered?recovery:searched),expansions:searched.expansions+recovery.expansions,budgetRecovery:{attempted:true,recovered:Boolean(recovered),costGBP:recovery.best?round(recovery.best.cost/100):null}};
+  }
   let best = searched.best;
   // A valid existing plan is another starting point; it never overrides locks.
   const existing = names.map(name => currentDay(request, name, byId, slots, people));
-  if (existing.every(day => day && day.rows.every((row, index) => Macros.complete(row.n, profile) && (Intent.allowed(row, profile) || request.cookedMeals?.[`${day.name}::${index}`]) && (profile.varietyMode !== 'Repeat favourites' || !profile.repeatMeals?.[slots[index]] || row.id === profile.repeatMeals[slots[index]] || request.cookedMeals?.[`${day.name}::${index}`])) && nutritionValid(day.rows, day.factors, targets))) {
+  if (existing.every((day,dayIndex) => day && day.rows.every((row, index) => Macros.complete(row.n, profile) && (Intent.allowed(row, profile,dayIndex) || request.cookedMeals?.[`${day.name}::${index}`]) && (profile.varietyMode !== 'Repeat favourites' || !profile.repeatMeals?.[slots[index]] || row.id === profile.repeatMeals[slots[index]] || request.cookedMeals?.[`${day.name}::${index}`])) && nutritionValid(day.rows, day.factors, targets))) {
     const cost = basketCost(existing, people, stock, books, request), variety = Core.inspectVariety(planFromDays(existing, names, people).week, recipes, profile, request.cookedMeals);
     if (Number.isFinite(cost) && variety.met && cost <= budgetCents && (!best || best.cost > budgetCents || cost < best.cost && (profile.priority === 'Cheapest' || profile.varietyMode === 'Budget focus'))) best = { days: existing, cost, preference: 0 };
   }
@@ -525,5 +543,5 @@ export async function optimizeMealPlan(request, { signal } = {}) {
     basket: { store, totalCostGBP: round(totalCents / 100), complete, items: basketItems, recommendations, indexSize: catalogue.indexSize, refreshedAt: catalogue.refreshedAt },
     nutrition: { days: nutritionDays, calorieMin: targets.min, calorieMax: targets.max, proteinTarget: targets.protein, perPerson: true, source: 'recipe nutrition estimates' },
     budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP), overGBP: round(Math.max(0, totalCents - budgetCents) / 100), household: true },
-    variety, goals, warnings, diagnostics: { elapsedMs: Date.now() - started, searchCostGBP: round(best.cost / 100), combinations, evaluatedPortions: examined, mealCoverage, weekExpansions: searched.expansions, stages: searched.stages, searchVarietyViolations: searched.searchVarietyViolations, recipeCount: recipes.length, ingredientCount: books.size, uniqueMeals, search: 'bounded main-meal pairs and weekly beam search, goal-aware portions, shared full-pack basket, hard variety and nutrition limits' } };
+    variety, goals, warnings, diagnostics: { elapsedMs: Date.now() - started, searchCostGBP: round(best.cost / 100), combinations, evaluatedPortions: examined, mealCoverage, budgetRecovery:searched.budgetRecovery||null,weekExpansions: searched.expansions, stages: searched.stages, searchVarietyViolations: searched.searchVarietyViolations, recipeCount: recipes.length, ingredientCount: books.size, uniqueMeals, search: 'bounded main-meal pairs and weekly beam search, goal-aware portions, shared full-pack basket, hard variety and nutrition limits' } };
 }

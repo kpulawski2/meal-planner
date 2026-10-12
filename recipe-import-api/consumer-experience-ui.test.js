@@ -17,7 +17,7 @@ const catalogueBrowser=await readFile(new URL('../public/catalogue-browser.js',i
 const foodUI=await readFile(new URL('../public/food-log-ui.js',import.meta.url),'utf8');
 const lighter=await readFile(new URL('../public/lighter-recipes.js',import.meta.url),'utf8');
 const tailoredModules=(await Promise.all(['macro-goals-core','meal-intent-core','tailored-plan-ui','tailored-recipes'].map(name=>readFile(new URL('../public/'+name+'.js',import.meta.url),'utf8')))).join('\n');
-const worldContext={};vm.runInNewContext(world,worldContext);const shippedRecipeCount=298+worldContext.WORLD_RECIPES.length;
+const worldContext={};vm.runInNewContext(world+'\n'+tailoredModules,worldContext);const shippedRecipeCount=292+worldContext.WORLD_RECIPES.length+worldContext.TAILORED_RECIPES.length;
 function source(start,end){const from=html.indexOf(start),to=html.indexOf(end,from+start.length);assert.ok(from>=0&&to>from,start);return html.slice(from,to);}
 function element(value=''){const classes=new Set();return {value,files:[],style:{},textContent:'',innerHTML:'',disabled:false,attributes:{},dataset:{},classList:{add(name){classes.add(name)},remove(name){classes.delete(name)},toggle(name,on){if(on)classes.add(name);else classes.delete(name);},contains:name=>classes.has(name)},setAttribute(name,value){this.attributes[name]=value;},focus(){this.focused=true;},scrollIntoView(){}};}
 function importHarness(options={}){

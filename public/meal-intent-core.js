@@ -2,11 +2,25 @@
 (function(root){
  'use strict';
  const categories=['Breakfast','Lunch','Dinner','Snack'];
- const aliases={oats:/\boats?\b/,tuna:/\btuna\b/,pickles:/\b(?:pickles?|gherkins?|cornichons?)\b/,eggs:/\beggs?\b/,mayo:/\b(?:mayo|mayonnaise)\b/,wrap:/\b(?:wraps?|tortillas?)\b/,chicken:/\bchicken\b/};
+ const aliases={oats:/\boats?\b/,tuna:/\btuna\b/,pickles:/\b(?:pickles?|gherkins?|cornichons?)\b/,eggs:/\beggs?\b/,mayo:/\b(?:mayo|mayonnaise)\b/,wrap:/\b(?:wraps?|tortillas?)\b/,chicken:/\bchicken\b/,steak:/\bsteaks?\b/};
  const stop=new Set('i want would like have eat a an the and or with of for in my some kind dish dishes meal meals breakfast lunch dinner snack morning evening every day daily same repeat repeated high low protein rich healthy quick easy prep so different variety varied varieties over over again please salad as little no fats at all next'.split(' '));
+ for(const word of ['based','box','boxes','anything','options'])stop.add(word);
  const clean=value=>String(value||'').trim().slice(0,240);
  function rule(profile,category){return profile?.varietyMode==='Tailored'?profile.tailoredMeals?.[category]:null;}
- function allowed(recipe,profile){const category=recipe.cat==='Fruit'?'Snack':recipe.cat,choice=rule(profile,category);return !choice||Array.isArray(choice.recipeIds)&&choice.recipeIds.includes(recipe.id);}
+ function scheduled(value,days,strict=false,withRecipes=true){
+  const result=[],seen=new Set();if(value==null)return result;
+  if(!Array.isArray(value)||value.length>56){if(strict)throw new TypeError('Review your scheduled meals.');return result;}
+  for(const row of value){const day=Number(row?.day),category=row?.category,query=clean(row?.query),ids=row?.recipeIds,key=day+'::'+category;
+   if(!Number.isInteger(day)||day<1||day>days||!categories.includes(category)||!query||seen.has(key)||withRecipes&&(!Array.isArray(ids)||!ids.length||ids.length>30||ids.some(id=>typeof id!=='string'||!id.trim()||id.length>120))){if(strict)throw new TypeError('Each scheduled meal needs a unique day within the plan, a meal type and matching recipes.');continue;}
+   seen.add(key);result.push({day,category,query,...(withRecipes?{recipeIds:[...new Set(ids)]}:{})});
+  }return result;
+ }
+ function exception(profile,category,dayIndex){return profile?.varietyMode==='Tailored'&&Array.isArray(profile.scheduledMeals)?profile.scheduledMeals.find(row=>row.day===dayIndex+1&&row.category===category):null;}
+ function allowed(recipe,profile,dayIndex){
+  const category=recipe.cat==='Fruit'?'Snack':recipe.cat,choice=Number.isInteger(dayIndex)?exception(profile,category,dayIndex)||rule(profile,category):rule(profile,category);
+  const included=!choice||Array.isArray(choice.recipeIds)&&choice.recipeIds.includes(recipe.id);
+  return included||dayIndex===undefined&&profile?.varietyMode==='Tailored'&&(profile.scheduledMeals||[]).some(row=>row.category===category&&row.recipeIds?.includes(recipe.id));
+ }
  function rules(value,strict=false){
   const result={};
   for(const category of categories){const row=value?.[category];if(!row)continue;
@@ -16,33 +30,43 @@
  }
  function matches(recipe,query){
   const raw=clean(query).toLowerCase().replace(/overnights?\b/g,'overnight oats'),ingredients=(recipe.ings||[]).filter(row=>Number(row[1])>0).map(row=>String(row[0]).toLowerCase()),hay=[recipe.name,...ingredients,...(recipe.tags||[])].join(' ').toLowerCase();
-  const words=raw.replace(/-/g,' ').replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(word=>word&&!stop.has(word));
-  const terms=[...new Set(words.map(word=>/^oats?$/.test(word)?'oats':/^(pickles?|gherkins?|cornichons?)$/.test(word)?'pickles':/^eggs?$/.test(word)?'eggs':/^mayonnaise$/.test(word)?'mayo':/^(wraps?|tortillas?)$/.test(word)?'wrap':word))];
-  return terms.length>0&&terms.every(term=>term==='overnight'?/overnight/.test([hay,...(Array.isArray(recipe.method)?recipe.method:[recipe.method||''])].join(' ').toLowerCase()):aliases[term]?ingredients.some(value=>aliases[term].test(value)&&(term!=='chicken'||!/stock|broth|seasoning|flavour|plant|vegan/.test(value))):new RegExp('\\b'+term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?:s)?\\b').test(hay));
+  const terms=value=>[...new Set(value.replace(/-/g,' ').replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(word=>word&&(!stop.has(word)||word==='salad'&&(/\bor\b/.test(raw)||!/\bwraps?\b/.test(raw)))).map(word=>/^oats?$/.test(word)?'oats':/^(pickles?|gherkins?|cornichons?)$/.test(word)?'pickles':/^eggs?$/.test(word)?'eggs':/^mayonnaise$/.test(word)?'mayo':/^(wraps?|tortillas?)$/.test(word)?'wrap':word))];
+  const test=term=>term==='overnight'?/overnight/.test([hay,...(Array.isArray(recipe.method)?recipe.method:[recipe.method||''])].join(' ').toLowerCase()):aliases[term]?ingredients.some(value=>aliases[term].test(value)&&(!['chicken','steak'].includes(term)||!/stock|broth|seasoning|flavour|plant|vegan|mince/.test(value))):new RegExp('\\b'+term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?:s)?\\b').test(hay);
+  if(!/\bor\b/.test(raw)){const required=terms(raw);return required.length>0&&required.every(test);}
+  // A leading food remains required across alternative formats: tuna + (salad OR wrap).
+  const comma=raw.indexOf(','),head=comma>=0?terms(raw.slice(0,comma)):[],branches=(comma>=0?raw.slice(comma+1):raw).split(/\s+or\s+/).map(terms);
+  if(!head.length&&branches.length>1){const proteins=['tuna','chicken','steak','beef','pork','turkey','salmon','cod','lamb','tofu','eggs'];const shared=branches[0].filter(term=>proteins.includes(term));if(shared.length&&branches.slice(1).every(row=>!row.some(term=>proteins.includes(term))))head.push(...shared);}
+  return head.every(test)&&branches.some(branch=>branch.length>0&&branch.every(test));
+ }
+ function macroValues(text){
+  const lower=String(text).toLowerCase(),names={calories:'(?:kcal|calories?)',protein:'protein',carbs:'carb(?:s|ohydrates?)?',fat:'fat(?:s)?'},result={};
+  for(const [key,name] of Object.entries(names)){const unit=key==='calories'?'':'g(?:rams?)?',prefix=new RegExp('\\b'+name+'[ \\t]*(?:[:=][ \\t]*|[ \\t]+)(\\d+(?:\\.\\d+)?)[ \\t]*(?:'+(unit||'(?:kcal|calories?)')+')?'),suffix=new RegExp('(\\d+(?:\\.\\d+)?)[ \\t]*'+unit+'[ \\t]*(?:of[ \\t]+)?'+name+'\\b');const match=lower.match(prefix)||lower.match(suffix);if(match)result[key]=match;}
+  return result;
  }
  function parse(text,defaults={}){
   const raw=String(text||'').trim().slice(0,2000),lower=raw.toLowerCase(),warnings=[];
   let days=Number(defaults.days)||7;
   const duration=lower.match(/(?:next|for|over)\s+(?:(\d+|one|two|three|seven|fourteen|a|an)\s+)?(days?|weeks?|fortnight|months?)/);
   if(duration){const words={one:1,two:2,three:3,seven:7,fourteen:14},amount=duration[1]&&/^\d+$/.test(duration[1])?Number(duration[1]):words[duration[1]]||1;days=/month/.test(duration[2])?30*amount:/fortnight/.test(duration[2])?14*amount:/week/.test(duration[2])?7*amount:amount;}
-  const result={days,meals:Number(defaults.meals)||3,calories:Number(defaults.calories)||2000,protein:root.MacroGoalsCore.known(defaults.protein)?Number(defaults.protein):200,nutritionTargets:root.MacroGoalsCore.normalise(defaults.nutritionTargets),requests:{},warnings};
+  const result={days,meals:Number(defaults.meals)||3,calories:Number(defaults.calories)||2000,protein:root.MacroGoalsCore.known(defaults.protein)?Number(defaults.protein):200,nutritionTargets:root.MacroGoalsCore.normalise(defaults.nutritionTargets),requests:{},scheduledMeals:[],warnings};
   if(days<1||days>14)warnings.push('The planner supports 1–14 days. Choose a supported period before generating.');
-  const calories=lower.match(/(\d+(?:\.\d+)?)\s*(?:kcal|calories?)/),protein=lower.match(/(\d+(?:\.\d+)?)\s*g(?:rams?)?\s*(?:of\s+)?protein/),carbs=lower.match(/(\d+(?:\.\d+)?)\s*g(?:rams?)?\s*(?:of\s+)?carb(?:s|ohydrates?)?/),fat=lower.match(/(\d+(?:\.\d+)?)\s*g(?:rams?)?\s*(?:of\s+)?fat(?:s)?/);
+  const {calories,protein,carbs,fat}=macroValues(raw);
   const maximum=match=>match&&/(?:under|below|at most|maximum|up to|no more than)\s*$/.test(lower.slice(Math.max(0,match.index-25),match.index))||match&&/^\s*(?:a day|per day|daily)?\s*(?:or\s*)?(?:under|less|maximum)/.test(lower.slice(match.index+match[0].length));
   if(calories){result.calories=Number(calories[1]);result.nutritionTargets.calorieMode=maximum(calories)?'max':'range';}
   if(protein)result.protein=Number(protein[1]);
   if(carbs){result.nutritionTargets.carbs=Number(carbs[1]);result.nutritionTargets.carbMode=maximum(carbs)?'max':'target';}
   if(fat)result.nutritionTargets.fatMax=Number(fat[1]);
-  if(/(?:little|low|lower|minim\w*|less|no)\s+(?:or no\s+)?fat(?:s)?|fat.?free/.test(lower))result.nutritionTargets.minimiseFat=true;
+  if(/(?:little|low|lower|minim\w*|less|no)\s+(?:or no\s+)?fat(?:s)?|fat.?free|fats?\s+(?:as\s+)?(?:low|little)\s+as\s+possible/.test(lower))result.nutritionTargets.minimiseFat=true;
   if(/(?:strictly|exactly|maximum|at most)\s*(?:zero|no)\s+fat/.test(lower))result.nutritionTargets.fatMax=0;
   const count=lower.match(/([234])\s*meals?\s*(?:a|per|each|in a)\s*day/);if(count)result.meals=Number(count[1]);
   const labelled=/(breakfast|lunch|dinner|snack)\s*[:=-]\s*([^;\n]+?)(?=\s+(?:breakfast|lunch|dinner|snack)\s*[:=-]|[;\n]|$)/gi;
-  let match;while((match=labelled.exec(raw)))result.requests[match[1][0].toUpperCase()+match[1].slice(1).toLowerCase()]={query:clean(match[2]),mode:/variety|different|varied|mix/.test(match[2].toLowerCase())?'vary':'repeat'};
+  let match;while((match=labelled.exec(raw)))result.requests[match[1][0].toUpperCase()+match[1].slice(1).toLowerCase()]={query:clean(match[2]),mode:/variety|different|varied|mix|anything|based|\bor\b/.test(match[2].toLowerCase())?'vary':'repeat'};
   let start=0;const ending=/\s+(?:for\s+(breakfast|lunch|dinner|snack)|in the (morning|evening))/gi;
   while((match=ending.exec(raw))){const category=match[1]?match[1][0].toUpperCase()+match[1].slice(1).toLowerCase():match[2]==='morning'?'Breakfast':'Dinner';let query=raw.slice(start,match.index).replace(/^(?:for|over) (?:the )?next \d+ days?[,;]?\s*/i,'').replace(/^.*?(?:i want|i would like|i'd like)\s+/i,'').replace(/^\s*[,;.]?\s*(?:and\s+)?/i,'').trim();start=ending.lastIndex;
    if(query&&!result.requests[category])result.requests[category]={query:clean(query),mode:/variety|different|varied|mix|(?:a|some) chicken dish/i.test(query)?'vary':'repeat'};
   }
   if(result.requests.Breakfast&&result.requests.Lunch&&result.requests.Dinner)result.meals=result.requests.Snack?4:3;
+  for(const [category,row] of Object.entries(result.requests)){const oneOff=row.query.match(/(?:,\s*)?(?:(?:1|one)\s+day\b|once\b|(?:except|but)\b)[\s\S]*?\bsteak\b[\s\S]*$/i);if(!oneOff)continue;const explicitDay=oneOff[0].match(/\b(?:on\s+)?day\s+(\d+)\b/i),day=explicitDay?Number(explicitDay[1]):days;row.query=clean(row.query.slice(0,oneOff.index).replace(/[,;\s]+$/,''));result.scheduledMeals.push({day,category,query:'steak'});warnings.push('A one-off steak '+category.toLowerCase()+' was found. Review its day below.');}
   if(!Object.keys(result.requests).length)warnings.push('Add a request for each meal below, for example “overnight oats for breakfast”.');
   if(result.nutritionTargets.minimiseFat||result.nutritionTargets.fatMax===0)warnings.push('Oats, eggs, mayo and chicken contain some fat. Lower fat is a preference; a strict fat cap is never relaxed.');
   return result;
@@ -51,8 +75,10 @@
   if(!value||typeof value!=='object'||Array.isArray(value))throw new TypeError('Review the meal request.');
   const num=(key,min,max)=>{const n=Number(value[key]??defaults[key]);if(!Number.isFinite(n)||n<min||n>max||['days','meals'].includes(key)&&!Number.isInteger(n))throw new TypeError('Check '+key+' ('+min+'–'+max+').');return n;};
   const result={days:num('days',1,14),meals:num('meals',2,4),calories:num('calories',400,10000),protein:num('protein',0,1000),nutritionTargets:root.MacroGoalsCore.normalise(value.nutritionTargets,true),requests:{}};
+  result.scheduledMeals=scheduled(value.scheduledMeals,result.days,true,false);
+  const active=result.meals===2?['Lunch','Dinner']:result.meals===3?['Breakfast','Lunch','Dinner']:categories;if(result.scheduledMeals.some(row=>!active.includes(row.category)))throw new TypeError('Choose a scheduled meal type included in your daily meals.');
   for(const category of categories){const row=value.requests?.[category];if(row?.query){if(!['repeat','vary','choose'].includes(row.mode))throw new TypeError('Choose repeat, variety or planner choice.');result.requests[category]={query:clean(row.query),mode:row.mode};}}
   return result;
  }
- root.MealIntentCore=Object.freeze({categories,rule,rules,allowed,matches,parse,normaliseBrief});
+ root.MealIntentCore=Object.freeze({categories,rule,rules,scheduled,exception,allowed,matches,macroValues,parse,normaliseBrief});
 })(globalThis);
