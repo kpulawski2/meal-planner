@@ -1,4 +1,5 @@
 import '../public/budget-core.js';
+import '../public/equipment-core.js';
 import '../public/recipe-library-core.js';
 import { catalogPurchaseOffers, calculatePackPurchase } from './catalog-adapter.js';
 import { setImmediate as yieldToWorker } from 'node:timers/promises';

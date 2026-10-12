@@ -130,7 +130,7 @@
         const key = canonicalIngredientName(name), meta = unitMeta(rawUnit, name), quantity = Number(rawQuantity);
         const item = map[key] || (map[key] = { name, groups: Object.create(null), unknown: false, pantryNotes: [], quantityNotes: [] });
         if (meta.note && !item.quantityNotes.includes(meta.note)) item.quantityNotes.push(meta.note);
-        if(recipe.fixedBatch){const note=`${recipe.name}: ${purchased/yieldCount} full tub${purchased/yieldCount===1?'':'s'}, ${Number(Math.max(0,purchased-portions).toFixed(2))} extra serving${Math.abs(purchased-portions-1)<.000001?'':'s'} kept frozen.`;if(!item.quantityNotes.includes(note))item.quantityNotes.push(note);}
+        if(recipe.fixedBatch){const noun=recipe.batchStorage==='recipe'?'batch':'tub',storage=recipe.batchStorage==='recipe'?'store as directed in the recipe':'kept frozen';const note=`${recipe.name}: ${purchased/yieldCount} full ${noun}${purchased/yieldCount===1?'':'s'}, ${Number(Math.max(0,purchased-portions).toFixed(2))} extra serving${Math.abs(purchased-portions-1)<.000001?'':'s'} ${storage}.`;if(!item.quantityNotes.includes(note))item.quantityNotes.push(note);}
         if (!(quantity > 0) || !Number.isFinite(quantity)) { item.unknown = true; continue; }
         const group = item.groups[meta.dim] || (item.groups[meta.dim] = { need: 0, remaining: 0, label: meta.label, dim: meta.dim, pantry: 0, pantryUsed: 0 });
         group.need += quantity * scale * meta.factor;

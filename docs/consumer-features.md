@@ -125,3 +125,13 @@ as currently set. Missing or incompatible recipes prevent loading. Review
 Settings and use Save & fit my plan to generate a week through the existing
 nutrition, budget and cooked-meal checks. Saving or loading a routine never
 replaces the saved week or changes pantry, leftovers or purchase history.
+
+## Social recipes and equipment
+
+Recipes → TikTok ideas contains 60 measured breakfasts, bowls, batch lunches,
+air-fryer dishes, slow-cooker pots and quick meals/snacks. Filter by equipment,
+recipe style or @smoothieflip, and save favourites or make editable copies.
+Settings groups 21 appliances; recipe editing supports explicit required
+equipment. Planning respects those requirements while browsing stays open.
+Hands-on time is shown separately from chilling/slow cooking. See
+[the collection's sources and batch behaviour](social-recipes.md).

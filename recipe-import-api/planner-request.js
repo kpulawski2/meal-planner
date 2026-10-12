@@ -1,5 +1,6 @@
 // Bound browser input before transferring it to the catalogue worker. Recipe
 // methods, source URLs and any unrelated saved device data are never needed.
+import '../public/equipment-core.js';
 const text = (value, length = 120) => typeof value === 'string' ? value.trim().slice(0, length) : '';
 const fail = message => { throw new TypeError(message); };
 function number(value, fallback, min, max, label, integer = false) {
@@ -29,7 +30,7 @@ export function normalizePlannerRequest(body) {
     batch: input.batch !== false, mealPrep: Boolean(input.mealPrep), avoidRepeat: input.avoidRepeat !== false,
     minWaste: input.minWaste !== false, leftovers: input.leftovers !== false,
     cookTime: number(input.cookTime, 45, 1, 1440, 'Cooking time'),
-    equipment: Array.isArray(input.equipment) ? input.equipment.filter(value => value === 'Ninja CREAMi').slice(0, 1) : [],
+    equipment: globalThis.KitchenEquipment.normalize(input.equipment),
   };
   if (!Array.isArray(body.recipes) || !body.recipes.length || body.recipes.length > 250) fail('Send between 1 and 250 recipes.');
   const ids = new Set();
@@ -44,11 +45,14 @@ export function normalizePlannerRequest(body) {
     });
     const source = row.nutrition || {};
     const nutrient = key => source[key] === undefined || source[key] === null ? null : number(source[key], null, 0, 100000, `Recipe ${key}`);
+    const requiredEquipment = Array.isArray(row.equipment) ? [...new Set(row.equipment.map(value => text(value, 60)).filter(Boolean))] : [];
+    if (requiredEquipment.length > globalThis.KitchenEquipment.names.length) fail('A recipe may require at most 21 appliances.');
     return { id, name, cat: text(row.cat, 40), servings: number(row.servings, 1, 1, 1000, 'Recipe yield'),
       ings, nutrition: { kcal: nutrient('kcal'), p: nutrient('p'), complete: source.complete === true, source: text(source.source, 40) },
       cookTime: row.cookTime === undefined || row.cookTime === null || row.cookTime === '' ? null : number(row.cookTime, null, 0, 1440, 'Recipe cooking time'),
-      equipment: Array.isArray(row.equipment) ? [...new Set(row.equipment.map(value => text(value, 60)).filter(Boolean))].slice(0, 4) : [],
-      fixedBatch: row.fixedBatch === true, freezeMinutes: row.freezeMinutes == null ? null : number(row.freezeMinutes, null, 0, 10080, 'Recipe freeze time'),
+      equipment: requiredEquipment,
+      fixedBatch: row.fixedBatch === true, batchStorage: row.batchStorage === 'recipe' ? 'recipe' : null, freezeMinutes: row.freezeMinutes == null ? null : number(row.freezeMinutes, null, 0, 10080, 'Recipe freeze time'),
+      passiveMinutes: row.passiveMinutes == null ? null : number(row.passiveMinutes, null, 0, 10080, 'Recipe waiting time'),
       preferenceScore: number(row.preferenceScore, 0, -40, 40, 'Recipe taste score'),
       useUpScore: number(row.useUpScore, 0, 0, 10, 'Recipe use-up score'),
       excludedByFeedback: row.excludedByFeedback === true,
