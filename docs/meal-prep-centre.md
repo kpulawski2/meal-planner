@@ -45,6 +45,9 @@ original recipe batch and three days of household portions. The three-day
 shortcut is limited to browsing; it is omitted when editing a planned slot.
 Shortcuts update the existing ingredient/nutrition preview and do not
 automatically change plans, shopping, pantry or diary entries.
+Adding a meal from a three-day batch preview starts with normal household
+portions for that single meal. Explicitly editing the portion input keeps
+the user's chosen amount. The add-to-plan screen shows the portion count.
 
 Home and Pantry show **Use soon & check dates**. The card highlights positive
 stock with dates passed, invalid dates, dates due within three days, and cooked

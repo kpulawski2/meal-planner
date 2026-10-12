@@ -170,6 +170,13 @@ test('prep cooking, checklist export and portion shortcuts preview amounts witho
   assert.equal(app.run('MealPrepCore.session(state,recipes).tasks[0].checked'), true);
   app.context.showRecipe(basic.id); app.context.MealPrepUI.choosePortions(3);
   assert.match(app.node('recipeNutritionPreview').innerHTML, /For 3 portions/); assert.match(app.node('recipeIngredientPreview').innerHTML, /120 g/);
+  app.context.MealPrepUI.choosePortions(3, true); app.context.openAddToPlan(basic.id, true);
+  assert.equal(app.run('pendingPlanServings'), 1, 'A multi-day batch preview adds normal household portions for one meal');
+  assert.match(app.node('sheet').innerHTML, /1 household portion for the selected meal/);
+  app.context.closeModal(); app.context.showRecipe(basic.id); app.context.MealPrepUI.choosePortions(3, true);
+  app.node('recipeTargetServings').value = '2'; app.context.updateRecipeServingPreview(); app.context.openAddToPlan(basic.id, true);
+  assert.equal(app.run('pendingPlanServings'), 2, 'Explicitly edited meal portions still apply after a batch preview');
+  app.context.closeModal();
   const after = app.state(); for (const field of ['week', 'pantry', 'leftovers', 'pantryLedger', 'foodLog']) assert.deepEqual(after[field], before[field]);
   const reload = harness({ state: after }); await reload.flush();
   assert.equal(reload.run('MealPrepCore.session(state,recipes).tasks[0].checked'), true);

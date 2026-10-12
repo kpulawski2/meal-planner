@@ -132,11 +132,12 @@
     return '<div class="portion-presets" role="group" aria-label="Recipe portion shortcuts">'
       + [[1, '1 portion'], [people, 'Household'], [Number(recipe.servings) || 1, 'Recipe batch'], ...(!planned ? [[people * 3, '3 days']] : [])].filter(([value]) => {
         if (value < .25 || value > 100 || seen.has(value)) return false; seen.add(value); return true;
-      }).map(([value, label]) => '<button class="chip" type="button" onclick="MealPrepUI.choosePortions(' + value + ')">' + label + '</button>').join('') + '</div>';
+      }).map(([value, label]) => '<button class="chip" type="button" onclick="MealPrepUI.choosePortions(' + value + ',' + (label === '3 days') + ')">' + label + '</button>').join('') + '</div>';
   }
-  function choosePortions(value) {
+  function choosePortions(value, batchPreview = false) {
     const input = document.getElementById('recipeTargetServings'); if (!input || input.disabled || !Number.isFinite(value) || value < .25 || value > 100) return;
     input.value = value; api.updatePortions();
+    if (input.dataset && batchPreview) input.dataset.prepBatchPreview = 'true';
   }
   root.MealPrepUI = Object.freeze({ configure(value) { api = value; }, panel, openSession, scopeChanged, viewRecipe, cook, record, check,
     exportSession, useSoonPanel, openDates, date, portionButtons, choosePortions });
