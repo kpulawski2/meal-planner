@@ -92,6 +92,7 @@
   }
   root.ConsumerUI = Object.freeze({
     start(id, day = null, index = null, prepPortions = null) {
+      if(root.CookingSessionUI)return root.CookingSessionUI.start(id,day,index,prepPortions);
       const recipe = getRecipe(id);
       if (!recipeMethodSteps(recipe).length || recipe.servings === null) { toast('Review the recipe steps and servings first.'); return; }
       const explicitPortions = Number(prepPortions);
@@ -99,13 +100,13 @@
       cooking = { id, day, index, step: 0, portions: day != null && index != null ? getMealServings(day, index) : prepPortions !== null ? explicitPortions : Math.max(1, Number(state.profile.people) || 1) };
       drawCooking(); void acquireWake();
     },
-    step(delta) { if (!cooking) return; const max = recipeMethodSteps(getRecipe(cooking.id)).length - 1; cooking.step = Math.max(0, Math.min(max, cooking.step + delta)); drawCooking(); },
-    closeCooking() { cooking = null; releaseWake(); document.getElementById('modal').style.display = 'none'; },
-    cleanup() { cooking = null; releaseWake(); },
-    finishCooking() { if (!cooking) return; const { day, index } = cooking; cooking = null; releaseWake(); if (root.PantryUI?.openCook) root.PantryUI.openCook(day, index); },
-    setTimer(minutes) { const value = Number(minutes); if (!Number.isFinite(value) || value < .1 || value > 720) return; timer = { deadline: Date.now() + value * 60000 }; if (!interval) interval = setInterval(updateTimer, 1000); updateTimer(); },
-    customTimer() { this.setTimer(document.getElementById('cookTimerMinutes')?.value); },
-    cancelTimer() { timer = null; clearInterval(interval); interval = null; updateTimer(); },
+    step(delta) { if(root.CookingSessionUI)return root.CookingSessionUI.step(delta); if (!cooking) return; const max = recipeMethodSteps(getRecipe(cooking.id)).length - 1; cooking.step = Math.max(0, Math.min(max, cooking.step + delta)); drawCooking(); },
+    closeCooking() { if(root.CookingSessionUI)return root.CookingSessionUI.close(); cooking = null; releaseWake(); document.getElementById('modal').style.display = 'none'; },
+    cleanup() { if(root.CookingSessionUI)return root.CookingSessionUI.cleanup(); cooking = null; releaseWake(); },
+    finishCooking() { if(root.CookingSessionUI)return root.CookingSessionUI.finish(); if (!cooking) return; const { day, index } = cooking; cooking = null; releaseWake(); if (root.PantryUI?.openCook) root.PantryUI.openCook(day, index); },
+    setTimer(minutes) { if(root.CookingSessionUI)return root.CookingSessionUI.setTimer(minutes); const value = Number(minutes); if (!Number.isFinite(value) || value < .1 || value > 720) return; timer = { deadline: Date.now() + value * 60000 }; if (!interval) interval = setInterval(updateTimer, 1000); updateTimer(); },
+    customTimer() { if(root.CookingSessionUI)return root.CookingSessionUI.customTimer(); this.setTimer(document.getElementById('cookTimerMinutes')?.value); },
+    cancelTimer() { if(root.CookingSessionUI)return root.CookingSessionUI.cancelTimer(); timer = null; clearInterval(interval); interval = null; updateTimer(); },
     cookingButton(id, day = null, index = null) { return '<button class="btn secondary small" onclick="ConsumerUI.start(decodeURIComponent(\'' + arg(id) + '\'),' + (day == null ? 'null' : 'decodeURIComponent(\'' + arg(day) + '\')') + ',' + (index == null ? 'null' : Number(index)) + ')">Cooking mode</button>'; },
     offlineNote(catalogue) { return catalogue.offline ? '<div class="offline-basket" role="status">Offline · saved prices checked ' + html(new Date(catalogue.loadedAt).toLocaleString()) + '. Refresh online before confirming a purchase or swap.</div>' : ''; },
   });

@@ -101,7 +101,10 @@ function harness(options = {}) {
     document: { hidden: false, body: element(), getElementById: node,
       querySelectorAll: selector => selector === '.tabs button' ? nav : selector === '.screen' ? ['home', 'week', 'recipes', 'favourites', 'shop', 'pantry', 'profile'].map(node) : [],
       querySelector: selector => selector === '.screen.active' ? { id: options.active || 'home' } : selector === '.app' ? node('app') : null,
-      createElement: () => element(), addEventListener: (event, callback) => listeners.set(event, callback),
+      createElement: () => element(), addEventListener: (event, callback) => {
+        const previous = listeners.get(event);
+        listeners.set(event, () => { previous?.(); callback(); });
+      },
     },
     setTimeout: () => 0, clearTimeout() {}, setInterval: () => 1, clearInterval() {},
     fetch: async (url, request) => { requests.push({ url, request }); return { ok: false, status: 503, text: async () => '', headers: { get: () => null } }; },
@@ -125,6 +128,98 @@ function tailoredForm(app,overrides={}){
   const original=app.context.document.querySelectorAll;
   app.context.document.querySelectorAll=selector=>selector==='[data-tailored-equipment]:checked'?[{value:'Hob'}]:original(selector);
 }
+
+test('saved cooking resumes across reload and backup without recording stock or food', async () => {
+  const app = harness(); await app.flush(); const before = app.state();
+  app.context.ConsumerUI.start(basic.id, 'Monday', 0); app.context.ConsumerUI.step(1); app.context.ConsumerUI.closeCooking();
+  assert.equal(app.state().cookingSession.step, 1); assert.equal(app.node('modal').style.display, 'none');
+  assert.match(app.node('home').innerHTML, /Continue cooking/);
+  const restored = harness({ state: app.state() }); await restored.flush(); restored.context.CookingSessionUI.resume();
+  assert.match(restored.node('sheet').innerHTML, /Step 2 of 2/);
+  restored.context.ConsumerUI.closeCooking();
+  restored.context.restoreData({ target: { files: [{ contents: JSON.stringify(app.state()) }] } });
+  restored.context.CookingSessionUI.resume(); assert.match(restored.node('sheet').innerHTML, /Step 2 of 2/);
+  for (const key of ['pantry','pantryLedger','foodLog','week']) assert.deepEqual(restored.state()[key], before[key]);
+  restored.context.CookingSessionUI.discard(); assert.equal(restored.state().cookingSession, null);
+});
+test('a changed recipe, replaced plan or changed servings blocks stale cooking confirmation', async () => {
+  for (const mutation of ['state.customRecipes[0].ings[0][1]=60', 'state.pantryLedger.planId="replacement"', 'state.mealServings["Monday::0"]=2', 'state.week[0].meals[0]="everyday-tuna-crunch-pitta"']) {
+    const app = harness(); await app.flush(); const before = app.state();
+    app.context.ConsumerUI.start(basic.id, 'Monday', 0); app.run(mutation); app.context.ConsumerUI.finishCooking();
+    assert.doesNotMatch(app.node('sheet').innerHTML, /Confirm cooking & update pantry/);
+    assert.deepEqual(app.state().pantry, before.pantry); assert.deepEqual(app.state().pantryLedger.transactions, before.pantryLedger.transactions);
+    app.context.ConsumerUI.closeCooking(); app.context.CookingSessionUI.resume(); assert.equal(app.node('modal').style.display, 'none');
+  }
+});
+test('partially cooked meals scale steps to the remaining portions and reject later cooking changes',async()=>{
+  const app=harness({state:{mealServings:{'Monday::0':2}}});await app.flush();
+  app.context.PantryUI.openCook('Monday',0,0,'Fridge','',1);app.context.PantryUI.confirmCook(false);
+  assert.equal(app.context.PantryCore.cookedPortions(app.run('state'),'Monday',0,app.run('recipes')),1);
+  const before=app.state();app.context.ConsumerUI.start(basic.id,'Monday',0);
+  assert.equal(app.state().cookingSession.portions,1);assert.equal(app.state().cookingSession.plannedPortions,2);
+  assert.match(app.node('sheet').innerHTML,/>40 g</);assert.doesNotMatch(app.node('sheet').innerHTML,/>80 g</);
+  app.context.ConsumerUI.closeCooking();const restored=harness({state:app.state()});await restored.flush();restored.context.CookingSessionUI.resume();
+  assert.match(restored.node('sheet').innerHTML,/Step 1 of 2/);assert.deepEqual(restored.state().pantry,before.pantry);
+  restored.context.PantryUI.openCook('Monday',0);restored.context.PantryUI.confirmCook(false);restored.context.closeModal();
+  restored.context.CookingSessionUI.resume();assert.equal(restored.node('modal').style.display,'none');
+});
+test('standalone cooking progress appears on Today before a plan exists',async()=>{
+  const app=harness({state:{week:[]}});await app.flush();app.context.ConsumerUI.start(basic.id);app.context.ConsumerUI.closeCooking();
+  assert.match(app.node('home').innerHTML,/Continue cooking/);assert.equal(app.state().cookingSession.day,null);
+});
+test('three independent kitchen timers pause, resume, restore and finish once', async () => {
+  const app = harness(); await app.flush(); app.context.ConsumerUI.start(basic.id); const before = app.state();
+  for (const label of ['Rice','Chicken','Vegetables']) { app.node('cookTimerLabel').value=label; app.context.ConsumerUI.setTimer(5); }
+  const timers = app.state().kitchenTimers; assert.equal(timers.length, 3);
+  app.context.ConsumerUI.setTimer(1); assert.equal(app.state().kitchenTimers.length, 3);
+  app.context.CookingSessionUI.pauseTimer(timers[0].id); const paused = app.state().kitchenTimers[0].remainingMs;
+  app.context.ConsumerUI.closeCooking(); const restored=harness({state:app.state()}); await restored.flush();
+  assert.equal(restored.state().kitchenTimers[0].remainingMs, paused);
+  restored.context.CookingSessionUI.openTimers(); assert.match(restored.node('cookTimer').innerHTML, /Paused/);
+  restored.context.CookingSessionUI.resumeTimer(timers[0].id);
+  restored.run('state.kitchenTimers[1].deadline=Date.now()-1'); restored.context.CookingSessionUI.tick();
+  assert.equal(restored.state().kitchenTimers[1].status, 'done'); const saved=restored.storage.get('mealPlannerState');
+  restored.context.CookingSessionUI.tick(); assert.equal(restored.storage.get('mealPlannerState'),saved);
+  restored.context.CookingSessionUI.cancelTimer(timers[1].id); assert.equal(restored.state().kitchenTimers.length,2);
+  for(const key of ['pantry','pantryLedger','foodLog','week']) assert.deepEqual(restored.state()[key],before[key]);
+});
+test('personal notes persist and copy separately while remaining outside planner requests', async () => {
+  const app=harness(); await app.flush(); const id='everyday-tuna-crunch-pitta',before=app.state();
+  app.context.showRecipe(id); app.node('personalRecipeNote').value='</textarea><img src=x onerror="bad()">'; app.context.RecipeNotesUI.save(id);
+  const restored=harness({state:app.state()}); await restored.flush(); restored.context.showRecipe(id);
+  assert.match(restored.node('sheet').innerHTML,/&lt;\/textarea&gt;&lt;img/); assert.doesNotMatch(restored.node('sheet').innerHTML,/<img src=x/);
+  restored.context.ConsumerUI.start(id); assert.match(restored.node('sheet').innerHTML,/Your cooking notes/); restored.context.ConsumerUI.closeCooking();
+  restored.context.makeRecipeCopy(id); const copied=restored.state().customRecipes.at(-1).id;
+  assert.equal(restored.context.RecipeExperience.personalNote(copied,restored.state()),app.state().recipeNotes[0].text);
+  restored.context.RecipeExperience.setPersonalNote(restored.run('state'),copied,'Different note');
+  assert.equal(restored.context.RecipeExperience.personalNote(id,restored.state()),app.state().recipeNotes[0].text);
+  assert.doesNotMatch(JSON.stringify(restored.context.budgetPlannerPayload()),/Different note|onerror|recipeNotes/);
+  for(const key of ['pantry','pantryLedger','foodLog','week','profile']) assert.deepEqual(restored.state()[key],before[key]);
+});
+test('delayed wake locks release after close and resume only while cooking is visible', async () => {
+  const app=harness(); await app.flush(); let resolve,released=0,requests=0;
+  app.context.navigator.wakeLock={request:()=>{requests++;return new Promise(done=>{resolve=done;});}};
+  const lock=()=>({release:async()=>{released++;},addEventListener(){}});
+  app.context.ConsumerUI.start(basic.id); app.context.ConsumerUI.closeCooking(); resolve(lock()); await app.flush();
+  assert.equal(released,1); assert.equal(requests,1);
+  app.context.CookingSessionUI.resume(); resolve(lock()); await app.flush();
+  app.context.document.hidden=true; app.listeners.get('visibilitychange')(); await app.flush(); assert.equal(released,2);
+  app.context.document.hidden=false; app.listeners.get('visibilitychange')(); resolve(lock()); await app.flush(); assert.equal(requests,3);
+  app.context.closeModal(); await app.flush(); assert.equal(released,3);
+});
+test('copying a recipe when notes are full still saves the recipe and preserves its original note',async()=>{
+  const id='everyday-tuna-crunch-pitta', recipeNotes=Array.from({length:500},(_,i)=>({recipeId:i===0?id:'r'+i,text:'Keep my note',updatedAt:new Date().toISOString()}));
+  const app=harness({state:{recipeNotes}});await app.flush();app.context.makeRecipeCopy(id);
+  assert.equal(app.state().customRecipes.length,2);assert.equal(app.state().recipeNotes.length,500);
+  assert.equal(app.context.RecipeExperience.personalNote(id,app.state()),'Keep my note');
+  assert.equal(JSON.parse(app.storage.get('mealPlannerState')).customRecipes.length,2);
+  assert.match(app.node('toast').textContent,/note was not copied/);
+});
+test('unchecking an older shopping flag with spaces removes the legacy selection',async()=>{
+  const app=harness({state:{shopping:{'Tuna in water':true}}});await app.flush();
+  app.context.toggleShoppingItem('tuna in water::g',false,'Tuna in water');
+  assert.equal(app.state().shopping['Tuna in water'],undefined);assert.equal(app.state().shopping['tuna in water::g'],false);
+});
 test('scheduled meal review is editable and preserves its draft on a failed fit',async()=>{
  const app=harness({state:{profile:{days:14,meals:3,budget:35,people:1,calories:1600,protein:150,cookTime:45,equipment:['Hob'],supermarket:'Asda'}}});await app.flush();await app.context.TailoredPlanUI.open();app.node('tailoredText').value='For 14 days, breakfast: overnight oats variety\nlunch: tuna based dish, salad boxes or wrap\ndinner: anything chicken, 1 day where i can have a steak at the end\ncalories: 1600 or less\nprotein: 150g\ncarbs: 90g\nfats: 20g';await app.context.TailoredPlanUI.interpret();assert.match(app.node('tailoredReview').innerHTML,/Meals on specific days/);assert.match(app.node('tailoredReview').innerHTML,/scheduledDay0/);
  tailoredForm(app,{tailoredDays:14,tailoredCalories:1600,tailoredProtein:150,tailoredFat:20,tailoredQueryBreakfast:'overnight oats',tailoredQueryLunch:'tuna salad or wrap',tailoredModeLunch:'vary',tailoredQueryDinner:'anything chicken'});for(const [id,value] of Object.entries({scheduledDay0:14,scheduledCategory0:'Dinner',scheduledQuery0:'steak',scheduledRecipe0:'tailored-medallion-steak'}))app.node(id).value=value;
@@ -358,7 +453,7 @@ test('cooking mode runs the shipped step controls and confirmation deducts stock
   app.context.ConsumerUI.step(5);
   assert.match(app.node('sheet').innerHTML, /Step 2 of 2/);
   app.context.ConsumerUI.setTimer(2);
-  assert.match(app.node('cookTimer').textContent, /^1:5\d|2:00$/);
+  assert.match(app.node('cookTimer').innerHTML, />[12]:[05]\d<\/span>/);
   app.context.ConsumerUI.cancelTimer(); assert.equal(app.node('cookTimer').textContent, 'No timer running');
   app.context.ConsumerUI.finishCooking();
   assert.match(app.node('sheet').innerHTML, /Confirm cooking & update pantry/);
