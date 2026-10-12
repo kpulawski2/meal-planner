@@ -33,6 +33,7 @@ export function dailyQuality(rows, factors, profile = {}) {
   let penalty = rows.reduce((sum, row, i) => sum + (row.quality || recipeQuality(row, profile)).penalty * factors[i], 0);
   // The configured calorie interval remains a hard bound. A goal only ranks
   // valid portions within it; it never changes the user's calorie/protein target.
+  if (profile.nutritionTargets?.minimiseFat) penalty += rows.reduce((sum, row, i) => sum + (Number(row.n.f) || 0) * factors[i], 0) * 40;
   penalty += Math.abs(kcal - target) * (goals.includes('Lose weight') ? .6 : .05);
   return penalty;
 }

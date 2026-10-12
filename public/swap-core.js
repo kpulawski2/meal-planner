@@ -22,16 +22,20 @@
     const row = state.week.find(item => item.day === day), people = Math.max(1, Number(state.profile?.people) || 1);
     const byId = new Map(recipes.map(recipe => [recipe.id, recipe]));
     let kcal = 0, p = 0, complete = Boolean(row?.meals?.length);
+    const nutrients = [], factors = [];
     for (const [index, id] of (row?.meals || []).entries()) {
       const recipe = byId.get(id), n = recipe ? nutritionOf(recipe) : null;
       const servings = Number(state.mealServings?.[key(day, index)] ?? people);
       if (!recipe || !slotAllowed(recipe, day, index) || !n?.complete || !amount(n.kcal) || !amount(n.p) || !Number.isFinite(servings) || servings < .25 || servings > 100) { complete = false; continue; }
       kcal += Number(n.kcal) * servings / people; p += Number(n.p) * servings / people;
+      nutrients.push(n); factors.push(servings / people);
     }
     const calories = Number(state.profile?.calories) || 2000;
     const targetProtein = amount(state.profile?.protein) ? Number(state.profile.protein) : 200;
-    const met = complete && kcal >= calories * .9 - .05 && kcal <= calories * 1.1 + .05 && p >= targetProtein - .05;
-    return { kcal, p, complete, met, calorieMin: calories * .9, calorieMax: calories * 1.1, proteinMin: targetProtein };
+    const macros = root.MacroGoalsCore, totals = macros ? macros.total(nutrients, factors) : {kcal,p};
+    const limits = macros ? macros.targets(state.profile) : {min:calories*.9,max:calories*1.1};
+    const met = complete && (macros ? nutrients.every(n=>macros.complete(n,state.profile)) && macros.meets(totals,state.profile) : kcal >= calories*.9-.05 && kcal <= calories*1.1+.05 && p >= targetProtein-.05);
+    return { ...totals, complete, met, calorieMin: limits.min, calorieMax: limits.max, proteinMin: targetProtein };
   }
   function prospective({ state, recipes, day, index, replacementId, nutritionOf, allowed = () => true, isCooked = () => false, core = root.MealBudgetCore }) {
     if (!Array.isArray(state.week) || !state.week.length || !Number.isInteger(index) || index < 0) throw new Error('That meal is no longer in this plan.');
@@ -121,10 +125,11 @@
     const slotsMet = prospectiveState.week.every(row => {
       const expected = core?.mealSlots?.(Number(prospectiveState.profile?.meals) || row.meals?.length);
       return Array.isArray(expected) && row.meals?.length === expected.length && row.meals.every((id, index) => {
-        const recipe = permitted.find(item => item.id === id); return recipe && slotAllowed(recipe, row.day, index) && category(recipe) === expected[index].toLowerCase();
+        const recipe = permitted.find(item => item.id === id); return recipe && (!root.MealIntentCore || root.MealIntentCore.allowed(recipe,prospectiveState.profile) || cookedPortions(prospectiveState,row.day,index,recipes)>0) && slotAllowed(recipe, row.day, index) && category(recipe) === expected[index].toLowerCase();
       });
     });
-    const variety = core?.inspectVariety ? core.inspectVariety(prospectiveState.week, permitted, prospectiveState.profile) : null;
+    const cookedMeals = Object.fromEntries(prospectiveState.week.flatMap(row=>row.meals.map((id,index)=>cookedPortions(prospectiveState,row.day,index,recipes)>0 ? [key(row.day,index),{recipeId:id}] : null).filter(Boolean)));
+    const variety = core?.inspectVariety ? core.inspectVariety(prospectiveState.week, permitted, prospectiveState.profile, cookedMeals) : null;
     const varietyMet = variety?.met === true;
     return { complete: after.complete && spending.complete, beforeTotal, total, spent: spending.total, remaining: after.total, subtotal: after.subtotal + spending.total,
       delta: priced ? Math.round((total - beforeTotal) * 100) / 100 : null, budget, budgetMet, dayMet: day.met,

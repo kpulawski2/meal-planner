@@ -93,7 +93,7 @@ function harness(options = {}) {
   const nav = ['home', 'week', 'recipes', 'favourites', 'shop', 'pantry', 'profile'].map(id => { const result = element(); result.dataset.tab = id; return result; });
   const requests = [], downloads = [], errors = [], listeners = new Map();
   const context = {
-    AbortController, AbortSignal, DOMException, FormData, Blob, URL, URLSearchParams,
+    AbortController, AbortSignal, DOMException, FormData, Blob, URL, URLSearchParams, structuredClone,
     console: { log() {}, warn() {}, error: (...values) => errors.push(values) },
     location: { origin: 'https://meal-planner.example', protocol: 'https:', hostname: 'meal-planner.example' },
     navigator: { onLine: options.online !== false },
@@ -117,6 +117,35 @@ function harness(options = {}) {
     flush: async () => { await new Promise(resolve => setImmediate(resolve)); },
   };
 }
+
+function tailoredForm(app,overrides={}){
+  const fields={tailoredDays:7,tailoredCount:3,tailoredCalories:1800,tailoredProtein:180,tailoredCalorieMode:'max',tailoredCarbs:90,tailoredCarbMode:'target',tailoredFat:'',tailoredQueryBreakfast:'overnight oats',tailoredModeBreakfast:'vary',tailoredRecipeBreakfast:'tailored-berry-oats',tailoredQueryLunch:'tuna pickles eggs mayo wrap',tailoredModeLunch:'repeat',tailoredRecipeLunch:'tailored-tuna-wrap',tailoredQueryDinner:'chicken dish',tailoredModeDinner:'vary',tailoredRecipeDinner:'tailored-lemon-chicken',...overrides};
+  for(const [id,value] of Object.entries(fields))app.node(id).value=value;
+  app.node('tailoredLowerFat').checked=true;
+  const original=app.context.document.querySelectorAll;
+  app.context.document.querySelectorAll=selector=>selector==='[data-tailored-equipment]:checked'?[{value:'Hob'}]:original(selector);
+}
+test('tailored requests roll back failed settings without changing the plan, pantry, cooked history or food diary',async()=>{
+  const app=harness();await app.flush();await app.context.TailoredPlanUI.open();app.context.TailoredPlanUI.manual();tailoredForm(app,{tailoredFat:0});
+  const before=app.state();app.run('fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({status:"unavailable",warnings:["A zero-fat cap cannot fit."],basket:{complete:false}})})');
+  await app.context.TailoredPlanUI.apply();const after=app.state();
+  for(const key of ['profile','week','pantry','pantryLedger','foodLog'])assert.deepEqual(after[key],before[key],key);
+  assert.equal(after.tailoredDraft.brief.nutritionTargets.fatMax,0);
+  assert.equal(app.run('budgetPlannerState.status'),'unavailable');
+});
+test('a tailored-plan response arriving after a settings edit preserves the new edit',async()=>{
+  const app=harness();await app.flush();await app.context.TailoredPlanUI.open();app.context.TailoredPlanUI.manual();tailoredForm(app);
+  const before=app.state();let release;const ready=new Promise(resolve=>{release=resolve;});
+  app.context.fetch=async()=>{await ready;return {ok:true,status:200,text:async()=>JSON.stringify({status:'unavailable',basket:{complete:false}})};};
+  const pending=app.context.TailoredPlanUI.apply();await app.flush();app.run('state.profile.budget=88');release();await pending;
+  assert.equal(app.state().profile.budget,88);assert.equal(app.run('budgetPlannerState.status'),'stale');
+  for(const key of ['week','pantry','pantryLedger','foodLog'])assert.deepEqual(app.state()[key],before[key],key);
+});
+test('tailored meal rules survive reload and clearing them retains the plan and optional nutrition limits',async()=>{
+  const settings={days:7,meals:3,calories:1800,protein:180,budget:70,cookTime:45,people:1,varietyMode:'Tailored',equipment:['Hob'],nutritionTargets:{calorieMode:'max',carbs:90,carbMode:'target',fatMax:30,minimiseFat:true},tailoredMeals:{Lunch:{query:'tuna pickles eggs mayo wrap',mode:'repeat',recipeIds:['tailored-tuna-wrap']}}};
+  const app=harness({state:{profile:settings}});await app.flush();assert.equal(app.state().profile.varietyMode,'Tailored');assert.match(app.node('home').innerHTML,/At most 1800 kcal/);
+  const before=app.state();app.context.TailoredPlanUI.clear(false);assert.equal(app.state().profile.varietyMode,'Balanced');assert.deepEqual(app.state().week,before.week);assert.deepEqual(app.state().profile.nutritionTargets,before.profile.nutritionTargets);
+});
 
 test('the actual shipped external modules and whole inline app start and render every mobile panel', async () => {
   for (const fresh of [false, true]) {

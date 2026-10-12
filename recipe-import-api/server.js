@@ -16,6 +16,7 @@ import { PRICE_LOOKUP_STORES, lookupStoreItem, splitBatches } from './price-sear
 import { catalogStoreInfo } from './catalog-adapter.js';
 import { searchCatalog, browseCatalog, recommendCatalogItems, optimizeMealPlan, fetchProductPage, clearCatalogCache, catalogueStatus, cachedCatalogueStatus } from './catalog-service.js';
 import { normalizePlannerRequest } from './planner-request.js';
+import { interpretMealRequest } from './meal-intent.js';
 
 const execFileAsync = promisify(execFile);
 const app = express();
@@ -815,6 +816,18 @@ app.get('/api/catalog/search', catalogRateLimit, async (req, res) => {
   }
 });
 let activeBudgetPlans = 0;
+app.post('/api/planner/interpret', importAccess, async (req, res) => {
+  let releaseAi;
+  try {
+    const defaults = globalThis.MealIntentCore.normaliseBrief({days:7,meals:3,calories:2000,protein:200,...(req.body?.defaults || {})});
+    const text = req.body?.text;
+    if (typeof text !== 'string' || !text.trim() || text.length > 2000) throw new TypeError('Describe your meals in 1–2000 characters.');
+    let complete = null;
+    if (GROQ_API_KEY) { try { releaseAi = claimAiImport(); complete = options => groqGenerate({...options,generationConfig:{temperature:0.1,responseMimeType:'application/json',maxOutputTokens:1000},timeoutMs:20000}); } catch {} }
+    res.json({ok:true,...await interpretMealRequest(text,defaults,complete)});
+  } catch(error) { res.status(error instanceof TypeError ? 400 : 502).json({error:cleanString(error.message,300)}); }
+  finally { releaseAi?.(); }
+});
 app.post('/api/planner/generate', catalogRateLimit, async (req, res) => {
   const controller = new AbortController();
   const disconnected = () => controller.abort();
@@ -893,7 +906,7 @@ app.post('/api/catalog/refresh', catalogRateLimit, async (req, res) => {
 app.post('/api/prices/lookup', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct ASDA/Lidl product-page references in the Shopping List.' }));
 app.get('/api/prices/lookup/:jobId', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct product-page reference catalogue.' }));
 
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner', aiProvider: 'Groq API (recipe/video features only)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors for AI import', priceSearchProvider: 'Official ASDA and Lidl website snapshots; no paid search API', braveSearchConfigured: false, priceSearchRetryPolicy: 'Not used by the manual price-reference UI', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, automaticCatalogMatchingSupported: true, release: process.env.RENDER_GIT_COMMIT || 'local', uptimeSeconds: Math.floor(process.uptime()), livePriceSearchConfigured: false, livePriceStores: ['Asda', 'Lidl'], priceSearchModel: null, priceDataSource: 'ASDA official product index and every Lidl GB sitemap product page. Lidl unpublished prices remain unavailable.', manualPriceReferenceMode: false, officialCatalogMode: true, officialCatalogSources: catalogStoreInfo(), asdaCatalogue: cachedCatalogueStatus(), lidlCatalogue: cachedCatalogueStatus('Lidl'), priceReferenceCatalog: '/price-reference-catalog.json', priceReferenceCsv: '/price-reference-catalog.csv', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner', aiProvider: 'Groq API (recipe/video features and meal-request interpretation)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors for AI import', priceSearchProvider: 'Official ASDA and Lidl website snapshots; no paid search API', braveSearchConfigured: false, priceSearchRetryPolicy: 'Not used by the manual price-reference UI', videoUploadSupported: true, videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, automaticCatalogMatchingSupported: true, release: process.env.RENDER_GIT_COMMIT || 'local', uptimeSeconds: Math.floor(process.uptime()), livePriceSearchConfigured: false, livePriceStores: ['Asda', 'Lidl'], priceSearchModel: null, priceDataSource: 'ASDA official product index and every Lidl GB sitemap product page. Lidl unpublished prices remain unavailable.', manualPriceReferenceMode: false, officialCatalogMode: true, officialCatalogSources: catalogStoreInfo(), asdaCatalogue: cachedCatalogueStatus(), lidlCatalogue: cachedCatalogueStatus('Lidl'), priceReferenceCatalog: '/price-reference-catalog.json', priceReferenceCsv: '/price-reference-catalog.csv', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
 
 app.post('/api/import-recipe', importAccess, async (req, res) => {
   const url = cleanString(req.body?.url, 2000);
