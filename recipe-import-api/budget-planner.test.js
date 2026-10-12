@@ -111,6 +111,11 @@ async function optimize(request) {
   return optimizeMealPlan({ profile, recipes: fixtureRecipes, pantry: [], ...request });
 }
 test.after(() => rm(directory, { recursive: true, force: true }));
+test('lower-fat requests retain their hard targets through tight budgets and cost recovery',async()=>{
+ const choices=['Lunch','Dinner'].flatMap(cat=>[100,200].map(qty=>({id:cat+'-'+qty,name:cat+' fixture '+qty,cat,servings:1,ings:[['Chicken breast',qty,'g']],nutrition:{kcal:500,p:50,c:30,f:qty===100?6:0,complete:true}})));
+ const settings={...profile,days:7,meals:2,budget:15,calories:1500,protein:150,varietyMode:'Tailored',nutritionTargets:{calorieMode:'max',carbs:90,carbMode:'target',fatMax:20,minimiseFat:true}},input={profile:settings,recipes:choices,pantry:[],week:[]},before=structuredClone(input),result=await optimize(input);
+ assert.deepEqual(input,before);assert.equal(result.status,'feasible',JSON.stringify(result.diagnostics));assert.ok(result.basket.totalCostGBP<=15);assert.ok(result.nutrition.days.every(day=>day.meetsTargets&&day.f<=20&&day.p>=150));const impossible={...input,profile:{...settings,budget:1}},unchanged=structuredClone(impossible),failed=await optimize(impossible);assert.deepEqual(impossible,unchanged);assert.equal(failed.status,'no_feasible_plan');assert.ok(failed.basket.totalCostGBP>1);assert.equal(failed.diagnostics.budgetRecovery.attempted,true);assert.ok(failed.nutrition.days.every(day=>day.meetsTargets&&day.f<=20&&day.p>=150));
+});
 
 function assertCompleteBudget(result, recipes = fixtureRecipes) {
   assert.equal(result.status, 'feasible', JSON.stringify(result.diagnostics));

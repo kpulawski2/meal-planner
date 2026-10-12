@@ -125,6 +125,13 @@ function tailoredForm(app,overrides={}){
   const original=app.context.document.querySelectorAll;
   app.context.document.querySelectorAll=selector=>selector==='[data-tailored-equipment]:checked'?[{value:'Hob'}]:original(selector);
 }
+test('scheduled meal review is editable and preserves its draft on a failed fit',async()=>{
+ const app=harness({state:{profile:{days:14,meals:3,budget:35,people:1,calories:1600,protein:150,cookTime:45,equipment:['Hob'],supermarket:'Asda'}}});await app.flush();await app.context.TailoredPlanUI.open();app.node('tailoredText').value='For 14 days, breakfast: overnight oats variety\nlunch: tuna based dish, salad boxes or wrap\ndinner: anything chicken, 1 day where i can have a steak at the end\ncalories: 1600 or less\nprotein: 150g\ncarbs: 90g\nfats: 20g';await app.context.TailoredPlanUI.interpret();assert.match(app.node('tailoredReview').innerHTML,/Meals on specific days/);assert.match(app.node('tailoredReview').innerHTML,/scheduledDay0/);
+ tailoredForm(app,{tailoredDays:14,tailoredCalories:1600,tailoredProtein:150,tailoredFat:20,tailoredQueryBreakfast:'overnight oats',tailoredQueryLunch:'tuna salad or wrap',tailoredModeLunch:'vary',tailoredQueryDinner:'anything chicken'});for(const [id,value] of Object.entries({scheduledDay0:14,scheduledCategory0:'Dinner',scheduledQuery0:'steak',scheduledRecipe0:'tailored-medallion-steak'}))app.node(id).value=value;
+ const originalFetch=app.context.fetch;app.context.fetch=async(url,...args)=>url.includes('/api/planner/generate')?{ok:true,text:async()=>JSON.stringify({status:'unavailable',week:[],warnings:['No fit in fixture']})}:originalFetch(url,...args);
+ const before=app.state();await app.context.TailoredPlanUI.apply();assert.deepEqual(app.state().profile,before.profile);assert.deepEqual(app.state().week,before.week);assert.equal(app.state().tailoredDraft.brief.scheduledMeals[0].day,14);assert.equal(app.state().tailoredDraft.brief.scheduledMeals[0].selected,'tailored-medallion-steak');
+ await app.context.TailoredPlanUI.open();app.context.TailoredPlanUI.manual();assert.match(app.node('tailoredReview').innerHTML,/scheduledDay0/);app.context.TailoredPlanUI.clear(false);assert.deepEqual(app.state().profile.scheduledMeals,[]);
+});
 test('barcode results require label review and preserve corrected nutrition through reload and repeat scans',async()=>{
  const app=harness();await app.flush();const before=app.state(),code='3017620422003';
  app.context.fetch=async()=>({ok:true,json:async()=>({status:'found',product:{barcode:code,name:'Pack snack',quantity:100,unit:'g',nutrition:{kcal:500,p:10,c:50,f:null},source:'Open Food Facts',warnings:['Check your pack.']}})});

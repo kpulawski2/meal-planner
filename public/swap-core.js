@@ -125,7 +125,7 @@
     const slotsMet = prospectiveState.week.every(row => {
       const expected = core?.mealSlots?.(Number(prospectiveState.profile?.meals) || row.meals?.length);
       return Array.isArray(expected) && row.meals?.length === expected.length && row.meals.every((id, index) => {
-        const recipe = permitted.find(item => item.id === id); return recipe && (!root.MealIntentCore || root.MealIntentCore.allowed(recipe,prospectiveState.profile) || cookedPortions(prospectiveState,row.day,index,recipes)>0) && slotAllowed(recipe, row.day, index) && category(recipe) === expected[index].toLowerCase();
+        const recipe = permitted.find(item => item.id === id); return recipe && (!root.MealIntentCore || root.MealIntentCore.allowed(recipe,prospectiveState.profile,prospectiveState.week.indexOf(row)) || cookedPortions(prospectiveState,row.day,index,recipes)>0) && slotAllowed(recipe, row.day, index) && category(recipe) === expected[index].toLowerCase();
       });
     });
     const cookedMeals = Object.fromEntries(prospectiveState.week.flatMap(row=>row.meals.map((id,index)=>cookedPortions(prospectiveState,row.day,index,recipes)>0 ? [key(row.day,index),{recipeId:id}] : null).filter(Boolean)));

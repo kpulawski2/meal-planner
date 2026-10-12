@@ -79,12 +79,12 @@
   }
   function slotVarietyPolicy(profile, category, count) {
     const policy = varietyPolicy(profile, count), rule = profile.varietyMode === 'Tailored' ? profile.tailoredMeals?.[category] : null;
-    if (policy.mode === 'Tailored') return { repeatLimit: rule?.mode === 'vary' ? Math.ceil(count / 2) : count, minimumDistinct: rule?.mode === 'vary' ? Math.min(2,count) : 1, avoidConsecutive: false };
+    if (policy.mode === 'Tailored') {const ordinary=count-(profile.scheduledMeals||[]).filter(row=>row.category===category&&row.day>=1&&row.day<=count).length;return { repeatLimit: rule?.mode === 'vary' ? Math.ceil(ordinary / 2) : ordinary, minimumDistinct: rule?.mode === 'vary' ? Math.min(2,ordinary) : Math.min(1,ordinary), avoidConsecutive: false };}
     return { repeatLimit: ['Lunch','Dinner'].includes(category) ? policy.repeatLimit : policy.sideRepeatLimit, minimumDistinct: ['Lunch','Dinner'].includes(category) ? policy.minimumDistinct : policy.minimumSideDistinct, avoidConsecutive: policy.avoidConsecutive && ['Lunch','Dinner'].includes(category) };
   }
   function inspectVariety(week = [], recipes = [], profile = {}, cookedMeals = {}) {
     const policy = varietyPolicy(profile, week.length || Number(profile.days) || 7), byId = new Map(recipes.map(recipe => [recipe.id, recipe]));
-    const categoryIds = Object.fromEntries(mealSlots(Number(profile.meals) || week[0]?.meals?.length || 4).map(category => [category, new Set()])), recipeCounts = Object.create(null), families = Object.create(null), violations = [];
+    const categoryIds = Object.fromEntries(mealSlots(Number(profile.meals) || week[0]?.meals?.length || 4).map(category => [category, new Set()])), ordinaryIds = Object.fromEntries(Object.keys(categoryIds).map(category=>[category,new Set()])), recipeCounts = Object.create(null), ordinaryCounts = Object.create(null), families = Object.create(null), violations = [];
     let mainMeals = 0;
     for (const day of week) {
       const rows=(day.meals||[]).map(id=>byId.get(id)).filter(Boolean);
@@ -97,9 +97,10 @@
       if (!recipe) continue;
       const category = recipe.cat === 'Fruit' ? 'Snack' : recipe.cat;
       if (!categoryIds[category]) continue;
-      const rule = profile.varietyMode === 'Tailored' ? profile.tailoredMeals?.[category] : null;
+      const scheduled=root.MealIntentCore?.exception(profile,category,dayIndex),rule=scheduled||(profile.varietyMode === 'Tailored' ? profile.tailoredMeals?.[category] : null);
       if (rule && !rule.recipeIds.includes(id)) { if (!cookedMeals?.[`${day.day}::${slot}`]) violations.push(`${recipe.name || id} is outside your ${category.toLowerCase()} request.`); else continue; }
       categoryIds[category].add(id); recipeCounts[id] = (recipeCounts[id] || 0) + 1;
+      if(!scheduled){ordinaryIds[category].add(id);ordinaryCounts[id]=(ordinaryCounts[id]||0)+1;}
       if (!['Lunch', 'Dinner'].includes(category)) continue;
       mainMeals++;
       const family = proteinFamily(recipe); families[family] = (families[family] || 0) + 1;
@@ -108,8 +109,8 @@
     const distinctRecipes = Object.fromEntries(Object.entries(categoryIds).map(([category, ids]) => [category, ids.size]));
     const minimumDistinctByCategory = Object.fromEntries(Object.keys(categoryIds).map(category => [category, slotVarietyPolicy(profile, category, week.length || Number(profile.days) || 7).minimumDistinct]));
     const repeatLimitByCategory = Object.fromEntries(Object.keys(categoryIds).map(category => [category, slotVarietyPolicy(profile, category, week.length || Number(profile.days) || 7).repeatLimit]));
-    for (const [category, count] of Object.entries(distinctRecipes)) if (count < minimumDistinctByCategory[category]) violations.push(`${category} needs at least ${minimumDistinctByCategory[category]} different recipes; this plan has ${count}.`);
-    for (const [id, count] of Object.entries(recipeCounts)) { const recipe = byId.get(id), category = recipe?.cat === 'Fruit' ? 'Snack' : recipe?.cat, limit = repeatLimitByCategory[category] || policy.repeatLimit; if (count > limit) violations.push(`${recipe?.name || id} appears ${count} times; the limit is ${limit}.`); }
+    for (const [category, ids] of Object.entries(ordinaryIds)) if (ids.size < minimumDistinctByCategory[category]) violations.push(`${category} needs at least ${minimumDistinctByCategory[category]} different recipes on its ordinary days; this plan has ${ids.size}.`);
+    for (const [id, count] of Object.entries(ordinaryCounts)) { const recipe = byId.get(id), category = recipe?.cat === 'Fruit' ? 'Snack' : recipe?.cat, limit = repeatLimitByCategory[category] ?? policy.repeatLimit; if (count > limit) violations.push(`${recipe?.name || id} appears ${count} times on ordinary days; the limit is ${limit}.`); }
     const proteinFamilies = Object.keys(families), dominantFamilyCount = Math.max(0, ...Object.values(families));
     const availableFamilies = [...new Set(recipes.filter(recipe => ['Lunch', 'Dinner'].includes(recipe.cat)).map(proteinFamily))];
     const requiredFamilies = Math.min(policy.requiredFamilies, availableFamilies.length);
