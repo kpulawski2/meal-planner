@@ -30,7 +30,16 @@
   }).map(row=>({recipeId:text(row.recipeId),dishFamily:text(row.dishFamily,80),cookedAt:new Date(row.cookedAt).toISOString(),transactionId:text(row.transactionId,180),portions:Number.isFinite(Number(row.portions))&&Number(row.portions)>0?Math.min(100,Number(row.portions)):null})).sort((a,b)=>Date.parse(b.cookedAt)-Date.parse(a.cookedAt)).slice(0,120);
  }
  function normalizeState(state={},options={}){
-  state.recipeFeedback=feedbackRows(state);state.recentMeals=historyRows(state,options.now??Date.now());tasteCache.delete(state);return state;
+  state.recipeFeedback=feedbackRows(state);state.recentMeals=historyRows(state,options.now??Date.now());state.recipeNotes=noteRows(state);tasteCache.delete(state);return state;
+ }
+ function noteRows(state={}){
+  const latest=new Map();for(const row of Array.isArray(state.recipeNotes)?state.recipeNotes:[]){const recipeId=text(row?.recipeId),note=text(row?.text,2000);if(!recipeId||!note||!validTime(row.updatedAt))continue;if(!latest.has(recipeId)||Date.parse(latest.get(recipeId).updatedAt)<=Date.parse(row.updatedAt))latest.set(recipeId,{recipeId,text:note,updatedAt:new Date(row.updatedAt).toISOString()});}
+  return [...latest.values()].sort((a,b)=>Date.parse(b.updatedAt)-Date.parse(a.updatedAt)).slice(0,500);
+ }
+ function personalNote(recipe,state={}){return noteRows(state).find(row=>row.recipeId===idOf(recipe))?.text||'';}
+ function setPersonalNote(state,recipe,note,options={}){
+  const recipeId=idOf(recipe),at=options.at||new Date().toISOString();if(!recipeId||typeof note!=='string'||note.length>2000||!validTime(at))throw new TypeError('Use a recipe note of up to 2,000 characters.');
+  const rows=noteRows(state).filter(row=>row.recipeId!==recipeId);if(note.trim()){if(rows.length>=500)throw new Error('Your recipe notes are full. Clear an old note before adding another.');rows.unshift({recipeId,text:note.trim(),updatedAt:new Date(at).toISOString()});}state.recipeNotes=rows;return state.recipeNotes;
  }
  function tasteIndex(state={}){
   if(!state||typeof state!=='object')return {feedback:new Map(),history:[]};
@@ -132,5 +141,5 @@
   next.modifications=[text(recipe.modifications,5000),next.changeNotice].filter(Boolean).join(' ');
   return next;
  }
- root.RecipeExperience=Object.freeze({normalizeState,feedbackValue,allowedFeedback,setFeedback,recordCook,feedbackScore,rank,readiness,editableCopy,applyCorrections});
+ root.RecipeExperience=Object.freeze({normalizeState,personalNote,setPersonalNote,feedbackValue,allowedFeedback,setFeedback,recordCook,feedbackScore,rank,readiness,editableCopy,applyCorrections});
 })(globalThis);

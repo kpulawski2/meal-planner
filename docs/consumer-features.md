@@ -6,7 +6,7 @@ These features use the existing app and browser storage. There is no subscriptio
 
 Home has a dated **Food diary** for your own intake. **Log food** searches common foods, your saved food labels and recipes with complete nutrition estimates. Choose the amount you ate; calories, protein, carbs and fat scale to that amount. Common-food values are generic estimates, not supermarket product labels. Dry grains and raw chicken are identified by weight basis; cooked rice and cooked pasta have separate entries. Unsupported quantity conversions cannot be logged as complete estimates.
 
-For packaged snacks or drinks, **Enter label** accepts the calories and optional macros for a measured label amount (g, ml or a portion). The app calculates the amount eaten and can save that label for next time. Missing macros remain unknown rather than being represented as a complete zero. This is a food diary with a small common-food reference list, not a complete branded-food database, barcode scanner or micronutrient tracker.
+For packaged snacks or drinks, **Enter label** accepts the calories and optional macros for a measured label amount (g, ml or a portion). The app calculates the amount eaten and can save that label for next time. **Scan barcode** can look up a public product label, which you must review against your pack before logging. Saved reviewed labels work offline. Missing macros remain unknown rather than being represented as a complete zero. See [barcode review and weekly check-ins](kitchen-insights.md) for lookup limits.
 
 **Log eaten** on a planned meal opens its per-person portion for review. It never automatically logs the whole household's portions. Repeating that action for the same plan slot and date cannot add a second copy: edit or remove its diary entry instead. You can edit an entry's date and quantity, or remove it. Diary entries retain their recorded nutrition even if a recipe changes later.
 
@@ -32,6 +32,12 @@ The app cannot detect a checkout at ASDA or Lidl. To record a purchase:
 Confirmation adds the full purchased pack quantities to the pantry, including the amount beyond the recipe's immediate need. It records the checked catalogue cost against the current plan. Ticking an item alone does not add stock or record a purchase. Purchases outside this list can be added through **Add stock manually** in Pantry.
 
 The purchase confirmation requires a current online pack check. Missing quantities, unpublished prices, stale prices or a changed list prevent confirmation. Individual produce weights and some usable pack quantities are estimates and are labelled. The recorded cost is the checked catalogue price; the app does not read a receipt, an actual checkout total, supermarket accounts or bank transactions.
+
+The shopping-trip controls show how many ingredients you have picked. Search by
+ingredient, filter by category or choose **Left to pick** / **Picked**. **Focus on
+my list** hides the larger planning and price-summary panels; each ingredient's
+pack details and the purchase review stay available. Clearing filters restores
+the full list. These view controls never change meals, stock or recorded spend.
 
 You can set an optional expiry date on each stock entry. Entries past that date are excluded from shopping deductions and planning. Expiry dates are supplied by the user; the app does not inspect food or infer its condition.
 
@@ -70,11 +76,32 @@ Already consumed meals remain part of the day's nutrition and the plan's history
 
 Recipe details list missing information that prevents automatic use, such as unmeasured ingredients, an unknown yield, missing steps or incomplete nutrition. A built-in or web recipe can become an editable local copy. Editing quantities or yield clears old nutrition claims so the ingredient estimate can be recalculated. Copies preserve their source reference and do not overwrite the original recipe.
 
+**Your cooking notes** in recipe details saves reminders for next time, up to
+2,000 characters per recipe and 500 recipes. Notes appear in cooking mode and
+stay in backups. An editable recipe copy receives a separate copy of the note
+when space is available. Notes do not edit ingredients or nutrition, affect taste
+ranking, or enter AI/planner requests. Clear the text and save to remove a note.
+
 The Everyday collection adds original measured breakfasts, lunches, dinners and snacks. Oils, sauces and garnishes used in those recipes are quantified. Nutrition is estimated from ingredients, and supermarket pack costs are calculated separately.
 
 ## Cooking mode and offline use
 
-**Cooking mode** displays one recipe step at a time, scaled ingredients and timers. A supported browser can keep the screen awake. Timers require the app to remain open; this is not a background alarm service.
+**Cooking mode** displays one recipe step at a time, scaled ingredients and your
+saved cooking notes. **Save & close** keeps the recipe, portions and current
+step. **Continue cooking** in Today, Plan or More resumes that progress after
+reload or backup restore. A changed recipe, planned meal, plan period or portions,
+or an already recorded meal, requires starting from the current recipe/plan.
+Partly cooked meals show ingredients for the remaining portions. A later cooking
+record invalidates saved progress so it cannot resume outdated quantities.
+Progress alone never changes stock or records food eaten. **Review & record
+cooked meal** opens the existing household-portion confirmation.
+
+Keep up to three named timers, pause or resume them independently, and remove
+finished timers to make room. Running timers use elapsed wall time after a
+reload; paused timers retain their remaining duration. Finished timers remain
+visible until removed. Progress and timers are included in backups. A supported
+browser can keep the screen awake while cooking mode is open and visible.
+Timer alerts require the app open; use a device alarm for background alerts.
 
 The app saves the most recently checked shopping basket for each supermarket. When offline, a matching saved basket shows its check time. Changed quantities or a different supermarket cannot borrow an incompatible saved quote. Purchase confirmation and swap confirmation require fresh online checks.
 
