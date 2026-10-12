@@ -135,3 +135,17 @@ Settings groups 21 appliances; recipe editing supports explicit required
 equipment. Planning respects those requirements while browsing stays open.
 Hands-on time is shown separately from chilling/slow cooking. See
 [the collection's sources and batch behaviour](social-recipes.md).
+
+## Prep centre and use-soon reminders
+
+Plan → **Build prep session** groups recipes over your chosen days, subtracts
+cooked portions and matching leftovers, and shows scaled ingredients. Start
+waiting recipes earlier and make smoothie bowls fresh. **Cooking mode** uses
+the batch quantities; **Record prepared batch** lets you confirm ingredient
+use and keep extra portions for later. **Ingredients organised** tracks your
+prep checklist separately, and **Save checklist** downloads it.
+
+Recipe portion shortcuts make household and batch previews easier. Home and
+Pantry show dates due soon and leftovers needing a recorded date; **Review
+dates** lets you update them. Dates come from your records, not inferred food
+shelf lives. [Prep quantities and lifecycle behaviour](meal-prep-centre.md).
