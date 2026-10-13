@@ -19,6 +19,7 @@ import { normalizePlannerRequest } from './planner-request.js';
 import { createBarcodeLookup } from './barcode-products.js';
 const lookupBarcodeProduct = createBarcodeLookup();
 import { interpretMealRequest } from './meal-intent.js';
+import { interpretKitchenRequest } from './kitchen-assistant.js';
 import { parseAiRecipe } from './recipe-ai.js';
 const RecipeLanguage = globalThis.RecipeLanguageCore;
 
@@ -801,6 +802,23 @@ app.get('/api/foods/barcode/:code', catalogRateLimit, async (req,res) => {
   try{const result=await lookupBarcodeProduct(req.params.code,{signal:controller.signal});if(!res.destroyed)res.json({ok:true,...result});}
   catch(error){if(!res.destroyed&&!res.headersSent){if(error.status===429)res.set('Retry-After','30');res.status(error instanceof TypeError?400:error.status===429?429:502).json({error:cleanString(error.message||'Product lookup is unavailable. Enter the pack label.',300)});}}
   finally{res.off('close',closed);}
+});
+app.post('/api/kitchen/interpret', importAccess, async (req, res) => {
+  let releaseAi;
+  try {
+    const text = req.body?.text, defaults = req.body?.defaults || {};
+    // Validate before consuming the shared free AI allowance.
+    globalThis.KitchenAssistantCore.parse(text, defaults);
+    let complete = null;
+    if (GROQ_API_KEY) {
+      try {
+        releaseAi = claimAiImport();
+        complete = options => groqGenerate({ ...options, generationConfig: { temperature: 0.1, responseMimeType: 'application/json', maxOutputTokens: 400 }, timeoutMs: 18000 });
+      } catch { /* Measured local interpretation remains available. */ }
+    }
+    res.json({ ok: true, ...await interpretKitchenRequest(text, defaults, complete) });
+  } catch (error) { res.status(error instanceof TypeError ? 400 : 502).json({ error: cleanString(error.message, 300) }); }
+  finally { releaseAi?.(); }
 });
 app.post('/api/planner/interpret', importAccess, async (req, res) => {
   let releaseAi;

@@ -74,7 +74,7 @@ test('ingredient prices exclude ready meals, desserts and substitutes from every
     'Rice': { allow: /rice/i, reject: /micro|cooked|pudding|cake|snack|crisps|cracker|sauce|seasoned/i },
     'Noodles': { allow: /noodle/i, reject: /straight to wok|wok[ -]*ready|ready[ -]*(?:to[ -]*)?wok|7Moon|flavou?r|seasoned|instant|sauce|pot noodle/i,
       rejectCategory: /fresh fruit|stir fry vegetables/i },
-    'Couscous': { allow: /couscous/i, reject: /pearl|israeli|salad|soup|flavou?r|seasoned/i },
+    'Couscous': { allow: /cous\s*cous/i, reject: /pearl|israeli|giant|salad|soup|flavou?r|seasoned|spiced|spicy|fruity/i },
   };
   const result = await recommendCatalogItems('Asda', Object.keys(expectations)
     .flatMap(name => (name === 'Noodles' ? [100, 260, 500] : [100, name === 'Lean pork' ? 550 : 500])

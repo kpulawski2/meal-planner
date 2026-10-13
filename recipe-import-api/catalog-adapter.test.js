@@ -131,6 +131,19 @@ test('plain and sweet potatoes remain separate ingredients even when the wrong t
   assert.equal(rankCatalogCandidates('Sweet potato', [sweet]).length, 1);
 });
 
+test('split-word plain Cous Cous remains a dry ingredient while giant, spiced and chilled packs are excluded', () => {
+  const plain = { name: 'ASDA Cous Cous 500g', category: 'Food Cupboard > Cooking Sauces, Meal Kits & Sides > Moroccan & Middle Eastern Food',
+    url: 'https://www.asda.com/groceries/product/cous-cous/991', packQuantity: 500, packUnit: 'g', price: 1.2 };
+  assert.equal(rankCatalogCandidates('Couscous', [plain]).length, 1);
+  assert.equal(rankCatalogCandidates('Cous Cous', [plain]).length, 1);
+  for (const [name, category] of [
+    ['ASDA Giant Cous Cous 300g', 'Food Cupboard > Dry Rice, Noodles & Grains'],
+    ['Al Fez Moroccan Spiced Couscous 200g', 'Food Cupboard > Dry Grains'],
+    ['ASDA Fruity Cous Cous 230g', 'Chilled Food > Prepared & Side Salads'],
+    ['Osem Original Israeli Pearl Couscous 250g', 'World Food > Kosher Food'],
+  ]) assert.equal(rankCatalogCandidates('Couscous', [{ ...plain, name, category, price: 0.2 }]).length, 0, name);
+});
+
 test('ASDA matching uses the validated full catalogue and returns saved product details', async () => {
   const result = await searchCatalog('Asda', 'chicken breast', 8);
   const oneKgChicken = result.results.find(row => row.productName === 'ASDA British Chicken Breast Fillets 1kg');

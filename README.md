@@ -78,6 +78,8 @@ unlogged days and unknown values never count as zero. See
 
 ## Shopping, stock and cooking
 
+**Kitchen assistant**, available from Today, Plan and More, turns questions such as “How should I prep 1 kg of chicken into curry for the next few days?” into editable, measured batch guides. Review the raw/cooked weight, portions and recipe, then save it, open cooking mode or download the prep guide. Later portions get refrigeration/freezing guidance; rice has its own shorter storage limit. Ideas use existing recipes and ingredient estimates, with optional AI interpretation and an offline fallback. See [the kitchen assistant guide](docs/kitchen-assistant.md) for supported ingredients and limits.
+
 Tick the items you purchased in Shopping, then choose **Shopping done → Confirm purchase**. The app adds the selected full packs to your pantry and records their checked catalogue cost against this plan’s budget. It cannot detect an external supermarket purchase. Only checked items with a current verified pack quantity and price can be confirmed. Saved offline baskets are dated and read-only for purchase confirmation until refreshed online.
 
 Use **Meal cooked** on a planned meal to deduct its measured household portions from stock. Missing stock is shown for explicit confirmation; it is never deducted below zero. You can prepare extra portions, select fridge/freezer storage and add an optional expiry date. Matching unexpired leftovers reduce future shopping once, and **Use leftovers** records their consumption. Expired stock stays visible but is excluded from planning. Pantry history offers Undo when the affected quantities have not been changed by a later action.
