@@ -5,21 +5,27 @@
   const arg = value => encodeURIComponent(String(value)).replace(/'/g, '%27');
   const shown = value => value == null ? '—' : Number(Number(value).toFixed(1));
   let api, date = core.localDate(), draft = null;
+  function recentButtons(context = 'panel') {
+    const rows = core.recentFoods(api.state()); if (!rows.length) return '';
+    return '<details class="diary-recents planner-help" ' + (context === 'modal' ? 'open' : '') + '><summary>Log a recent food again</summary><p class="sub">Starts a new diary entry with the last recorded amount and values. Review them against what you ate; check the current label if it changed.</p><div class="diary-recent-list">' + rows.map(row => '<button class="diary-recent-food" onclick="FoodLogUI.openRecent(decodeURIComponent(\'' + arg(row.id) + '\'))"><b>' + html(row.food.name) + '</b><span>' + html(shown(row.quantity) + ' ' + row.food.unit + ' · last logged ' + row.date) + '</span></button>').join('') + '</div></details>';
+  }
   function change() { api.save(); api.changed(); }
   function nutrientText(n) { return `${Math.round(n.kcal)} kcal · ${shown(n.p)}g protein · ${shown(n.c)}g carbs · ${shown(n.f)}g fat`; }
   function panel() {
     if (!api) return '';
     const result = core.summary(api.state(), date), n = result.totals;
     const rows = result.rows.map(row => '<div class="food-log-row"><div><b>' + html(row.food.name) + '</b><small>' + html(row.quantity + ' ' + row.food.unit) + ' · ' + Math.round(row.nutrition.kcal) + ' kcal</small></div><button class="btn secondary small" onclick="FoodLogUI.edit(decodeURIComponent(\'' + arg(row.id) + '\'))">Edit</button></div>').join('');
-    return '<section class="card food-diary" aria-label="Daily food diary"><div class="overview-heading"><h3>Food diary</h3><button class="btn small" onclick="FoodLogUI.open()">＋ Log food</button>'+(root.BarcodeUI?'<button class="btn secondary small" onclick="BarcodeUI.open(\''+date+'\')">Scan barcode</button>':'')+'</div><div class="field diary-date"><label for="foodDiaryDate">Date</label><input id="foodDiaryDate" type="date" value="' + date + '" onchange="FoodLogUI.setDate(this.value)"></div><div class="diary-total" aria-live="polite"><b>' + (result.estimated ? '~' : '') + Math.round(n.kcal) + ' kcal logged</b><span> / ' + html(api.state().profile.calories) + ' kcal target</span></div><div class="progress"><i style="width:' + Math.min(100, n.kcal / Math.max(1, Number(api.state().profile.calories)) * 100) + '%"></i></div><p class="sub">Protein ' + shown(n.p) + 'g · Carbs ' + shown(n.c) + 'g · Fat ' + shown(n.f) + 'g' + (Object.values(result.missing).some(Boolean) ? ' · some macros missing' : '') + '</p>' + (rows ? '<details class="planner-help"><summary>' + result.rows.length + ' logged item' + (result.rows.length === 1 ? '' : 's') + '</summary>' + rows + '</details>' : '<p class="sub">Add meals, snacks and drinks as you eat them.</p>') + '<small class="sub">Your intake only. Planned meals appear below; cooking and shopping do not log food automatically.</small></section>';
+    return '<section class="card food-diary" aria-label="Daily food diary"><div class="overview-heading"><h3>Food diary</h3><button class="btn small" onclick="FoodLogUI.open()">＋ Log food</button>'+(root.BarcodeUI?'<button class="btn secondary small" onclick="BarcodeUI.open(\''+date+'\')">Scan barcode</button>':'')+'</div><div class="field diary-date"><label for="foodDiaryDate">Date</label><input id="foodDiaryDate" type="date" value="' + date + '" onchange="FoodLogUI.setDate(this.value)"><div class="diary-date-buttons" role="group" aria-label="Diary date shortcuts"><button class="btn secondary small" aria-label="Previous diary day" onclick="FoodLogUI.moveDate(-1)">←</button><button class="btn secondary small" onclick="FoodLogUI.today()">Today</button><button class="btn secondary small" aria-label="Next diary day" onclick="FoodLogUI.moveDate(1)">→</button></div></div><div class="diary-total" aria-live="polite"><b>' + (result.estimated ? '~' : '') + Math.round(n.kcal) + ' kcal logged</b><span> / ' + html(api.state().profile.calories) + ' kcal target</span></div><div class="progress"><i style="width:' + Math.min(100, n.kcal / Math.max(1, Number(api.state().profile.calories)) * 100) + '%"></i></div><p class="sub">Protein ' + shown(n.p) + 'g · Carbs ' + shown(n.c) + 'g · Fat ' + shown(n.f) + 'g' + (Object.values(result.missing).some(Boolean) ? ' · some macros missing' : '') + '</p>' + (rows ? '<details class="planner-help"><summary>' + result.rows.length + ' logged item' + (result.rows.length === 1 ? '' : 's') + '</summary>' + rows + '</details>' : '<p class="sub">Add meals, snacks and drinks as you eat them.</p>') + recentButtons() + '<small class="sub">Your intake only. Planned meals appear below; cooking and shopping do not log food automatically.</small></section>';
   }
   function options(query = '') {
     const q = query.trim().toLowerCase();
     const items = [
+      ...core.recentFoods(api.state(), 20).map(row => ({key: 'recent:' + row.id, name: row.food.name, group: 'Recently logged · ' + row.date})),
       ...(api.state().savedFoods || []).map(food => ({ key: 'saved:' + food.id, name: food.name, group: 'Your labels' })),
       ...api.foodNames().map(name => ({ key: 'food:' + name, name, group: /^(rice|pasta|oats|noodles|orzo|couscous|red lentils)$/.test(name) ? 'Dry weight · estimate' : name === 'chicken breast' ? 'Raw weight · estimate' : 'Common food · estimate' })),
       ...api.recipes().filter(recipe => api.recipeNutrition(recipe).complete).map(recipe => ({ key: 'recipe:' + recipe.id, name: recipe.name, group: 'Recipe · per portion' })),
     ];
+    if (draft?.snapshotFood && !items.some(item => item.key === draft.selection)) items.unshift({ key: draft.selection, name: draft.snapshotFood.name, group: 'Recorded food values' });
     const choices = items.filter(item => item.name.toLowerCase().includes(q)).slice(0, 80);
     const selected = items.find(item => item.key === draft?.selection);
     if (selected && !choices.some(item => item.key === selected.key)) choices.unshift(selected);
@@ -34,7 +40,7 @@
     const editing = Boolean(draft.entry), manual = draft.manual;
     const row = draft.entry;
     document.getElementById('sheet').innerHTML = '<button class="close" aria-label="Close food log" onclick="FoodLogUI.close()">×</button><h2>' + (editing ? 'Edit logged food' : 'Log food') + '</h2><p class="sub">Amount eaten by you, for this date.</p><div class="field"><label for="diaryDate">Date</label><input id="diaryDate" type="date" value="' + html(row?.date || draft.logDate || date) + '"></div>' + (!editing ? '<div class="checkrow"><button class="chip ' + (!manual ? 'on' : '') + '" onclick="FoodLogUI.mode(false)">Food or recipe</button><button class="chip ' + (manual ? 'on' : '') + '" onclick="FoodLogUI.mode(true)">Enter label</button>'+(root.BarcodeUI?'<button class="chip" onclick="BarcodeUI.open(document.getElementById(\'diaryDate\').value)">Scan barcode</button>':'')+'</div>' : '') +
-      (editing ? '<h3>' + html(row.food.name) + '</h3>' : manual ? '<div class="field"><label for="diaryName">Food name</label><input id="diaryName" maxlength="160" placeholder="Your snack or drink"></div><div class="grid"><div class="field"><label for="diaryBasis">Label amount</label><input id="diaryBasis" type="number" min="0.01" step="any" value="100" oninput="FoodLogUI.preview()"></div><div class="field"><label for="diaryBasisUnit">Label unit</label><select id="diaryBasisUnit" onchange="FoodLogUI.preview()"><option value="g">g</option><option value="ml">ml</option><option value="portion">portion</option></select></div></div><div class="grid">' + [['kcal', 'Calories (kcal)'], ['p', 'Protein (g)'], ['c', 'Carbs (g)'], ['f', 'Fat (g)']].map(([key, label]) => '<div class="field"><label for="diary-' + key + '">' + label + '</label><input id="diary-' + key + '" type="number" min="0" step="any" placeholder="' + (key === 'kcal' ? 'Required' : 'Leave blank if unknown') + '" oninput="FoodLogUI.preview()"></div>').join('') + '</div><p class="sub">Copy values for the label amount above. Missing macros stay unknown.</p>' : '<div class="field"><label for="diarySearch">Find a food or recipe</label><input id="diarySearch" type="search" placeholder="Banana, chocolate, overnight oats…" oninput="FoodLogUI.search()"></div><div class="field"><label for="diaryFood">Food</label><select id="diaryFood" onchange="FoodLogUI.select(this.value)"></select></div>') +
+      (!editing && !manual ? recentButtons('modal') : '') + (editing ? '<h3>' + html(row.food.name) + '</h3>' : manual ? '<div class="field"><label for="diaryName">Food name</label><input id="diaryName" maxlength="160" placeholder="Your snack or drink"></div><div class="grid"><div class="field"><label for="diaryBasis">Label amount</label><input id="diaryBasis" type="number" min="0.01" step="any" value="100" oninput="FoodLogUI.preview()"></div><div class="field"><label for="diaryBasisUnit">Label unit</label><select id="diaryBasisUnit" onchange="FoodLogUI.preview()"><option value="g">g</option><option value="ml">ml</option><option value="portion">portion</option></select></div></div><div class="grid">' + [['kcal', 'Calories (kcal)'], ['p', 'Protein (g)'], ['c', 'Carbs (g)'], ['f', 'Fat (g)']].map(([key, label]) => '<div class="field"><label for="diary-' + key + '">' + label + '</label><input id="diary-' + key + '" type="number" min="0" step="any" placeholder="' + (key === 'kcal' ? 'Required' : 'Leave blank if unknown') + '" oninput="FoodLogUI.preview()"></div>').join('') + '</div><p class="sub">Copy values for the label amount above. Missing macros stay unknown.</p>' : '<div class="field"><label for="diarySearch">Find a food or recipe</label><input id="diarySearch" type="search" placeholder="Banana, chocolate, overnight oats…" oninput="FoodLogUI.search()"></div><div class="field"><label for="diaryFood">Food</label><select id="diaryFood" onchange="FoodLogUI.select(this.value)"></select></div>') +
       '<div class="grid"><div class="field"><label for="diaryAmount">Amount you ate</label><input id="diaryAmount" type="number" min="0.01" step="any" value="' + (row?.quantity || 1) + '" oninput="FoodLogUI.preview()"></div><div class="field"><label for="diaryUnit">Unit</label><select id="diaryUnit" onchange="FoodLogUI.preview()">' + ['g', 'ml', 'piece', 'slice', 'tsp', 'tbsp', 'portion'].map(unit => '<option>' + unit + '</option>').join('') + '</select></div></div><div id="diaryPreview" class="import-preview" role="status" aria-live="polite"></div>' +
       (draft.provenance ? '<div class="barcode-attribution">'+(draft.provenance.source==='Open Food Facts'?'<a target="_blank" rel="noopener noreferrer" href="'+html(draft.provenance.sourceUrl)+'">Open Food Facts · ODbL</a>':'Your pack label')+'<p>'+html(draft.brand||'')+'</p><p>'+html((draft.warnings||[]).join(' '))+'</p><p>Check the product name, all values and the g/ml basis against your current pack.</p><label class="diary-save-label"><input id="barcodeConfirmed" type="checkbox"> I checked these values and the label amount/unit.</label></div>':'')+
       (manual && !editing ? '<label class="diary-save-label"><input id="diarySaveFood" type="checkbox" checked> Save this label to use again</label>' : '') + '<div class="actions"><button class="btn" onclick="FoodLogUI.commit()">' + (editing ? 'Save entry' : 'Add to diary') + '</button>' + (editing ? '<button class="btn secondary" onclick="FoodLogUI.remove()">Remove entry</button>' : '') + '</div>';
@@ -49,7 +55,13 @@
     if (!initial) draft.originKey = null;
     const unit = document.getElementById('diaryUnit'), amount = document.getElementById('diaryAmount');
     unit.disabled = false;
-    if (key.startsWith('recipe:')) { unit.value = 'portion'; unit.disabled = true; amount.value = initial && draft.portions || 1; }
+    if (key.startsWith('recent:')) {
+      const row = api.state().foodLog.find(row => row.id === key.slice(7));
+      if (!row && !draft.snapshotFood) { api.toast('This diary entry is no longer available.'); return; }
+      if (!initial || !draft.snapshotFood) draft.snapshotFood = core.definition(row.food);
+      unit.value = draft.snapshotFood.unit; unit.disabled = true; amount.value = initial && draft.portions || row.quantity;
+    }
+    else if (key.startsWith('recipe:')) { unit.value = 'portion'; unit.disabled = true; amount.value = initial && draft.portions || 1; }
     else if (key.startsWith('saved:')) { const food = api.state().savedFoods.find(row => row.id === key.slice(6)); if (food) { unit.value = food.unit; unit.disabled = true; amount.value = food.quantity; } }
     else if (key.startsWith('food:')) { const profile = api.foodProfile(key.slice(5)); unit.value = profile?.basis === 'ml' ? 'ml' : profile?.eachG ? 'piece' : 'g'; amount.value = unit.value === 'piece' ? 1 : 100; }
     preview();
@@ -62,6 +74,7 @@
       return core.definition({ name: document.getElementById('diaryName').value, quantity: document.getElementById('diaryBasis').value, unit: document.getElementById('diaryBasisUnit').value, nutrition: n, provenance: draft.provenance, note: draft.provenance ? 'Barcode '+draft.provenance.barcode+' · label reviewed by you.' : '' });
     }
     const key = draft.selection || '';
+    if (key.startsWith('recent:')) return core.definition(draft.snapshotFood);
     if (key.startsWith('saved:')) return api.state().savedFoods.find(row => row.id === key.slice(6));
     if (key.startsWith('recipe:')) {
       const recipe = api.recipes().find(row => row.id === key.slice(7)), n = recipe && api.recipeNutrition(recipe);
@@ -102,9 +115,20 @@
   root.FoodLogUI = Object.freeze({
     configure(value) { api = value; core.normalizeState(api.state()); }, panel, search, select, preview, commit, close,
     setDate(value) { if (core.validDate(value)) { date = value; api.changed(); } },
+    moveDate(offset) { try { date = core.shiftDate(date, offset); api.changed(); } catch (error) { api.toast(error.message); } },
+    today() { date = core.localDate(); api.changed(); },
+    openRecent(id) {
+      const row = api.state().foodLog.find(row => row.id === id);
+      if (!row) { api.toast('This diary entry is no longer available.'); return; }
+      try {
+        const snapshotFood = core.definition(row.food);
+        draft = { manual: false, selection: 'recent:' + id, portions: row.quantity, snapshotFood, logDate: date, originKey: null };
+        draw();
+      } catch (error) { api.toast(error.message); }
+    },
     open() { draft = { manual: false }; draw(); },
     openLabel(product,logDate) { draft={manual:true,provenance:root.BarcodeCore?.provenance(product),logDate:core.validDate(logDate)?logDate:date,warnings:product.warnings||[],brand:product.brand||''}; draw(); document.getElementById('diaryName').value=product.name||'';document.getElementById('diaryBasis').value=product.quantity||100;document.getElementById('diaryBasisUnit').value=['g','ml'].includes(product.unit)?product.unit:'g';document.getElementById('diaryUnit').value=document.getElementById('diaryBasisUnit').value;document.getElementById('diaryAmount').value=product.quantity||100;for(const key of ['kcal','p','c','f'])document.getElementById('diary-'+key).value=product.nutrition?.[key]??'';const target=document.getElementById('diaryPreview');target.textContent=(product.warnings||[]).join(' '); preview(); },
-    mode(manual) { draft = { manual }; draw(); },
+    mode(manual) { const nextDate = document.getElementById('diaryDate')?.value; draft = { manual, logDate: core.validDate(nextDate) ? nextDate : date }; draw(); },
     openRecipe(id, day = null, index = null) {
       const recipe = api.recipes().find(row => row.id === id);
       if (!recipe || !api.recipeNutrition(recipe).complete) { api.toast('Complete the recipe nutrition before logging it.'); return; }

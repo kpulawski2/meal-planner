@@ -206,3 +206,18 @@ html[data-theme=dark] .serving-controls input,html[data-theme=dark] .swap-filter
 .assistant-storage-counts small { display:block; margin-top:6px; }
 .kitchen-assistant .actions { flex-wrap:wrap; }
 @media(max-width:400px) { .assistant-storage-counts { grid-template-columns:1fr; } .assistant-proposal { padding:14px; } }
+/* Small everyday actions stay usable on narrow screens. */
+.stock-toolbar { margin-top:14px; }
+.stock-card h3 { margin:0; font-size:18px; overflow-wrap:anywhere; }
+.stock-card .section-heading { align-items:flex-start; flex-wrap:wrap; }
+.stock-date-badge { font-size:12px; padding:6px 9px; background:var(--bg); border:1px solid var(--line); border-radius:9px; }
+.stock-attention { color:var(--danger); }
+.diary-date-buttons { display:flex; gap:8px; margin-top:8px; }
+.diary-date-buttons button { min-height:40px; }
+.diary-recent-list { display:grid; gap:8px; margin:12px 0; }
+.diary-recent-food { display:flex; flex-direction:column; gap:4px; align-items:flex-start; text-align:left; padding:12px; min-height:48px; border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--text); }
+.diary-recent-food span { font-size:12px; color:var(--muted); }
+.diary-recent-food b { overflow-wrap:anywhere; }
+.assistant-privacy { margin:12px 0; }
+.kitchen-assistant #kitchenReview { scroll-margin-top:18px; }
+@media(max-width:400px) { .pantry-stock .section-heading { gap:10px; flex-wrap:wrap; } .stock-toolbar .grid { grid-template-columns:1fr; } }

@@ -209,12 +209,60 @@
   function undo(state, transactionId, now = new Date()) {
     const result = canUndo(state, transactionId); if (!result.ok) return result;
     const transaction = result.transaction;
-    for (const change of transaction.changes || []) { const at = state[change.collection].findIndex(item => item.id === change.id); if (change.before === null) state[change.collection].splice(at, 1); else state[change.collection][at] = clone(change.before); }
+    for (const change of transaction.changes || []) {
+      const at = state[change.collection].findIndex(item => item.id === change.id);
+      if (change.before === null) { if (at >= 0) state[change.collection].splice(at, 1); }
+      else if (at >= 0) state[change.collection][at] = clone(change.before);
+      else state[change.collection].splice(Math.max(0, Math.min(state[change.collection].length, Number(change.position) || 0)), 0, clone(change.before));
+    }
     if (transaction.cookedChange) { if (transaction.cookedChange.before === null) delete state.pantryLedger.cooked[transaction.cookedChange.key]; else state.pantryLedger.cooked[transaction.cookedChange.key] = clone(transaction.cookedChange.before); }
     if (transaction.purchaseKey) state.pantryLedger.purchaseKeys = state.pantryLedger.purchaseKeys.filter(key => key !== transaction.purchaseKey);
     transaction.undoneAt = new Date(now).toISOString(); return { ok: true, transaction };
   }
   function setExpiry(state, id, expiry, collection = 'pantry') { if (!['pantry', 'leftovers'].includes(collection) || expiry && !dateOnly(expiry)) return { ok: false, error: 'Enter a valid expiry date.' }; const item = state[collection]?.find(item => item.id === id); if (!item) return { ok: false, error: 'This item no longer exists.' }; item.expiry = expiry || ''; return { ok: true }; }
+  const stockSnapshot = item => stable(item || null);
+  function adjustStock(state, { id, qty, place, expiry = '', reason = 'Stock correction', expected } = {}, now = new Date()) {
+    const item = state.pantry?.find(row => row.id === id), quantity = num(qty);
+    if (!item || typeof expected !== 'string' || expected !== stockSnapshot(item)) return { ok: false, error: 'This stock changed. Open the stock editor again.' };
+    if (!Number.isFinite(quantity) || quantity < 0 || quantity > 1000000) return { ok: false, error: 'Enter a remaining quantity from 0 to 1,000,000 in the existing unit.' };
+    if (!['Pantry', 'Fridge', 'Freezer'].includes(place) || expiry && !dateOnly(expiry)) return { ok: false, error: 'Choose a storage location and a valid recorded expiry date.' };
+    if (!['Stock correction', 'Used outside the plan', 'Thrown away', 'Storage update'].includes(reason)) return { ok: false, error: 'Choose a reason for the stock change.' };
+    const before = clone(item), after = { ...before, qty: rounded(quantity), place, expiry };
+    if (stockSnapshot(before) === stockSnapshot(after)) return { ok: false, error: 'No stock details changed.' };
+    initialise(state, now);
+    const transaction = { id: nextId(state, 'stock-adjustment', now), type: 'stock-adjustment', name: item.name, reason,
+      createdAt: new Date(now).toISOString(), changes: [{ collection: 'pantry', id, before, after: clone(after) }] };
+    state.pantry[state.pantry.findIndex(row => row.id === id)] = after;
+    state.pantryLedger.transactions.push(transaction); return { ok: true, transaction };
+  }
+  function removeStock(state, id, collection = 'pantry', now = new Date()) {
+    if (!['pantry', 'leftovers'].includes(collection)) return { ok: false, error: 'Choose a stock item or leftover.' };
+    let at = state[collection]?.findIndex(row => row?.id === id);
+    if (at === undefined || at < 0) return { ok: false, error: 'This item no longer exists.' };
+    initialise(state, now);
+    at = state[collection].findIndex(row => row.id === id);
+    if (at < 0) return { ok: false, error: 'This item changed. Open your pantry again.' };
+    const before = clone(state[collection][at]);
+    const transaction = { id: nextId(state, 'stock-removal', now), type: 'stock-removal', name: before.name || before.recipeSnapshot?.name || before.recipeId,
+      createdAt: new Date(now).toISOString(), changes: [{ collection, id, position: at, before, after: null }] };
+    state[collection].splice(at, 1); state.pantryLedger.transactions.push(transaction); return { ok: true, transaction };
+  }
+  function stockStatus(item, now = new Date()) {
+    if (!(num(item?.qty) > EPS)) return 'empty';
+    if (!item.expiry) return 'undated';
+    if (!dateOnly(item.expiry)) return 'attention';
+    const days = Math.round((Date.parse(item.expiry + 'T12:00:00Z') - Date.parse(today(now) + 'T12:00:00Z')) / 86400000);
+    return days < 0 ? 'attention' : days <= 3 ? 'soon' : 'dated';
+  }
+  function browseStock(pantry = [], { query = '', place = 'All', status = 'all' } = {}, now = new Date()) {
+    const normal = value => String(value || '').normalize('NFKD').replace(/[łŁ]/g, 'l').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const words = normal(query).slice(0, 160).trim().split(/\s+/).filter(Boolean);
+    const rows = pantry.filter(item => item && typeof item === 'object' && typeof item.name === 'string');
+    return rows.filter(item => (place === 'All' || (item.place || 'Pantry') === place)
+      && (status === 'all' ? stockStatus(item, now) !== 'empty' : stockStatus(item, now) === status)
+      && words.every(word => normal(item.name + ' ' + (item.store || '') + ' ' + (item.product?.name || '')).includes(word)))
+      .sort((a, b) => String(a.expiry || '9999-12-31').localeCompare(String(b.expiry || '9999-12-31')) || a.name.localeCompare(b.name));
+  }
   function spentSummary(state, { planOnly = true } = {}) { const purchases = (state.pantryLedger?.transactions || []).filter(item => item.type === 'purchase' && !item.undoneAt && (!planOnly || item.planId === state.pantryLedger?.planId)); const known = purchases.every(item => num(item.totalCostGBP) >= 0); return { totalCostGBP: rounded(purchases.reduce((sum, item) => sum + (num(item.totalCostGBP) >= 0 ? num(item.totalCostGBP) : 0), 0)), known, purchases: purchases.length }; }
   function spentTotal(state, options) { return spentSummary(state, options).totalCostGBP; }
   function recipeUseUpScore(recipe, pantry = [], now = new Date()) {
@@ -228,5 +276,5 @@
     }
     return Math.min(10, rounded(score));
   }
-  root.PantryCore = Object.freeze({ initialise, resetPlan, activePantry, expired, today, recipeSignature, slotKey, cookedPortions, isCooked, plannedPortions, plannerCoverage, shoppingInput, revision, purchasePreview, applyPurchase, requiredIngredients, cookPreview, applyCook, matchingLeftovers, useLeftover, canUndo, undo, setExpiry, spentSummary, spentTotal, recipeUseUpScore, officialProductUrl });
+  root.PantryCore = Object.freeze({ initialise, resetPlan, activePantry, expired, today, recipeSignature, slotKey, cookedPortions, isCooked, plannedPortions, plannerCoverage, shoppingInput, revision, purchasePreview, applyPurchase, requiredIngredients, cookPreview, applyCook, matchingLeftovers, useLeftover, canUndo, undo, setExpiry, stockSnapshot, adjustStock, removeStock, stockStatus, browseStock, spentSummary, spentTotal, recipeUseUpScore, officialProductUrl });
 })(globalThis);

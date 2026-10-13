@@ -87,5 +87,24 @@
     }
     return { rows: copy(rows), totals, missing, estimated: rows.some(row => row.nutrition?.source !== 'label') };
   }
-  root.FoodLogCore = Object.freeze({ validDate, localDate, definition, scaled, normalizeState, record, saveFood, summary });
+  function shiftDate(date, offset) {
+    if (!validDate(date) || !Number.isInteger(offset) || Math.abs(offset) > 366) throw new Error('Choose a valid diary date.');
+    const value = new Date(date + 'T12:00:00Z'); value.setUTCDate(value.getUTCDate() + offset);
+    const next = value.toISOString().slice(0, 10); if (!validDate(next)) throw new Error('Choose a valid diary date.'); return next;
+  }
+  function recentFoods(state, limit = 6) {
+    const rows = [], seen = new Set(), count = Math.max(1, Math.min(20, Number.isInteger(limit) ? limit : 6));
+    const history = (Array.isArray(state.foodLog) ? state.foodLog : []).map((row, index) => ({ row, index }))
+      .sort((a, b) => String(b.row?.date || '').localeCompare(String(a.row?.date || '')) || b.index - a.index);
+    for (const { row } of history) {
+      try {
+        const valid = entry(row), key = JSON.stringify(valid.food);
+        if (seen.has(key)) continue; seen.add(key);
+        rows.push({ id: valid.id, date: valid.date, food: valid.food, quantity: valid.quantity });
+        if (rows.length >= count) break;
+      } catch { /* Imported invalid rows are not food shortcuts. */ }
+    }
+    return copy(rows);
+  }
+  root.FoodLogCore = Object.freeze({ validDate, localDate, definition, scaled, normalizeState, record, saveFood, summary, shiftDate, recentFoods });
 })(globalThis);

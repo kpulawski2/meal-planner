@@ -132,6 +132,46 @@ function tailoredForm(app,overrides={}){
 function kitchenForm(app, overrides = {}) {
   for (const [id, value] of Object.entries({ kitchenIngredient: 'Chicken breast', kitchenGrams: 1000, kitchenBasis: 'raw', kitchenDays: 5, kitchenPeople: 1, kitchenStyle: 'curry', kitchenRecipe: 'afford-chicken-lentil-curry', ...overrides })) app.node(id).value = value;
 }
+
+test('pantry filters and reversible quantity corrections keep the diary, meal plan and paid spending separate', async () => {
+  const app = harness(); await app.flush(); const before = app.state(); app.context.PantryUI.renderPantry();
+  app.node('pantryStockQuery').value = 'milk'; app.node('pantryStockPlace').value = 'Fridge'; app.node('pantryStockStatus').value = 'all'; app.context.PantryUI.searchStock();
+  assert.match(app.node('pantryStockResults').innerHTML, /Milk/); assert.doesNotMatch(app.node('pantryStockResults').innerHTML, />Oats</);
+  assert.deepEqual(app.state(), before);
+  const id = before.pantry.find(row => row.name === 'Milk').id; app.context.PantryUI.editStock(id);
+  for (const [key, value] of Object.entries({ stockEditQty: 600, stockEditPlace: 'Fridge', stockEditExpiry: '', stockEditReason: 'Used outside the plan' })) app.node(key).value = value;
+  app.context.PantryUI.saveStock(); let current = app.state(); assert.equal(current.pantry.find(row => row.id === id).qty, 600);
+  assert.match(app.node('pantry').innerHTML, /Used outside the plan/);
+  for (const key of ['week', 'foodLog', 'profile', 'leftovers', 'shopping']) assert.deepEqual(current[key], before[key], key);
+  app.context.PantryUI.undo(current.pantryLedger.transactions.at(-1).id); assert.deepEqual(app.state().pantry, before.pantry);
+  app.context.PantryUI.removeItem(id); current = app.state(); assert.equal(current.pantry.length, before.pantry.length - 1);
+  app.context.PantryUI.undo(current.pantryLedger.transactions.at(-1).id); assert.deepEqual(app.state().pantry, before.pantry);
+});
+test('closed, invalid or changed pantry editors cannot apply a stale stock adjustment', async () => {
+  const app = harness(); await app.flush(); const id = app.state().pantry[0].id; app.context.PantryUI.editStock(id);
+  for (const [key, value] of Object.entries({ stockEditQty: -1, stockEditPlace: 'Pantry', stockEditExpiry: '', stockEditReason: 'Stock correction' })) app.node(key).value = value;
+  const before = app.state(); app.context.PantryUI.saveStock(); assert.deepEqual(app.state(), before); assert.match(app.node('stockEditError').textContent, /remaining quantity/);
+  app.node('stockEditQty').value = 500; app.run('state.pantry[0].qty=200'); const changed = app.state(); app.context.PantryUI.saveStock(); assert.deepEqual(app.state(), changed); assert.match(app.node('stockEditError').textContent, /stock changed/);
+  app.context.closeModal(); app.context.PantryUI.saveStock(); assert.deepEqual(app.state(), changed);
+});
+test('recent-food shortcuts review frozen label values and selected diary dates before creating a separate intake entry', async () => {
+  const app = harness(); await app.flush();
+  app.run('FoodLogCore.record(state,{date:"2026-10-12",food:{name:"My snack",quantity:100,unit:"g",nutrition:{kcal:400,p:10,c:50,f:null,source:"label"}},quantity:25,originKey:"meal-reference"},{id:"past-snack"});FoodLogCore.saveFood(state,{name:"My snack",quantity:100,unit:"g",nutrition:{kcal:900,p:20,c:70,f:20,source:"label"}},{id:"new-label"});renderHome()');
+  const before = app.state(); assert.match(app.node('home').innerHTML, /Log a recent food again/);
+  app.context.FoodLogUI.setDate('2026-10-13'); app.context.FoodLogUI.openRecent('past-snack');
+  assert.equal(app.node('diaryAmount').value, '25'); assert.equal(app.node('diaryUnit').value, 'g'); assert.match(app.node('diaryPreview').textContent, /100 kcal/); assert.match(app.node('diaryPreview').textContent, /missing macros/);
+  assert.deepEqual(app.state(), before, 'Opening the shortcut records nothing.');
+  app.node('diaryDate').value = '2026-10-13'; app.node('diarySaveFood').checked = false; app.context.FoodLogUI.commit();
+  const current = app.state(); assert.equal(current.foodLog.length, 2); assert.equal(current.foodLog[1].date, '2026-10-13'); assert.equal(current.foodLog[1].nutrition.kcal, 100); assert.equal(current.foodLog[1].nutrition.f, null); assert.equal(current.foodLog[1].originKey, null);
+  for (const key of ['week', 'pantry', 'leftovers', 'profile', 'savedFoods', 'pantryLedger']) assert.deepEqual(current[key], before[key], key);
+  const restored = harness({ state: current }); await restored.flush(); restored.context.FoodLogUI.openRecent(current.foodLog[1].id); assert.match(restored.node('diaryPreview').textContent, /100 kcal/);
+});
+test('diary date navigation and changing entry mode retain the chosen calendar date without logging', async () => {
+  const app = harness(); await app.flush(); const before = app.state();
+  app.context.FoodLogUI.setDate('2026-10-31'); app.context.FoodLogUI.moveDate(1); assert.match(app.context.FoodLogUI.panel(), /value="2026-11-01"/);
+  app.context.FoodLogUI.open(); app.node('diaryDate').value = '2026-11-01'; app.context.FoodLogUI.mode(true); assert.match(app.node('sheet').innerHTML, /value="2026-11-01"/);
+  app.context.FoodLogUI.moveDate(-1); assert.match(app.context.FoodLogUI.panel(), /value="2026-10-31"/); assert.deepEqual(app.state(), before);
+});
 test('the kitchen assistant builds a real measured batch offline and keeps the plan, diary, stock and targets intact', async () => {
   const app = harness(); await app.flush(); const before = app.state();
   assert.match(app.node('home').innerHTML, /Kitchen assistant/);
