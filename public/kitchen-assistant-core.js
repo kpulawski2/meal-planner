@@ -69,7 +69,7 @@
       // Generic breast proposals cannot borrow whole/bone-in chicken or a sauce.
       if (/\b(whole|bone|bones|stock|broth|sauce|powder)\b/i.test(name) || rowBasis(name, brief.ingredient) !== brief.basis) return 0;
       if (brief.ingredient === 'Chicken breast' && !/\bbreasts?\b/i.test(name)) return 0;
-      if (brief.ingredient === 'Lean beef mince' && (!/\blean\b/i.test(name) || /\b(?:10|15|20)\s*%/.test(name))) return 0;
+      if (brief.ingredient === 'Lean beef mince' && (!/\blean\b|\b5\s*%/i.test(name) || /\b(?:10|15|20)\s*%/.test(name))) return 0;
       const factor = /^(g|grams?)$/i.test(unit) ? 1 : /^(kg|kilograms?)$/i.test(unit) ? 1000 : 0;
       if (!factor || !Number.isFinite(Number(qty)) || Number(qty) <= 0) return 0;
       total += Number(qty) * factor;
