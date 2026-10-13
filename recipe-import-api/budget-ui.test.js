@@ -13,7 +13,7 @@ for (const [id,cat] of [['b1','Breakfast'],['s1','Snack']])recipes.push({id,name
 function harness(options = {}) {
   let saved = 0, activeRequest, requestedBody;
   const state = { profile: { days: 7, meals: 4, people: 1, budget: 45, calories: 2000, protein: 200 }, week: [{ day: 'Old day', meals: ['0', '1', '2', '3'] }], mealServings: {}, locked: {}, pantry: [], favorites: [], prepPlan: { checked: { old: true }, storage: {} }, ...options.state };
-  const context = { selectedShoppingStore:()=>state.profile.supermarket||'Asda', state, recipes, AbortController, DOMException, console, setTimeout, clearTimeout,
+  const context = { selectedShoppingStore:()=>state.profile.supermarket||'Asda', state, recipes, AbortController, DOMException, structuredClone, console, setTimeout, clearTimeout,
     recipeAllowed: () => true, recipeCategory: recipe => recipe.cat, recipeNutrition: recipe => recipe.nutrition,
     mealKey: (day, index) => `${day}::${index}`, getMealServings: (day, index) => state.mealServings[`${day}::${index}`] || state.profile.people,
     automaticCatalogItems: entries => entries.flatMap(([key, item]) => Object.entries(item.groups).filter(([, group]) => group.remaining > .000001).map(([dimension, group]) => ({ key: `${key}::${dimension}`, name: item.name, dimension, quantity: group.remaining }))),
@@ -26,13 +26,14 @@ function harness(options = {}) {
     money: value => `£${Number(value).toFixed(2)}`, escape: String,
     renderHome() {}, renderWeek() {}, renderShop() {}, renderAll() {}, toast() {},
     save() { saved++; },
-    fetch: async (_url, init) => { requestedBody = JSON.parse(init.body); if (options.deferred) await new Promise(resolve => { activeRequest = resolve; }); return { ok: true, status: 200, text: async () => JSON.stringify(options.result || context.makeFeasible()) }; },
+    fetch: async (_url, init) => { requestedBody = JSON.parse(init.body); if (options.deferred) await new Promise(resolve => { activeRequest = resolve; }); return { ok: true, status: 200, text: async () => JSON.stringify(options.result || context.makeFeasible(requestedBody.profile)) }; },
   };
   vm.runInNewContext(macros + '\n' + core + '\n' + source + '\n globalThis.run=generateWeek;globalThis.cancel=cancelBudgetPlan;globalThis.validate=budgetPlanValidation;globalThis.planner=()=>budgetPlannerState;globalThis.targetsMet=dailyTargetsMet;', context);
   context.buildShopping = () => context.MealBudgetCore.buildShopping({ ...state, recipes, people: state.profile.people });
-  context.makeFeasible = () => {
-    const week = context.MealBudgetCore.dayNames(7).map((day,index) => ({ day, meals: [['0','b1'][index%2], ['1','l1','l2'][index%3], ['2','d1','d2'][(index+1)%3], ['3','s1'][index%2]] }));
-    const shopping=context.MealBudgetCore.buildShopping({week,recipes,people:state.profile.people,pantry:state.pantry});
+  context.makeFeasible = (profile=state.profile) => {
+    const choices={Breakfast:['0','b1'],Lunch:['1','l1','l2'],Dinner:['2','d1','d2'],Snack:['3','s1']};
+    const week = context.MealBudgetCore.dayNames(profile.days).map((day,index) => ({ day, meals:context.MealBudgetCore.mealSlots(profile.meals).map(cat=>choices[cat][index%choices[cat].length]) }));
+    const shopping=context.MealBudgetCore.buildShopping({week,recipes,people:profile.people,pantry:state.pantry});
     const recommendations=context.automaticCatalogItems(Object.entries(shopping)).map(item=>({key:item.key,match:{productName:'ASDA '+item.name},plan:{requestedQuantity:item.quantity,totalQuantity:item.quantity+100,totalCostGBP:3,products:[{packs:1,costGBP:3}]}}));
     return { status: 'feasible', week, mealServings: {}, basket: { complete: true, totalCostGBP:recommendations.length*3, recommendations } };
   };
@@ -57,6 +58,27 @@ test('infeasible searches preserve saved meals, portions and prep completion', a
   assert.equal(JSON.stringify(app.state), before);
   assert.equal(app.saved, 0);
   assert.equal(app.context.planner().status, 'no_feasible_plan');
+});
+
+test('a conversational profile is staged privately and saved with its checked plan only after success',async()=>{
+ const app=harness({deferred:true}),before=structuredClone(app.state),candidate={...before.profile,days:3,meals:3,calories:1500,protein:150,budget:60};
+ const pending=app.context.run({profile:candidate});assert.deepEqual(app.state,before);assert.equal(app.requestedBody.profile.days,3);app.release();const result=await pending;
+ assert.equal(result.status,'feasible');assert.equal(app.state.week.length,3);assert.equal(app.state.profile.days,3);assert.equal(app.state.profile.meals,3);assert.equal(app.state.profile.budget,60);
+ assert.deepEqual(app.state.pantry,before.pantry);assert.deepEqual(candidate,{...before.profile,days:3,meals:3,calories:1500,protein:150,budget:60});
+});
+test('effective conversational targets are validated rather than the easier previous saved targets',async()=>{
+ const app=harness({result:{status:'feasible',week:[],basket:{complete:true,totalCostGBP:0,recommendations:[]}}}),before=structuredClone(app.state);
+ app.context.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify(app.context.makeFeasible())});
+ const result=await app.context.run({profile:{...before.profile,calories:1000}});assert.equal(result.status,'unavailable');assert.deepEqual(app.state,before);assert.equal(app.saved,0);
+});
+test('failed, aborted, stale and rejected conversational searches never save their proposed profile',async()=>{
+ for(const action of ['failed','abort','settings','pantry','source','guard']){
+  const app=harness({deferred:true,...(action==='failed'?{result:{status:'no_feasible_plan'}}:{})}),before=structuredClone(app.state),candidate={...before.profile,budget:60},controller=new AbortController();
+  const pending=app.context.run({profile:candidate,signal:controller.signal,guard:()=>action!=='guard'});
+  if(action==='abort')controller.abort();if(action==='settings')app.state.profile.budget=40;if(action==='pantry')app.state.pantry.push({name:'Oats',qty:10,unit:'g'});
+  const oldNutrition=recipes[0].nutrition;if(action==='source')recipes[0].nutrition={...oldNutrition,kcal:501};app.release();await pending;recipes[0].nutrition=oldNutrition;
+  assert.deepEqual(app.state.week,before.week);assert.equal(app.state.profile.budget,action==='settings'?40:45);assert.equal(app.saved,0);
+ }
 });
 
 test('browser verification rejects overspend, missing prices, missing meals and nutrition shortfalls', () => {
@@ -92,6 +114,13 @@ test('cancelled and stale searches cannot overwrite a saved plan', async () => {
 test('planner refuses to change locked meals or their portions', () => {
   const app = harness({ state: { week: [{ day: 'Monday', meals: ['0', '1', '2', '3'] }], locked: { 'Monday::0': true }, mealServings: { 'Monday::0': 2 } } });
   assert.equal(app.context.validate(app.context.makeFeasible()), false);
+});
+test('a shorter period or fewer meal slots cannot silently omit a kept or cooked meal',()=>{
+ for(const cooked of [false,true])for(const change of [{days:1},{meals:3,calories:1500,protein:150}]){
+  const app=harness();app.state.week=app.context.makeFeasible().week;
+  if(cooked)app.context.PantryCore={spentTotal:()=>0,spentSummary:()=>({known:true}),activePantry:rows=>rows,cookedPortions:(_state,day,index)=>day==='Wednesday'&&index===3?1:0};else app.state.locked['Wednesday::3']=true;
+  const p={...app.state.profile,...change};assert.equal(app.context.validate(app.context.makeFeasible(p),p),false);
+ }
 });
 
 test('browser rejects a priced nutrition-complete plan that repeats the same main meals all week',()=>{

@@ -133,6 +133,45 @@ function kitchenForm(app, overrides = {}) {
   for (const [id, value] of Object.entries({ kitchenIngredient: 'Chicken breast', kitchenGrams: 1000, kitchenBasis: 'raw', kitchenDays: 5, kitchenPeople: 1, kitchenStyle: 'curry', kitchenRecipe: 'afford-chicken-lentil-curry', ...overrides })) app.node(id).value = value;
 }
 
+function conversationalFixture(app,payload){
+ const slots=app.context.MealBudgetCore.mealSlots(payload.profile.meals),week=app.context.MealBudgetCore.dayNames(payload.profile.days).map(day=>({day,meals:slots.map(cat=>payload.profile.tailoredMeals?.[cat]?.recipeIds[0]||payload.recipes.find(row=>row.cat===cat).id)})),mealServings=Object.fromEntries(week.flatMap(row=>row.meals.map((_,i)=>[row.day+'::'+i,.25])));
+ app.context.planFixture={...app.state(),profile:payload.profile,week,mealServings};
+ const shopping=app.run('MealBudgetCore.buildShopping(PantryCore.shoppingInput(planFixture,recipes))'),items=app.context.automaticCatalogItems(Object.entries(shopping));
+ const recommendations=items.map(item=>({key:item.key,match:{productName:'Test pack for '+item.name},plan:{requestedQuantity:item.quantity,totalQuantity:item.quantity,totalCostGBP:.25,products:[{packs:1,costGBP:.25,productName:'Test pack',url:'https://groceries.asda.com/product/test'}]}}));
+ return {status:'feasible',store:'Asda',week,mealServings,basket:{complete:true,totalCostGBP:recommendations.length*.25,recommendations}};
+}
+const directQuestion='Make a 1-day plan; breakfast: measured milk oats; lunch: tuna; dinner: turkey. Under 1600 calories per day and 0g protein.';
+test('an assistant plan request interprets and saves a checked plan inside chat without opening the tailored form',async()=>{
+ const app=harness();await app.flush();const before=app.state();
+ app.context.fetch=async(url,request)=>{const body=JSON.parse(request.body);if(url==='/api/planner/interpret')return {ok:true,json:async()=>({source:'ai',calories:3000,protein:0,nutritionTargets:{fatMax:100},requests:{}})};if(url==='/api/planner/generate')return {ok:true,status:200,text:async()=>JSON.stringify(conversationalFixture(app,body))};return {ok:false,status:503,text:async()=>''};};
+ app.context.KitchenAgentUI.open();app.node('agentQuestion').value=directQuestion;await app.context.KitchenAgentUI.send();
+ assert.equal(app.state().kitchenConversation.messages.at(-1).planReceipt.status,'saved',app.state().kitchenConversation.messages.at(-1).text);assert.equal(app.state().week.length,1);assert.equal(app.state().profile.calories,1600);assert.equal(app.state().profile.nutritionTargets.calorieMode,'max');assert.match(app.node('agentMessages').innerHTML,/View my plan/);assert.doesNotMatch(app.node('sheet').innerHTML,/Tailor your next plan|Review my plan request/);
+ for(const key of ['pantry','leftovers','pantryLedger','foodLog'])assert.deepEqual(app.state()[key],before[key],key);
+ const restored=harness({state:app.state()});await restored.flush();restored.context.KitchenAgentUI.open();assert.match(restored.node('agentMessages').innerHTML,/Your saved plan/);
+});
+test('AI context off sends no saved defaults to interpretation while deterministic plan checks still use current constraints',async()=>{
+ const app=harness();await app.flush();const before=app.state(),bodies=[];app.context.KitchenAgentUI.open();app.node('agentUseSettings').checked=false;app.node('agentUsePantry').checked=false;app.context.KitchenAgentUI.contextChanged();
+ app.context.fetch=async(url,request)=>{bodies.push({url,body:JSON.parse(request.body)});return url==='/api/planner/interpret'?{ok:false,status:503}:{ok:true,status:200,text:async()=>JSON.stringify({status:'no_feasible_plan'})};};
+ app.node('agentQuestion').value=directQuestion;await app.context.KitchenAgentUI.send();assert.deepEqual(bodies.find(row=>row.url==='/api/planner/interpret').body.defaults,{});
+ const payload=bodies.find(row=>row.url==='/api/planner/generate').body;assert.equal(payload.profile.budget,before.profile.budget);assert.equal(payload.foodLog,undefined);assert.equal(payload.recipeNotes,undefined);assert.deepEqual(app.state().profile,before.profile);assert.deepEqual(app.state().week,before.week);
+});
+test('closing, stopping or changing context cancels direct planning and discards a late successful response',async()=>{
+ for(const action of ['close','stop','context']){
+  const app=harness();await app.flush();const before=app.state();let release,reached;const ready=new Promise(resolve=>reached=resolve);
+  app.context.fetch=async(url,request)=>{if(url==='/api/planner/interpret')return {ok:false,status:503};if(url==='/api/planner/generate'){const fixture=conversationalFixture(app,JSON.parse(request.body));reached();await new Promise(resolve=>release=resolve);return {ok:true,status:200,text:async()=>JSON.stringify(fixture)};}return {ok:false,status:503,text:async()=>''};};
+  app.context.KitchenAgentUI.open();app.node('agentQuestion').value=directQuestion;const pending=app.context.KitchenAgentUI.send();await ready;
+  if(action==='close')app.context.closeModal();if(action==='stop')app.context.KitchenAgentUI.stopRequest();if(action==='context')app.context.KitchenAgentUI.contextChanged();release();await pending;
+  for(const key of ['profile','week','pantry','foodLog','pantryLedger'])assert.deepEqual(app.state()[key],before[key],key+' '+action);assert.equal(app.state().kitchenConversation.draft,directQuestion);assert.equal(app.state().kitchenConversation.messages.length,0);
+ }
+});
+test('inline duration clarification accepts a short reply and carries earlier meal requests into the new search',async()=>{
+ const app=harness();await app.flush();app.context.KitchenAgentUI.open();app.node('agentQuestion').value='Make a month-long plan, breakfast: overnight oats variety';
+ // Supported duration parsing uses the natural "for a month" form.
+ app.node('agentQuestion').value='For a month, breakfast: overnight oats variety';await app.context.KitchenAgentUI.send();assert.match(app.node('agentMessages').innerHTML,/1 to 14/);assert.equal(app.state().kitchenConversation.planDraft.pendingField,'days');
+ app.context.fetch=async(url,request)=>url==='/api/planner/interpret'?{ok:false,status:503}:{ok:true,status:200,text:async()=>JSON.stringify({status:'no_feasible_plan'})};
+ app.node('agentQuestion').value='7';await app.context.KitchenAgentUI.send();assert.equal(app.state().kitchenConversation.planDraft.days,7);assert.equal(app.state().kitchenConversation.planDraft.requests.Breakfast.query,'overnight oats variety');assert.match(app.node('sheet').innerHTML,/Kitchen assistant/);
+});
+
 test('the conversational assistant retains food requests across follow-ups and keeps all plan/stock/intake records read-only', async () => {
  const app=harness();await app.flush();const before=app.state();app.context.KitchenAgentUI.open();
  app.node('agentQuestion').value='Find high-protein chicken dinners';await app.context.KitchenAgentUI.send();
@@ -155,12 +194,13 @@ test('changed recipes disable assistant actions and batch handoff retains confir
  app.context.closeModal();app.context.KitchenAgentUI.open();app.run('recipes.find(r=>r.id===state.kitchenConversation.messages[3].recipeIds[0]).ings[0][1]+=1');
  const before=app.state().week;app.context.KitchenAgentUI.view(id,3);assert.deepEqual(app.state().week,before);assert.match(app.node('toast').textContent,/settings changed/);
 });
-test('assistant storage advice and plan requests use deterministic guides and explicit existing reviews',async()=>{
+test('assistant storage advice stays deterministic and failed direct plans remain in chat without changing saved meals',async()=>{
  const app=harness();await app.flush();const before=app.state();app.context.KitchenAgentUI.open();app.node('agentQuestion').value='How long can I keep cooked rice in the fridge?';await app.context.KitchenAgentUI.send();
  assert.match(app.node('agentMessages').innerHTML,/24 hours/);assert.match(app.node('agentMessages').innerHTML,/within one hour/);assert.match(app.node('agentMessages').innerHTML,/Food Standards Agency|gov.uk/);
- app.node('agentQuestion').value='For the next 14 days, overnight oats for breakfast, tuna lunch and chicken dinner, 1600 calories per day';await app.context.KitchenAgentUI.send();assert.match(app.node('agentMessages').innerHTML,/Review my plan request/);
+ app.context.fetch=async url=>url==='/api/planner/generate'?{ok:true,status:200,text:async()=>JSON.stringify({status:'no_feasible_plan',basket:{complete:false}})}:{ok:false,status:503,json:async()=>({})};
+ app.node('agentQuestion').value='For the next 14 days, overnight oats for breakfast, tuna for lunch and chicken for dinner, 1600 calories per day';await app.context.KitchenAgentUI.send();assert.doesNotMatch(app.node('agentMessages').innerHTML,/Review my plan request/);assert.match(app.node('agentMessages').innerHTML,/saved plan is unchanged/);
  assert.deepEqual(app.state().week,before.week);assert.deepEqual(app.state().profile,before.profile);assert.deepEqual(app.state().pantry,before.pantry);
- app.context.KitchenAgentUI.plan(3);await app.flush();assert.match(app.node('sheet').innerHTML,/Tailor your next plan/);assert.match(app.state().tailoredDraft.text,/next 14 days/);assert.deepEqual(app.state().week,before.week);
+ assert.match(app.node('sheet').innerHTML,/Kitchen assistant/);assert.doesNotMatch(app.node('sheet').innerHTML,/Tailor your next plan/);assert.equal(app.state().kitchenConversation.planDraft.days,14);assert.deepEqual(app.state().week,before.week);
 });
 test('new navy defaults and selectable palettes survive reload without changing food or planning preferences',async()=>{
  const app=harness();await app.flush();const before=app.state();assert.equal(app.context.AppExperienceUI.prefs().palette,'navy');

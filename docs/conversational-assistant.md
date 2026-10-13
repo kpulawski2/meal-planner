@@ -6,7 +6,10 @@
 Ask for meals, then follow up with “make it lower fat”, “more protein”, “without
 rice”, “something quicker” or “compare these recipes”. The assistant carries
 food/category preferences and explicit per-portion limits into later questions,
-rather than starting again each time. A new conversation clears that thread.
+rather than starting again each time. Describe a meal plan and the assistant builds
+and saves it in chat after recipe, nutrition and full-pack budget checks. Follow-up
+changes and missing details stay in chat. A new conversation clears that thread
+but leaves the saved plan intact. See [direct assistant plans](direct-assistant-plans.md).
 
 Recipe cards show current calculated ingredient estimates per portion, preparation
 time when recorded, and optional pantry coverage for the recipe's required batch.
@@ -17,15 +20,15 @@ settings; a requested vegetarian/vegan filter can tighten an existing diet but
 cannot loosen a vegan profile. “Budget” prioritises budget recipe tags, with full
 pack prices still checked through Shopping or the planner.
 
-Each useful action opens an existing review:
+Recipe, preparation and food logging actions retain their existing reviews:
 
 - **Open recipe** shows measured quantities and full original method/cooking mode.
 - **Prep a batch** opens the measured batch tool with confirmed weight and period
   carried through the conversation. Unsupported main ingredients or fixed
   appliance batches use the original recipe instead. Changing the main ingredient
   clears an old unrelated weight rather than assuming an equal raw/cooked yield.
-- **Review my plan request** passes the request to Tailor my plan for explicit meal,
-  target and budget review. It does not automatically fit or replace a plan.
+- **View my plan** opens an already saved plan. Plan requests no longer hand off
+  to a separate form. Tailor my plan remains available for manual editing.
 - **Log food** opens the amount/date review; it does not record consumption itself.
 
 Storage/reheating questions use the deterministic Food Standards Agency guide,
@@ -35,9 +38,11 @@ remain authoritative. Recipe changes invalidate old conversation actions.
 
 ## Context, models and limits
 
-Users can choose whether to include goals/diet/budget/equipment, or recorded pantry
-stock. Pantry sharing starts off; asking through the explicit pantry starter turns
-it on visibly. Recipe options and recent conversation are included. Food diary and
+Users can choose whether to share goals/diet/budget/equipment or recorded pantry
+stock with AI. Pantry sharing starts off. The deterministic planner still needs
+current settings, stock and protected meals to check a requested plan; these go
+to the app's planner server independently of the AI sharing switches. Recipe
+options and recent conversation are included in ordinary AI chat. Food diary and
 personal cooking notes are not read or sent. The thread stays in on-device storage
 and existing app backups, bounded to 24 messages; only six short recent messages
 are sent to the model. A new conversation removes that thread's previous context.
@@ -74,12 +79,12 @@ Colour palette also offers terracotta and slate independently of light/dark/devi
 appearance. Navigation, cards, buttons, dialogs, focus rings, food illustration
 backgrounds, manifest theme colours and the app icon use the new palette. Palettes
 persist in reloads/backups and never modify meals, quantities or goals. The shell
-cache and CSS version are v31.
+cache and CSS version are v33.
 
 Validation covers real recipe retrieval, follow-up constraints, per-portion zero
 fat limits, read-only context, strict diet preservation, known-ID/provider-output
 validation, shared limits, safe storage routing, cancelled requests and drafts,
-stale recipes, kilogram batch handoffs and reviewed plan actions. Chromium checks
+stale recipes, kilogram batch handoffs and direct plan creation. Chromium checks
 cover actual no-key conversations, a separately labelled provider fixture, privacy
 toggles, pantry coverage, reload, 320/390/1440 widths in all palettes/light/dark,
 installed offline follow-ups and unchanged plan/stock/diary/spending.
