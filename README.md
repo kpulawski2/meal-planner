@@ -2,6 +2,10 @@
 
 A phone-friendly meal planner with recipes, pantry tracking, shopping lists and automatic ASDA product matching and pricing.
 
+Everyday screens focus on meals first, with grouped meal options, diary details,
+recipe filters and kitchen tools that open when needed. See
+[clearer everyday screens](docs/clearer-everyday-ui.md) for the layout and controls.
+
 The free consumer app also includes a dated food diary (common-food estimates, recipe portions and reusable food labels), a measured personal-recipe builder, and an explicit **Repeat favourites** planning mode. Choose three meals per day and a daily recipe for breakfast, lunch and dinner to keep a simple routine. Logged intake stays separate from planned meals, pantry and spending. See [consumer features](docs/consumer-features.md) for behaviour and limits.
 
 The **Favourites** tab keeps saved recipes searchable independently of the main

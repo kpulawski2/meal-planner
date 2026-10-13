@@ -14,7 +14,8 @@ function harness(options={}){
  let fetches=0,homeRenders=0,settingsRenders=0;
  const context={console,AbortSignal,window:null,state,builtInRecipes:base,recipes:base.concat(custom),activeRecipeCategory:'All',activeRecipeProtein:'All',activeRecipeQuick:false,activeRecipeReady:false,activeRecipeCollection:'All',activeRecipeQuery:'',recipePageSize:60,recipeLibraryPromise:null,recipeLibraryState:{status:'loading',count:0,error:''},document:{getElementById:id=>elements[id],querySelector:()=>({id:options.active||'recipes'}),querySelectorAll:()=>[]},fetch:async()=>{fetches++;if(options.fetch) return options.fetch();return {ok:true,text:async()=>JSON.stringify(options.data||{schemaVersion:1,recipes:[row('web-one')]})};},escape:value=>String(value).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;'),recipeCostText:()=> 'Price checked when planned',recipeCategory:recipe=>recipe.cat,recipeProteinGroup:()=> 'Plant proteins',recipeMethodSteps:recipe=>Array.isArray(recipe.method)?recipe.method:[],renderHome(){homeRenders++;},renderWeek(){},renderShop(){},renderProfile(){settingsRenders++;},captureProfileDraft(){},save(){}};
  context.window=context;
- vm.runInNewContext(core+'\nfunction canonicalIngredientName(name){return MealBudgetCore.canonicalIngredientName(name)}\n'+source('const NUTRITION_PROFILES=','function mealKey(')+'\n'+source('function recipeEquipmentReady(','function migrateAutomaticPricing()')+'\n'+source('function renderRecipes(){','let recipeImportController=')+'\n'+source('function toggleEquipment(','function toggleShop('),context);
+ context.activeRecipeEquipment='All';context.activeRecipeStyle='All';
+ vm.runInNewContext(core+'\nfunction canonicalIngredientName(name){return MealBudgetCore.canonicalIngredientName(name)}\n'+source('const NUTRITION_PROFILES=','function mealKey(')+'\n'+source('function recipeEquipmentReady(','function migrateAutomaticPricing()')+'\n'+source('function recipeFilterCount(){','let recipeImportController=')+'\n'+source('function toggleEquipment(','function toggleShop('),context);
  return {context,state,elements,get fetches(){return fetches;},get settingsRenders(){return settingsRenders;},get homeRenders(){return homeRenders;}};
 }
 
@@ -51,7 +52,7 @@ test('collections filter independently of categories and do not hide unowned CRE
  app.context.setRecipeCollection('Web recipes');assert.match(app.elements.recipeResults.innerHTML,/web-chicken/);assert.doesNotMatch(app.elements.recipeResults.innerHTML,/creami-vanilla|everyday/);
  app.context.setRecipeCollection('Ninja CREAMi');assert.match(app.elements.recipeResults.innerHTML,/creami-vanilla/);assert.match(app.elements.recipes.innerHTML,/Turn on Ninja CREAMi/);
  assert.match(app.elements.recipeResults.innerHTML,/8 min active · 24h freeze/);assert.match(app.elements.recipeResults.innerHTML,/Enable CREAMi/);
- assert.match(app.elements.recipes.innerHTML,/aria-pressed="true" onclick="setRecipeCollection\('Ninja CREAMi'\)"/);
+ assert.match(app.elements.recipes.innerHTML,/<option selected>Ninja CREAMi<\/option>/);
 });
 
 test('CREAMi equipment starts disabled and opt-in toggles access without changing food goals',()=>{
