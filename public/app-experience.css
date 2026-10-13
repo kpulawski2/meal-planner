@@ -273,3 +273,107 @@ input:focus,select:focus,textarea:focus {border-color:var(--accent);box-shadow:0
 .barcode-video {background:var(--plate-shadow)}
 @media(min-width:700px) {.agent-recipe-grid {grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:400px) {.agent-user {margin-left:12px}.agent-message {padding:12px}.agent-recipe {padding:12px}.palette-options {flex-direction:column}.agent-toolbar {gap:4px}}
+
+/* Everyday screens show the task first; extra controls open when needed. */
+.page-heading h1 {font-size:30px;letter-spacing:-1px}
+.today-page-heading {display:flex;align-items:center;justify-content:space-between;gap:14px;margin:4px 0 20px}
+.today-page-heading h1 {margin:6px 0}
+.today-page-heading p {font-size:12px}
+.home-layout {margin:0;gap:24px}
+.home-empty-tools {margin-top:22px}
+.daily-nutrition {margin-bottom:22px;padding:15px}
+.daily-nutrition .section-heading {margin-bottom:12px}
+.daily-nutrition .section-heading h2 {font-size:16px}
+.daily-nutrition .macro-tile b {font-size:21px}
+.daily-nutrition .macro-track {margin-top:6px}
+.daily-nutrition .planner-help {margin-top:10px}
+.today-day-picker {display:flex;gap:8px;align-items:center;max-width:100%}
+.today-day-picker label {font-size:11px;color:var(--muted);white-space:nowrap}
+.today-day-picker select {max-width:190px;min-width:0;min-height:44px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font:inherit;font-size:12px}
+.meal-plan-card {padding:16px}
+.meal-plan-card .meal-type {display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.meal-state {padding:2px 6px;background:var(--soft);color:var(--accent);border-radius:6px;font-size:10px;font-weight:600;letter-spacing:0;text-transform:none}
+.meal-estimate-label {display:block;font-size:10px;color:var(--muted);margin-top:3px}
+.meal-primary-actions {display:flex;gap:8px;margin-top:14px}
+.meal-primary-actions .btn {flex:1;min-width:0;white-space:normal}
+.ui-disclosure {background:var(--card);border:1px solid var(--line);border-radius:14px;margin:14px 0;color:var(--text);min-width:0}
+.ui-disclosure>summary {display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;padding:14px;min-height:48px;list-style:none;font-size:13px;color:var(--text)}
+.ui-disclosure>summary::-webkit-details-marker {display:none}
+.ui-disclosure>summary:after {content:'+';color:var(--accent);font-size:20px;line-height:1;flex-shrink:0}
+.ui-disclosure[open]>summary:after {content:'−'}
+.ui-disclosure>summary b {font-size:13px;font-weight:650}
+.ui-disclosure>summary small {display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:3px}
+.ui-disclosure:not([open])>*:not(summary) {display:none}
+.disclosure-content {padding:0 14px 14px;min-width:0}
+.meal-plan-card>.ui-disclosure {margin:12px 0 0;border:0;border-top:1px solid var(--line);border-radius:0;background:none}
+.meal-plan-card>.ui-disclosure>summary {padding:9px 0;font-size:11px;min-height:40px;color:var(--muted)}
+.meal-plan-card>.ui-disclosure>summary b {font-size:11px;font-weight:500}
+.meal-plan-card>.ui-disclosure>summary:after {font-size:16px}
+.meal-plan-card .disclosure-content {padding:4px 0 0}
+.meal-option-buttons {display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.diary-glance {padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--card);margin-bottom:16px}
+.diary-glance .section-heading {margin-bottom:0;gap:8px}
+.diary-glance h2 {font-size:16px}
+.diary-glance .section-heading p {font-size:12px;margin:5px 0 0}
+.diary-glance>.ui-disclosure {border:0;border-top:1px solid var(--line);border-radius:0;margin:12px 0 0}
+.diary-glance>.ui-disclosure>summary {padding:10px 0;min-height:40px;color:var(--accent)}
+.diary-glance .disclosure-content {padding:0}
+.diary-glance .food-diary {border:0;padding:4px 0 0;margin:0}
+.assistant-shortcut {display:flex;align-items:center;gap:12px;width:100%;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--soft);color:var(--accent);text-align:left;margin:16px 0;min-height:68px}
+.assistant-shortcut>span:nth-child(2) {flex:1;min-width:0}
+.assistant-shortcut b {display:block;font-size:13px}
+.assistant-shortcut small {display:block;color:var(--muted);font-size:11px;margin-top:3px;font-weight:400}
+.assistant-shortcut>svg {flex-shrink:0}
+.page-actions>.ui-disclosure {margin:0;align-self:start;flex:1;max-width:520px}
+.page-actions>.ui-disclosure .actions {margin-top:0}
+.plan-tools {margin:0;gap:12px}
+.plan-tools>.card {margin:0}
+.more-layout {display:grid;gap:22px;margin-bottom:22px}
+.menu-group h2 {font-size:15px;margin:0 0 10px;color:var(--muted)}
+.more-layout .kitchen-menu,.utility-menu {display:flex;flex-direction:column;gap:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--card);margin:0}
+.more-layout .kitchen-menu>button,.utility-menu>button {display:flex;align-items:center;flex-wrap:nowrap;gap:12px;width:100%;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:15px;background:var(--card);text-align:left;color:var(--text);margin:0;min-height:68px}
+.more-layout .kitchen-menu>button:last-child,.utility-menu>button:last-child {border-bottom:0}
+.more-layout .kitchen-menu>button>span:nth-child(2),.utility-menu>button>span:nth-child(2) {flex:1;flex-basis:auto;order:0;min-width:0}
+.utility-menu b {display:block;font-size:13px;font-weight:650}
+.utility-menu small {display:block;color:var(--muted);font-size:11px;margin-top:3px}
+.more-layout .menu-icon {flex-shrink:0;color:var(--accent);background:var(--surface);border-radius:10px;width:35px;height:35px;display:grid;place-items:center}
+.more-layout button>svg {flex-shrink:0;margin-left:auto}
+.appearance-panel .theme-options {margin-top:2px}
+.settings-preferences>summary {display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;min-height:44px;font-size:15px;cursor:pointer;color:var(--text)}
+.settings-preferences>summary .sub {font-size:11px}
+.settings-preferences-content {padding-top:16px}
+.equipment-group>summary {display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px}
+.equipment-group>summary .sub {font-size:11px;font-weight:400}
+.recipe-search-row {display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.recipe-search-row .field {margin:10px 0 0}
+.recipe-search-row select,.recipe-search-row input {background:var(--card);color:var(--text);border-color:var(--line);min-height:44px}
+.recipe-filters {flex-wrap:nowrap;overflow:auto;scrollbar-width:thin;padding-bottom:8px;margin-top:14px}
+.recipe-filter {flex-shrink:0;white-space:nowrap}
+.recipe-count {display:none}
+.recipe-add-menu {min-width:0}
+.recipe-add-menu>summary {font-size:12px;font-weight:650;color:var(--accent);cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px}
+.recipe-add-menu>summary:after {content:'+';font-size:18px}
+.recipe-add-menu[open]>summary:after {content:'−'}
+.recipe-add-menu .actions {margin:4px 0 0;flex-wrap:wrap;justify-content:flex-end}
+.recipe-results-heading {display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0}
+.recipe-results-heading p {margin:0;font-size:12px}
+.recipe-results-heading [hidden] {display:none}
+.recipe-art {height:104px}
+.recipe-art .art-orbit {display:none}
+.recipe-art .art-dish {width:64px;height:64px;font-size:36px}
+.recipe-card .meal-name {min-height:0}
+@media(min-width:700px) {.more-layout {grid-template-columns:repeat(2,minmax(0,1fr))}.recipe-search-row {grid-template-columns:minmax(0,1fr) 210px}}
+@media(max-width:400px) {.screen {padding:16px 14px 26px}.today-page-heading h1 {font-size:28px}.daily-nutrition .macro-tile b {font-size:18px}.meal-name {font-size:14px}.meal-plan-card {padding:14px}.today-day-picker select {max-width:175px}.today-day-picker label {display:none}.page-actions {gap:8px}.page-actions>.ui-disclosure {flex-basis:100%}.page-heading h1 {font-size:27px}.recipe-results-heading {gap:4px}}
+@media(max-width:600px) {
+ #recipeResults,#favouritesResults {grid-template-columns:1fr}
+ .recipe-card {display:grid;grid-template-columns:64px minmax(0,1fr);gap:0 12px;padding:14px;align-content:start}
+ .recipe-card>.recipe-art {grid-column:1;grid-row:1;width:64px;height:64px;border-radius:12px}
+ .recipe-card .art-dish {width:52px;height:52px;font-size:30px;border-width:3px;box-shadow:none;transform:none}
+ .recipe-card .art-caption {display:none}
+ .recipe-card>.meal {grid-column:2;grid-row:1;padding:0}
+ .recipe-card .meal-name {font-size:15px}
+ .recipe-card .meal-meta {font-size:11px}
+ .recipe-card .recipe-attribution {grid-column:1/-1;margin:9px 0;font-size:11px}
+ .recipe-card .recipe-buttons {grid-column:1/-1;padding:12px 0 0;margin:0;gap:8px}
+ .recipe-card .recipe-buttons .btn {font-size:12px;padding:8px 12px}
+}

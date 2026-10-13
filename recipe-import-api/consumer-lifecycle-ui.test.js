@@ -217,7 +217,7 @@ test('diary date navigation and changing entry mode retain the chosen calendar d
 });
 test('the kitchen assistant builds a real measured batch offline and keeps the plan, diary, stock and targets intact', async () => {
   const app = harness(); await app.flush(); const before = app.state();
-  assert.match(app.node('home').innerHTML, /Kitchen assistant/);
+  assert.match(app.node('home').innerHTML, /kitchen assistant/i);
   await app.context.KitchenAssistantUI.open();
   app.node('kitchenQuestion').value = 'How should I prep 1kg chicken curry for the next 5 days?';
   await app.context.KitchenAssistantUI.ask();
