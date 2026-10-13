@@ -377,3 +377,11 @@ input:focus,select:focus,textarea:focus {border-color:var(--accent);box-shadow:0
  .recipe-card .recipe-buttons {grid-column:1/-1;padding:12px 0 0;margin:0;gap:8px}
  .recipe-card .recipe-buttons .btn {font-size:12px;padding:8px 12px}
 }
+.agent-plan-result {padding:15px;border:1px solid var(--line);border-radius:14px;background:var(--card);margin:12px 0}
+.agent-plan-result h4 {margin:0 0 8px;font-size:16px}
+.agent-plan-result p {margin:8px 0;font-size:13px;overflow-wrap:anywhere}
+.agent-plan-result>small {display:block;line-height:1.5}
+.agent-plan-day {padding:12px 0;border-top:1px solid var(--line);font-size:12px}
+.agent-plan-day ul {padding-left:18px;margin:6px 0 0}
+.agent-plan-day li {margin:4px 0;overflow-wrap:anywhere}
+.agent-compose [hidden] {display:none}

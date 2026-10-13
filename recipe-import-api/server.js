@@ -843,7 +843,7 @@ app.post('/api/planner/interpret', importAccess, async (req, res) => {
     if (typeof text !== 'string' || !text.trim() || text.length > 2000) throw new TypeError('Describe your meals in 1–2000 characters.');
     let complete = null;
     if (GROQ_API_KEY) { try { releaseAi = claimAiImport(); complete = options => groqGenerate({...options,generationConfig:{temperature:0.1,responseMimeType:'application/json',maxOutputTokens:1000},timeoutMs:20000}); } catch {} }
-    res.json({ok:true,...await interpretMealRequest(text,defaults,complete)});
+    res.json({ok:true,...await interpretMealRequest(text,defaults,complete,req.body?.direct===true)});
   } catch(error) { res.status(error instanceof TypeError ? 400 : 502).json({error:cleanString(error.message,300)}); }
   finally { releaseAi?.(); }
 });

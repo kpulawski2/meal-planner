@@ -1,4 +1,4 @@
-/* Conversation and recipe retrieval are read-only; app actions always open review. */
+/* Recipe retrieval is read-only; explicit plan requests use the checked planner. */
 (function(root) {
   'use strict';
   const text = (value, max = 1200) => typeof value === 'string' ? value.trim().slice(0, max) : '';
@@ -21,9 +21,10 @@
   function intent(value) {
     const q = norm(value);
     if (/how (?:long|many days).*(?:keep|fridge|store)|safe(?:ly|ty)?|reheat|defrost|thaw|(?:can|should|how).*(?:freeze|store)|storage/.test(q)) return 'storage';
+    if (/^(?:what|why|how many|how much|is|are|should i|can i)\b/.test(q)&&!/\b(?:make|create|build|generate|tailor|fit|change|update)\b.{0,60}\bplan\b/.test(q)||/\b(?:don’t|don't|do not)\s+(?:make|create|save|replace|build)\b/.test(q)) return 'discover';
     const measuredFood = /\b\d+(?:\.\d+)?\s*(?:kgs?|kilos?|grams?|g)\b\s*(?:of\s+|raw\s+|cooked\s+|dry\s+|drained\s+)*(?:chicken|turkey|beef|pork|tuna|salmon|tofu|chickpeas|lentils|rice|oats)\b/.test(q);
     if (/\b(?:prep|batch)\b/.test(q) || measuredFood && !/a day|per day|daily|\bplan\b/.test(q)) return 'prep';
-    if (/\b(?:next|for)\s+(?:\d+|two|one|a)\s+(?:days|weeks)|\bplan\b|a day|per day|daily.*(?:calories|protein)/.test(q) && !/\b(?:prep|batch)\b/.test(q)) return 'plan';
+    if (/\b(?:next|for)\s+(?:\d+|two|one|a)\s+(?:days|weeks|months|month|fortnight)|\bplan\b|a day|per day|daily.*(?:calories|protein)/.test(q) && !/\b(?:prep|batch)\b/.test(q)) return 'plan';
     if (/compare|difference|which (?:one|is)|versus|\bvs\b/.test(q)) return 'compare';
     if (/how (?:do i|to).*(?:cook|make)|walk me through|steps|method|cook (?:this|it)/.test(q) && !/\b\d+(?:\.\d+)?\s*(?:kg|g|kilos?)\b/.test(q)) return 'cook';
     if (/log (?:food|this|a|my)|food diary|track (?:food|my|this)/.test(q)) return 'diary';
@@ -80,7 +81,7 @@
   function localReply(parsed, candidates) {
     const kind = parsed.kind, f = parsed.focus;
     if (kind === 'storage') return { text: 'Use the storage guide below for cooking, cooling, freezing and reheating. The rules are based on Food Standards Agency guidance. Follow shorter recipe or packaging instructions.', source: 'local', kind, recipeIds: [], followUps: ['Find a meal I can batch prep', 'Help me prep chicken curry'] };
-    if (kind === 'plan') return { text: 'I can turn that into a plan request. Open Review my plan request to check the meals, period and daily targets, then fit it using your supermarket and household budget. Daily macro targets and full-pack costs need the planner’s checks.', source: 'local', kind, recipeIds: [], followUps: ['Find high-protein chicken dinners', 'Give me overnight oats ideas'] };
+    if (kind === 'plan') return { text: 'I’ll interpret your meals and targets, find measured recipes and check supermarket packs against your household budget. The finished plan or any follow-up question will appear here.', source: 'local', kind, recipeIds: [], followUps: [] };
     if (kind === 'diary') return { text: 'Open Log food to review the food, amount and date before recording what you ate. Cooking and shopping remain separate from your intake.', source: 'local', kind, recipeIds: [], followUps: ['Find a high-protein snack', 'Compare two breakfasts'] };
     if (!candidates.length) return { text: 'I couldn’t find a measured recipe that meets all of these choices and your current food/equipment settings. Try a different dish or explicitly edit the constraints. I’ll keep your existing plan and targets. A missing recipe can be imported from Recipes.', source: 'local', kind, recipeIds: [], followUps: ['Try a different dish', 'Find something quick'] };
     let answer = kind === 'compare' ? 'Here are the matching recipes side by side, using their current ingredient estimates per portion. Compare protein, fat, calories and preparation time before choosing.'
@@ -98,9 +99,9 @@
       messages.push({ role: message.role, text: text(message.text, message.role === 'user' ? 2000 : 1600), source: message.source === 'ai' ? 'ai' : 'local',
         kind: allowed.has(message.kind) ? message.kind : 'discover', recipeIds: Array.isArray(message.recipeIds) ? message.recipeIds.filter(id => typeof id === 'string' && /^[a-zA-Z0-9_-]{1,120}$/.test(id)).slice(0, 6) : [],
         signatures: message.signatures && typeof message.signatures === 'object' ? Object.fromEntries(Object.entries(message.signatures).filter(([id, value]) => /^[a-zA-Z0-9_-]{1,120}$/.test(id) && typeof value === 'string' && value.length <= 16000).slice(0, 6)) : {},
-        followUps: Array.isArray(message.followUps) ? message.followUps.map(value => text(value, 100)).filter(Boolean).slice(0, 3) : [] });
+        followUps: Array.isArray(message.followUps) ? message.followUps.map(value => text(value, 100)).filter(Boolean).slice(0, 3) : [],planReceipt:root.KitchenPlanCore?.normalizeReceipt(message.planReceipt)||null });
     }
-    return { messages, focus: focus(raw.focus), draft: text(raw.draft, 2000), useSettings: raw.useSettings !== false, usePantry: raw.usePantry === true };
+    return { messages, focus: focus(raw.focus), draft: text(raw.draft, 2000), useSettings: raw.useSettings !== false, usePantry: raw.usePantry === true, planDraft:root.KitchenPlanCore?.normalizeDraft(raw.planDraft)||null };
   }
   root.KitchenAgentCore = Object.freeze({ focus, interpret, retrieve, signature, localReply, normalizeSession });
 })(globalThis);

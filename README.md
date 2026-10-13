@@ -82,7 +82,7 @@ unlogged days and unknown values never count as zero. See
 
 ## Shopping, stock and cooking
 
-**Chat with my assistant** supports saved conversations, follow-up meal preferences, measured recipe comparisons, optional pantry/context sharing and reviewed recipe/prep/plan actions. Navy and soft blue is the new default, with palette choices in More. See [the conversational assistant guide](docs/conversational-assistant.md).
+**Chat with my assistant** builds and saves checked meal plans directly from your request, with follow-up changes and questions handled in chat. It also supports saved conversations, measured recipe comparisons, optional AI context sharing and reviewed recipe/prep actions. See [direct assistant plans](docs/direct-assistant-plans.md) and [the conversational assistant guide](docs/conversational-assistant.md). Navy and soft blue is the default, with palette choices in More.
 
 Pantry now supports ingredient/pack search and storage/date filters. **Update stock** records a remaining quantity in the original unit; stock corrections and removals have Undo in **Recent stock activity**. Your food diary also has recent-food shortcuts and previous-day/Today/next-day controls, with an amount/date review before logging. See [everyday shortcuts](docs/everyday-shortcuts.md).
 
