@@ -185,6 +185,7 @@ function productTokens(value) {
     .replace(/&nbsp;|&amp;/gi, ' ')
     .replace(/\b(?:soft\s+)?cream\s+cheese\b|\bsoft\s+cheese\b/gi, 'creamcheese')
     .replace(/\b(?:parmigiano(?:\s+reggiano)?|parmesan)\b/gi, 'parmesan')
+    .replace(/\bcous\s+cous\b/gi, 'couscous')
     .replace(/\b(?:easy\s+peelers?|clementines?|satsumas?)\b/gi, 'mandarin')
     .replace(/\b(?:summer|forest)\s+fruits?\b/gi, 'berry')
     .replace(/\bcooking\s+oil\b/gi, 'oil')
@@ -313,7 +314,12 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   }
 
   if (['pasta', 'rice', 'noodle', 'couscou', 'orzo', 'lentil', 'bean', 'chickpea'].some(asked) && !['sauce', 'paste', 'soup'].some(asked)) {
-    if (unrequested(COMPOSITE_FOODS) || /ready meals|soups|cooking sauces|pasta sauces|pot noodles/i.test(category)) return false;
+    // ASDA also shelves plain dry couscous under the broader cooking-sauces
+    // parent. Its Middle Eastern leaf is usable; sauce/meal products stay out.
+    const plainCouscousShelf = asked('couscou') && /moroccan & middle eastern food/i.test(category)
+      && /^ASDA Cous\s*Cous\s+\d/i.test(title);
+    if (unrequested(COMPOSITE_FOODS) || /ready meals|soups|pasta sauces|pot noodles/i.test(category)
+      || /cooking sauces/i.test(category) && !plainCouscousShelf) return false;
     for (const word of ['sauce', 'curry', 'flavour', 'flavor', 'flavoured', 'flavored', 'seasoned', 'salad']) if (name.has(word) && !asked(word)) return false;
     if (['pasta', 'rice', 'noodle', 'couscou', 'orzo'].some(asked) && /\bmicro\b|microwav|straight to wok|wok[ -]*ready|ready[ -]*(?:to[ -]*)?wok|instant|ready.*noodles|filled pasta|fresh pasta|\bcooked\b/i.test(category + ' ' + title)) return false;
     if (['pasta', 'rice', 'noodle', 'couscou', 'orzo'].some(asked) && /dessert|pudding|cake|biscuit|snack|cereal|baby/i.test(category + ' ' + title)) return false;
@@ -323,7 +329,7 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
     if (asked('noodle') && !asked('udon') && name.has('udon')) return false;
     if (asked('noodle') && !asked('7moon') && name.has('7moon')) return false;
     if (asked('noodle') && !asked('goreng') && /mi[ -]*goreng|indo[ -]*mie/i.test(title)) return false;
-    if (asked('couscou') && !asked('pearl') && !asked('israeli') && (name.has('pearl') || name.has('israeli'))) return false;
+    if (asked('couscou')) for (const word of ['pearl', 'israeli', 'giant', 'spiced', 'spicy', 'fruity']) if (name.has(word) && !asked(word)) return false;
     if (asked('black') && asked('bean') && !asked('eye') && name.has('eye')) return false;
     if (asked('edamame') && /broccoli|mixed|medley|stir[ -]*fry|salad/i.test(title) && !/broccoli|mixed|medley|stir[ -]*fry|salad/i.test(query)) return false;
   }

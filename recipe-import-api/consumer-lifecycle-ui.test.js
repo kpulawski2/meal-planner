@@ -129,6 +129,53 @@ function tailoredForm(app,overrides={}){
   app.context.document.querySelectorAll=selector=>selector==='[data-tailored-equipment]:checked'?[{value:'Hob'}]:original(selector);
 }
 
+function kitchenForm(app, overrides = {}) {
+  for (const [id, value] of Object.entries({ kitchenIngredient: 'Chicken breast', kitchenGrams: 1000, kitchenBasis: 'raw', kitchenDays: 5, kitchenPeople: 1, kitchenStyle: 'curry', kitchenRecipe: 'afford-chicken-lentil-curry', ...overrides })) app.node(id).value = value;
+}
+test('the kitchen assistant builds a real measured batch offline and keeps the plan, diary, stock and targets intact', async () => {
+  const app = harness(); await app.flush(); const before = app.state();
+  assert.match(app.node('home').innerHTML, /Kitchen assistant/);
+  await app.context.KitchenAssistantUI.open();
+  app.node('kitchenQuestion').value = 'How should I prep 1kg chicken curry for the next 5 days?';
+  await app.context.KitchenAssistantUI.ask();
+  assert.match(app.node('kitchenStatus').textContent, /Review the weight/);
+  assert.match(app.node('kitchenProposal').innerHTML, /1,000 g raw chicken breast/);
+  assert.match(app.node('kitchenProposal').innerHTML, /5 equal portions/);
+  assert.match(app.node('kitchenProposal').innerHTML, /24 hours/);
+  kitchenForm(app); app.context.KitchenAssistantUI.edit();
+  const id = app.context.KitchenAssistantUI.saveBatch(); assert.ok(id);
+  const saved = app.state().customRecipes.find(row => row.id === id);
+  assert.equal(saved.servings, 5); assert.equal(saved.ings.find(([name]) => name === 'Chicken breast')[1], 1000);
+  assert.equal(saved.cost, null); assert.match(saved.method.join(' '), /Reheat only once/);
+  app.context.KitchenAssistantUI.saveBatch(); assert.equal(app.state().customRecipes.length, before.customRecipes.length + 1);
+  app.context.KitchenAssistantUI.exportGuide(); assert.match(app.downloads.at(-1).contents, /later portions to freeze/);
+  for (const key of ['week', 'pantry', 'leftovers', 'profile', 'shopping', 'foodLog', 'pantryLedger']) assert.deepEqual(app.state()[key], before[key], key);
+  app.context.KitchenAssistantUI.cook(); assert.match(app.node('sheet').innerHTML, /Cooking mode/); assert.match(app.node('sheet').innerHTML, /5 household portions/);
+  assert.equal(app.state().cookingSession.day, null); assert.deepEqual(app.state().pantry, before.pantry);
+});
+test('kitchen drafts survive closing and reload, and changed or invalid fields cannot save a stale proposal', async () => {
+  const app = harness(); await app.flush(); await app.context.KitchenAssistantUI.open();
+  kitchenForm(app); app.node('kitchenQuestion').value = 'My saved chicken curry question'; app.context.KitchenAssistantUI.edit();
+  const count = app.state().customRecipes.length;
+  app.node('kitchenGrams').value = 700; assert.equal(app.context.KitchenAssistantUI.saveBatch(), null); assert.equal(app.state().customRecipes.length, count);
+  app.node('kitchenGrams').value = -1; app.context.KitchenAssistantUI.edit(); assert.match(app.node('kitchenStatus').textContent, /10 g to 10 kg/); assert.equal(app.context.KitchenAssistantUI.saveBatch(), null);
+  kitchenForm(app); app.context.KitchenAssistantUI.edit(); app.context.closeModal();
+  const restored = harness({ state: app.state() }); await restored.flush(); await restored.context.KitchenAssistantUI.open();
+  assert.match(restored.node('sheet').innerHTML, /My saved chicken curry question/); assert.match(restored.node('kitchenProposal').innerHTML, /5 equal portions/);
+  kitchenForm(restored); restored.run('recipes.find(r=>r.id==="afford-chicken-lentil-curry").ings[0][1]=200');
+  assert.equal(restored.context.KitchenAssistantUI.saveBatch(), null);
+});
+test('closed or edited kitchen requests discard late responses and cooked weights require matching recipes', async () => {
+  const app = harness(); await app.flush(); await app.context.KitchenAssistantUI.open();
+  let resolve; app.context.fetch = () => new Promise(done => { resolve = done; });
+  app.node('kitchenQuestion').value = '1kg chicken curry for 5 days'; const pending = app.context.KitchenAssistantUI.ask();
+  app.context.closeModal(); const snapshot = app.state();
+  resolve({ ok: true, json: async () => ({ source: 'ai', brief: { ingredient: 'Chicken breast', grams: 1000, basis: 'raw', days: 5, people: 1, query: 'curry' } }) });
+  await pending; assert.deepEqual(app.state(), snapshot); assert.equal(app.node('modal').style.display, 'none');
+  await app.context.KitchenAssistantUI.open(); kitchenForm(app, { kitchenBasis: 'cooked' }); app.context.KitchenAssistantUI.edit();
+  assert.match(app.node('kitchenReview').innerHTML, /Raw and cooked weights cannot be swapped/); assert.equal(app.context.KitchenAssistantUI.saveBatch(), null);
+});
+
 test('the Romanian and Polish collection filters dishes without changing a saved plan or preferences',async()=>{
  const app=harness();await app.flush();const before=app.state();app.context.showTab('recipes');app.context.setRecipeCollection('Romanian & Polish');
  assert.match(app.node('recipes').innerHTML,/Recipe cuisine/);assert.match(app.node('recipeResultCount').textContent,/48 of 48/);
