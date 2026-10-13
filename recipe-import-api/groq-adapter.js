@@ -151,6 +151,7 @@ export async function groqTranscribe({
   apiKey,
   model = 'whisper-large-v3-turbo',
   audio,
+  language,
   timeoutMs = 120000,
   fetchImpl = fetch
 }) {
@@ -160,6 +161,10 @@ export async function groqTranscribe({
   form.append('model', model);
   form.append('response_format', 'json');
   form.append('temperature', '0');
+  if (language != null && language !== 'auto') {
+    if (typeof language !== 'string' || !/^[a-z]{2}$/.test(language)) throw new TypeError('Use a two-letter source language code or automatic detection.');
+    form.append('language', language);
+  }
 
   let response;
   try {

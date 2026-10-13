@@ -210,7 +210,7 @@ function productTokens(value) {
   });
 }
 
-const OPTIONAL_INGREDIENT_WORDS = new Set(['fresh', 'frozen', 'dried', 'raw', 'lean', 'regular']);
+const OPTIONAL_INGREDIENT_WORDS = new Set(['fresh', 'frozen', 'dried', 'raw', 'lean', 'regular', 'bell']);
 const DAIRY_FLAVOURS = new Set(['banana', 'strawberry', 'raspberry', 'blueberry', 'berry', 'superberry', 'peach', 'passionfruit', 'passion', 'mango', 'papaya', 'coconut', 'lemon', 'apple', 'vanilla', 'chocolate', 'cocoa', 'caramel', 'toffee', 'coffee', 'honey', 'cherry', 'flavour', 'flavored', 'flavoured', 'shake', 'milkshake', 'cheesecake']);
 const PLANT_DAIRY_WORDS = new Set(['vegan', 'plant', 'dairyfree', 'almond', 'oat', 'soya', 'soy', 'coconut', 'cashew', 'hemp']);
 const COMPOSITE_FOODS = new Set(['soup', 'sandwich', 'wrap', 'pizza', 'medley', 'dinner', 'meal', 'risotto', 'stirfry', 'skewer', 'kebab', 'casserole', 'bake', 'burger', 'nugget', 'croquette', 'pie', 'dip', 'spread', 'cocktail']);
@@ -281,7 +281,7 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
     }
   }
 
-  const produce = preparedWords.some(word => PRODUCE_TERMS.has(word)) || (asked('pepper') && (asked('bell') || asked('sweet') || frozenRequested));
+  const produce = preparedWords.some(word => PRODUCE_TERMS.has(word)) || (asked('pepper') && (fullWords.has('bell') || asked('sweet') || frozenRequested));
   // Regular and sweet potatoes have different flavour, texture and nutrition.
   // Their shared name token cannot make either a substitute for the other.
   if (asked('potato') && asked('sweet') !== name.has('sweet')) return false;
@@ -327,7 +327,7 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
     if (asked('black') && asked('bean') && !asked('eye') && name.has('eye')) return false;
     if (asked('edamame') && /broccoli|mixed|medley|stir[ -]*fry|salad/i.test(title) && !/broccoli|mixed|medley|stir[ -]*fry|salad/i.test(query)) return false;
   }
-  if (preparedWords.some(word => SPICE_TERMS.has(word)) || asked('dill')) {
+  if (!produce && (preparedWords.some(word => SPICE_TERMS.has(word)) || asked('dill'))) {
     if (!/spice|seasoning|dry herbs|herbs|condiment/i.test(category) && !(asked('seasoning') && name.has('seasoning') && /food cupboard/i.test(category))) return false;
     if (!asked('seasoning') && !asked('curry') && /recipe mix|seasoning|sauce|chicken|fish|marinade|rub/i.test(title)) return false;
     if (asked('cinnamon') && !asked('stick') && name.has('stick')) return false;
@@ -368,8 +368,14 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   if (asked('salt') && !asked('sauce')) {
     if (!/salt|pepper|spice|seasoning/i.test(category) || /crisp|snack|nut|sauce|stock|chocolate|biscuit/i.test(title)) return false;
   }
+  if (['buckwheat', 'barley', 'polenta'].some(asked) && !asked('cooked') && !asked('ready')) {
+    if (/ready[ -]*(?:meals?|made|to[ -]*(?:eat|use))|prepared|cooked|microwav|dessert|pudding|soup|bread|biscuit|snack/i.test(category + ' ' + title)) return false;
+    if (unrequested(COMPOSITE_FOODS) || /porridge/i.test(title)) return false;
+  }
+  if (asked('stock') && !name.has('stock')) return false;
   if (asked('flour') && !asked('tortilla')) {
     if (!/flour|home baking|cooking ingredient/i.test(category) || /bread|wrap|tortilla|cake|biscuit/i.test(title)) return false;
+    if (asked('plain') && /self[ -]*rais|cornflour|rice flour|coconut|almond|gram flour/i.test(title)) return false;
   }
   if (asked('oat') && !['biscuit', 'milk', 'drink', 'bar'].some(asked)) {
     if (!/porridge|oats|cereal/i.test(category) || /biscuit|bar|bites|muesli|granola|flapjack|yoghurt|overnight|cocoa|chocolate|vanilla|syrup/i.test(title)) return false;
@@ -524,11 +530,21 @@ function packUnitMeta(product) {
 
 // Recipe quantities and retailer packs are often different units. These are
 // explicitly labelled cooking assumptions; they do not change the saved ASDA pack.
-const PRODUCE_ITEM_GRAMS = { cucumber: 300, banana: 120, apple: 180, pear: 170, lemon: 60, lime: 45, onion: 150, avocado: 150, orange: 150, mandarin: 80, carrot: 80, potato: 175, kiwi: 75, garlic: 50, lettuce: 250, melon: 700 };
+const PRODUCE_ITEM_GRAMS = { pepper: 130, cucumber: 300, banana: 120, apple: 180, pear: 170, lemon: 60, lime: 45, onion: 150, avocado: 150, orange: 150, mandarin: 80, carrot: 80, potato: 175, kiwi: 75, garlic: 50, lettuce: 250, melon: 700 };
 const SPICE_GRAMS_PER_TSP = { cinnamon: 2.6, paprika: 2.3, cumin: 2.1, chilli: 1.8, curry: 2, herb: 1, dill: 1, seasoning: 2.5, cocoa: 2.5 };
 
 function purchasePackMeta(product, wantedDimension) {
   let meta = packUnitMeta(product);
+  // A variable-weight cabbage can only use a declared typical mass when the
+  // stored item price agrees with the same snapshot's per-kg price.
+  if (!meta && wantedDimension === 'mass' && /per\s*kg/i.test(String(product?.packSize || ''))) {
+    const declared = String(product?.name || '').match(/typically\s+(\d+(?:\.\d+)?)\s*(kg|g)\b/i);
+    const grams = declared ? Number(declared[1]) * (declared[2].toLowerCase() === 'kg' ? 1000 : 1) : 0;
+    const perKg = Number(product?.pricePerUnit), price = Number(product?.price);
+    if (grams > 0 && grams <= 25000 && perKg > 0 && /\/\s*kg\b/i.test(String(product?.pricePerUnitLabel || '')) && Math.abs(price - grams * perKg / 1000) < .02) {
+      meta = { dimension: 'mass', capacity: grams, estimatedQuantity: true, quantityBasis: `Using the declared typical ${grams} g item weight; actual weight and checkout cost vary.` };
+    }
+  }
   if (!meta) return null;
   const words = new Set(productTokens(product?.name));
   const rawCategory = [product?.category, ...(product?.categoryPath || [])].filter(Boolean).join(' ');
@@ -538,7 +554,7 @@ function purchasePackMeta(product, wantedDimension) {
   // per-kg price for these drained foods uses the edible weight. Infer it only
   // for those families, with a consistent near-whole-gram result; leave tomato
   // sauces, baked beans, frozen vegetables and other full-content packs alone.
-  const drainedFood = /tinned|canned/i.test(category) &&
+  const drainedFood = words.has('sauerkraut') || /tinned|canned/i.test(category) &&
     ((words.has('tuna') && /brine|spring water|in water|sunflower oil|olive oil/i.test(title)) || words.has('sweetcorn') ||
       ((words.has('bean') || words.has('chickpea') || words.has('lentil')) && !/baked|sauce|salad|soup/i.test(title)));
   const unitPrice = Number(product.pricePerUnit), unitLabel = String(product.pricePerUnitLabel || '');
@@ -547,6 +563,7 @@ function purchasePackMeta(product, wantedDimension) {
     const grams = Math.round(inferredDrained);
     meta = { ...meta, capacity: grams, estimatedQuantity: true, quantityBasis: `Using ${grams} g drained edible contents inferred from ASDA's per-kg unit price; the ${product.packSize} label includes liquid.` };
   }
+  if (words.has('sauerkraut') && wantedDimension === 'mass' && !meta.estimatedQuantity) return null;
   if (meta.dimension === wantedDimension) return meta;
   const declaredAmount = title.match(/\b(\d+(?:\.\d+)?)\s*(ml|kg|g|litres?|liters?|l)\b/i);
   if (declaredAmount && meta.dimension !== wantedDimension) {

@@ -1,7 +1,7 @@
 /* Shared shopping quantities for the browser and the catalogue worker. */
 (function (root) {
   'use strict';
-  const produceGrams = { cucumber: 300, banana: 120, apple: 180, pear: 170, lemon: 60, lime: 45, onion: 150, avocado: 150, orange: 150, mandarin: 80, carrot: 80, potato: 175, kiwi: 75, garlic: 50, lettuce: 250, melon: 700 };
+  const produceGrams = { 'bell pepper': 130, cucumber: 300, banana: 120, apple: 180, pear: 170, lemon: 60, lime: 45, onion: 150, avocado: 150, orange: 150, mandarin: 80, carrot: 80, potato: 175, kiwi: 75, garlic: 50, lettuce: 250, melon: 700 };
   const spiceGrams = { cinnamon: 2.6, paprika: 2.3, cumin: 2.1, chilli: 1.8, curry: 2, herb: 1, dill: 1, seasoning: 2.5, cocoa: 2.5 };
   const canonicalIngredientName = name => String(name || '').trim().replace(/\s+/g, ' ').toLowerCase().replace(/\byogurt\b/g, 'yoghurt');
   const isCookingWater = name => /^(?:tap |cooking )?water$/.test(canonicalIngredientName(name));

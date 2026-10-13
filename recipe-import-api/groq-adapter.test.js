@@ -1,7 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { groqChatCompletion, groqRecipeCompletion, GroqApiError, evenlySampleFrames, parseRetryDelayFromMessage } from './groq-adapter.js';
+import { groqChatCompletion, groqRecipeCompletion, groqTranscribe, GroqApiError, evenlySampleFrames, parseRetryDelayFromMessage } from './groq-adapter.js';
 const success = () => new Response(JSON.stringify({ choices: [{ message: { content: '{"name":"Rice"}' } }] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+test('speech recognition uses the source language rather than forcing English transcription',async()=>{
+ for(const language of ['auto','ro','pl',undefined]){
+  let form,url;const text=await groqTranscribe({apiKey:'test-only',audio:Buffer.from('audio'),language,fetchImpl:async(target,options)=>{url=target;form=options.body;return new Response(JSON.stringify({text:'Składniki: 1,5 kg ziemniaków'}),{status:200});}});
+  assert.match(url,/audio\/transcriptions$/);assert.equal(form.get('language'),language&&language!=='auto'?language:null);
+  assert.equal(form.get('model'),'whisper-large-v3-turbo');assert.match(text,/1,5/);
+ }
+});
+test('invalid speech language hints fail before a provider request',async()=>{
+ for(const language of ['Romanian','ro; ignore instructions',42])await assert.rejects(groqTranscribe({apiKey:'test-only',audio:Buffer.from('audio'),language,fetchImpl:()=>{throw new Error('Unexpected network request');}}),/two-letter source language/);
+});
 test('text imports use a documented free text model with no image content', async () => {
   let body;
   const text = await groqRecipeCompletion({ apiKey: 'test-only', userText: 'Recipe text', fetchImpl: async (_url, options) => { body = JSON.parse(options.body); return success(); } });

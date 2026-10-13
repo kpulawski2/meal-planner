@@ -1,7 +1,7 @@
 /* Search across separate words; unknown nutrition and time sort last. */
 (function(root){
  'use strict';
- const normal=value=>String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ const normal=value=>String(value||'').normalize('NFKD').replace(/[łŁ]/g,'l').replace(/[\u0300-\u036f]/g,'').toLowerCase();
  const words=value=>normal(value).split(/[^a-z0-9@]+/).filter(Boolean);
  const aliases={mayo:['mayo','mayonnaise'],mayonnaise:['mayo','mayonnaise'],pickles:['pickle','pickles','gherkin','gherkins','cornichon'],pickle:['pickle','pickles','gherkin','gherkins','cornichon'],yogurt:['yogurt','yoghurt'],yoghurt:['yogurt','yoghurt']};
  function matches(recipe,query){const hay=normal([recipe.name,recipe.cat,recipe.creator,...(recipe.equipment||[]),...(recipe.tags||[]),...(recipe.ings||[]).map(row=>row[0])].join(' '));return words(query).every(word=>(aliases[word]||[word]).some(term=>hay.includes(term)));}

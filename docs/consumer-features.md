@@ -163,6 +163,21 @@ equipment. Planning respects those requirements while browsing stays open.
 Hands-on time is shown separately from chilling/slow cooking. See
 [the collection's sources and batch behaviour](social-recipes.md).
 
+## English video imports and Romanian / Polish dishes
+
+**Import recipe → Source language** offers automatic video detection or a source
+language hint, including Romanian and Polish. Spoken details, captions and
+readable sampled frame text are requested as English ingredients and steps.
+Choose the language for a non-English pasted recipe or website. Review uncertain
+amounts and the translation before saving. This uses the existing optional AI
+connection; English structured imports retain their path without AI.
+
+**Recipes → Romanian & Polish** adds 48 measured lighter adaptations: 24 for each
+country, with breakfasts, lunches, dinners and snacks. Choose either cuisine,
+search traditional names or ingredients, filter equipment and save favourites.
+Daily macros, dietary settings, appliances and full-pack budgets still apply.
+See [translation behaviour, recipe coverage and ingredient references](multilingual-regional-recipes.md).
+
 ## Prep centre and use-soon reminders
 
 Plan → **Build prep session** groups recipes over your chosen days, subtracts
