@@ -129,6 +129,42 @@ function tailoredForm(app,overrides={}){
   app.context.document.querySelectorAll=selector=>selector==='[data-tailored-equipment]:checked'?[{value:'Hob'}]:original(selector);
 }
 
+test('the Romanian and Polish collection filters dishes without changing a saved plan or preferences',async()=>{
+ const app=harness();await app.flush();const before=app.state();app.context.showTab('recipes');app.context.setRecipeCollection('Romanian & Polish');
+ assert.match(app.node('recipes').innerHTML,/Recipe cuisine/);assert.match(app.node('recipeResultCount').textContent,/48 of 48/);
+ app.context.setRecipeCuisine('Polish');assert.match(app.node('recipeResultCount').textContent,/24 of 24/);assert.doesNotMatch(app.node('recipeResults').innerHTML,/Chicken Ostropel/);
+ app.context.setRecipeCategory('Breakfast');assert.match(app.node('recipeResultCount').textContent,/4 of 4/);
+ app.context.setRecipeCategory('All');app.node('recipeSearch').value='golabki';app.context.filterRecipes();assert.match(app.node('recipeResultCount').textContent,/1 of 1/);assert.match(app.node('recipeResults').innerHTML,/Gołąbki/);
+ // This minimal DOM keeps old input nodes after innerHTML replacement; mirror
+ // the empty search input that reset renders in the browser.
+ app.node('recipeSearch').value='';app.context.clearRecipeFilters();app.context.setRecipeCollection('Romanian & Polish');app.context.setRecipeCuisine('Romanian');assert.match(app.node('recipeResultCount').textContent,/24 of 24/);
+ app.context.setRecipeCollection('Everyday');assert.equal(app.run('activeRecipeCuisine'),'All');
+ for(const key of ['week','profile','pantry','pantryLedger','foodLog'])assert.deepEqual(app.state()[key],before[key]);
+});
+test('regional favourites and recipe copies keep culture credit, complete estimates and dietary checks',async()=>{
+ const app=harness();await app.flush();const id='regional-ostropel',recipe=app.context.getRecipe(id);
+ assert.equal(app.context.recipeNutrition(recipe).complete,true);assert.equal(app.context.recipeAllowed(recipe,{...app.state().profile,diet:'Vegan'}),false);
+ app.context.toggleFavorite(id);app.context.showTab('favourites');assert.match(app.node('favouritesResults').innerHTML,/Chicken Ostropel/);
+ app.context.showRecipe(id);assert.match(app.node('sheet').innerHTML,/Romanian cuisine guide|Original Meal Planner/);
+ app.context.makeRecipeCopy(id);const copied=app.state().customRecipes.at(-1);assert.equal(copied.cuisine,'Romanian');assert.equal(copied.sourceType,'cuisine-reference');
+ assert.equal(app.context.recipeNutrition(copied).complete,true);const restored=harness({state:app.state()});await restored.flush();assert.ok(restored.state().favorites.includes(id));
+});
+test('English import review forwards source-language hints and keeps translation provenance in saved recipes',async()=>{
+ const app=harness();await app.flush();app.context.openAddRecipe();app.node('newSourceLanguage').value='ro';app.node('newNotes').value='Ingrediente: 200 g piept de pui.';
+ let request;app.context.fetch=async(url,options)=>{request={url,options};return{ok:true,text:async()=>JSON.stringify({recipe:{name:'Romanian Chicken Soup',category:'Lunch',servings:2,outputLanguage:'en',sourceLanguage:'ro',sourceLanguageBasis:'selected',ingredients:[{name:'Chicken breast',quantity:200,unit:'g'}],steps:['Simmer until fully cooked.'],warnings:['Check the unclear source amount.']},extraction:{method:'ai'}})};};
+ await app.context.importRecipe();assert.equal(JSON.parse(request.options.body).sourceLanguage,'ro');assert.match(app.node('importPreview').innerHTML,/English recipe.*Romanian/);
+ assert.match(app.node('importPreview').innerHTML,/details open.*Source details to review.*unclear source amount/);
+ assert.equal(app.node('newIngredients').value,'Chicken breast | 200 | g');assert.match(app.node('newMethod').value,/Simmer until fully cooked/);
+ app.context.saveNewRecipe();const recipe=app.state().customRecipes.at(-1);assert.equal(recipe.translation.outputLanguage,'en');assert.equal(recipe.translation.sourceLanguage,'ro');
+ const restored=harness({state:app.state()});await restored.flush();restored.context.showRecipe(recipe.id);assert.match(restored.node('sheet').innerHTML,/Imported into English.*Romanian/);
+});
+test('video uploads carry the language hint and a failed translation preserves the current review draft',async()=>{
+ const app=harness();await app.flush();app.context.openAddRecipe();app.node('newSourceLanguage').value='pl';app.node('newVideoFile').files=[new File(['video'],'recipe.mp4',{type:'video/mp4'})];app.node('newName').value='Keep my draft';app.node('newIngredients').value='Oats | 40 | g';
+ let body;app.context.fetch=async(url,options)=>{body=options.body;return{ok:false,status:502,text:async()=>JSON.stringify({error:'The importer could not confirm English recipe output. Retry.'})};};
+ await app.context.importRecipe();assert.equal(body.get('sourceLanguage'),'pl');assert.equal(body.get('video').name,'recipe.mp4');
+ assert.equal(app.node('newName').value,'Keep my draft');assert.equal(app.node('newIngredients').value,'Oats | 40 | g');assert.equal(app.node('newSourceLanguage').value,'pl');assert.match(app.node('importStatus').textContent,/English recipe output/);
+});
+
 test('saved cooking resumes across reload and backup without recording stock or food', async () => {
   const app = harness(); await app.flush(); const before = app.state();
   app.context.ConsumerUI.start(basic.id, 'Monday', 0); app.context.ConsumerUI.step(1); app.context.ConsumerUI.closeCooking();
