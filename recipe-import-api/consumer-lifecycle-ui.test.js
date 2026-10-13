@@ -133,6 +133,49 @@ function kitchenForm(app, overrides = {}) {
   for (const [id, value] of Object.entries({ kitchenIngredient: 'Chicken breast', kitchenGrams: 1000, kitchenBasis: 'raw', kitchenDays: 5, kitchenPeople: 1, kitchenStyle: 'curry', kitchenRecipe: 'afford-chicken-lentil-curry', ...overrides })) app.node(id).value = value;
 }
 
+test('the conversational assistant retains food requests across follow-ups and keeps all plan/stock/intake records read-only', async () => {
+ const app=harness();await app.flush();const before=app.state();app.context.KitchenAgentUI.open();
+ app.node('agentQuestion').value='Find high-protein chicken dinners';await app.context.KitchenAgentUI.send();
+ let conversation=app.state().kitchenConversation;assert.equal(conversation.messages.length,2);assert.equal(conversation.focus.protein,'chicken');assert.ok(conversation.messages[1].recipeIds.length);assert.match(app.node('agentMessages').innerHTML,/Per portion/);
+ app.node('agentQuestion').value='Make it lower fat';await app.context.KitchenAgentUI.send();conversation=app.state().kitchenConversation;assert.equal(conversation.messages.length,4);assert.equal(conversation.focus.protein,'chicken');assert.equal(conversation.focus.lowerFat,true);assert.equal(conversation.focus.category,'Dinner');
+ app.node('agentQuestion').value='Compare these recipes';await app.context.KitchenAgentUI.send();assert.equal(app.state().kitchenConversation.messages.at(-1).kind,'compare');
+ for(const key of ['week','profile','pantry','leftovers','foodLog','savedFoods','shopping','pantryLedger'])assert.deepEqual(app.state()[key],before[key],key);
+ const restored=harness({state:app.state()});await restored.flush();restored.context.KitchenAgentUI.open();assert.match(restored.node('agentMessages').innerHTML,/Make it lower fat/);assert.equal(restored.state().kitchenConversation.focus.protein,'chicken');
+});
+test('assistant context selection strips private data and closing a pending request retains a retryable draft',async()=>{
+ const app=harness();await app.flush();app.context.KitchenAgentUI.open();app.node('agentUseSettings').checked=false;app.node('agentUsePantry').checked=false;app.context.KitchenAgentUI.contextChanged();
+ let resolve,body;app.context.fetch=(_url,options)=>new Promise(done=>{body=JSON.parse(options.body);resolve=done;});app.node('agentQuestion').value='Find chicken dinners';const pending=app.context.KitchenAgentUI.send();
+ assert.equal(body.context,null);assert.equal(body.foodLog,undefined);assert.equal(body.personalNotes,undefined);assert.ok(body.recipes.every(row=>row.personalNote===undefined));
+ app.context.closeModal();const before=app.state();resolve({ok:true,json:async()=>({text:'A late response',source:'ai',recipeIds:body.recipes.slice(0,1).map(row=>row.id)})});await pending;assert.deepEqual(app.state(),before);assert.equal(app.state().kitchenConversation.draft,'Find chicken dinners');assert.equal(app.state().kitchenConversation.messages.length,0);
+});
+test('changed recipes disable assistant actions and batch handoff retains confirmed quantities through follow-ups',async()=>{
+ const app=harness({state:{profile:{days:7,meals:3,budget:35,people:1,calories:1600,protein:150,cookTime:45,supermarket:'Asda',equipment:['Hob']}}});await app.flush();app.context.KitchenAgentUI.open();
+ app.node('agentQuestion').value='Help me prep 1kg raw chicken breast curry for 5 days';await app.context.KitchenAgentUI.send();app.node('agentQuestion').value='Make it lower fat';await app.context.KitchenAgentUI.send();
+ let message=app.state().kitchenConversation.messages.at(-1);const id=message.recipeIds[0];app.context.KitchenAgentUI.prepare(id,3);await app.flush();assert.match(app.node('kitchenReview').innerHTML,/Weight available/);assert.match(app.node('kitchenProposal').innerHTML,/1,000 g raw chicken breast/);assert.match(app.node('kitchenProposal').innerHTML,/5 equal portions/);
+ app.context.closeModal();app.context.KitchenAgentUI.open();app.run('recipes.find(r=>r.id===state.kitchenConversation.messages[3].recipeIds[0]).ings[0][1]+=1');
+ const before=app.state().week;app.context.KitchenAgentUI.view(id,3);assert.deepEqual(app.state().week,before);assert.match(app.node('toast').textContent,/settings changed/);
+});
+test('assistant storage advice and plan requests use deterministic guides and explicit existing reviews',async()=>{
+ const app=harness();await app.flush();const before=app.state();app.context.KitchenAgentUI.open();app.node('agentQuestion').value='How long can I keep cooked rice in the fridge?';await app.context.KitchenAgentUI.send();
+ assert.match(app.node('agentMessages').innerHTML,/24 hours/);assert.match(app.node('agentMessages').innerHTML,/within one hour/);assert.match(app.node('agentMessages').innerHTML,/Food Standards Agency|gov.uk/);
+ app.node('agentQuestion').value='For the next 14 days, overnight oats for breakfast, tuna lunch and chicken dinner, 1600 calories per day';await app.context.KitchenAgentUI.send();assert.match(app.node('agentMessages').innerHTML,/Review my plan request/);
+ assert.deepEqual(app.state().week,before.week);assert.deepEqual(app.state().profile,before.profile);assert.deepEqual(app.state().pantry,before.pantry);
+ app.context.KitchenAgentUI.plan(3);await app.flush();assert.match(app.node('sheet').innerHTML,/Tailor your next plan/);assert.match(app.state().tailoredDraft.text,/next 14 days/);assert.deepEqual(app.state().week,before.week);
+});
+test('new navy defaults and selectable palettes survive reload without changing food or planning preferences',async()=>{
+ const app=harness();await app.flush();const before=app.state();assert.equal(app.context.AppExperienceUI.prefs().palette,'navy');
+ app.context.AppExperienceUI.palette('clay');assert.equal(app.state().interfacePreferences.palette,'clay');app.context.AppExperienceUI.theme('dark');assert.match(app.context.AppExperienceUI.more(),/Navy &amp; soft blue|Navy & soft blue/);
+ for(const key of ['week','profile','pantry','foodLog','pantryLedger'])assert.deepEqual(app.state()[key],before[key],key);
+ const restored=harness({state:app.state()});await restored.flush();assert.equal(restored.context.AppExperienceUI.prefs().palette,'clay');assert.equal(restored.context.AppExperienceUI.prefs().theme,'dark');
+});
+test('assistant food requests can tighten a vegan profile but cannot loosen its animal-ingredient restrictions',async()=>{
+ const app=harness({state:{profile:{days:7,meals:3,budget:35,people:1,calories:1600,protein:150,cookTime:45,supermarket:'Asda',equipment:['Hob'],diet:'Vegan'}}});await app.flush();app.context.KitchenAgentUI.open();
+ app.node('agentQuestion').value='Find vegetarian dinners';await app.context.KitchenAgentUI.send();
+ const ids=app.state().kitchenConversation.messages.at(-1).recipeIds;assert.ok(ids.length);
+ for(const id of ids)assert.equal(app.run('recipeAllowed(getRecipe('+JSON.stringify(id)+'),{...state.profile,varietyMode:"Balanced",tailoredMeals:{},scheduledMeals:[]})'),true);
+ assert.equal(app.state().profile.diet,'Vegan');
+});
+
 test('pantry filters and reversible quantity corrections keep the diary, meal plan and paid spending separate', async () => {
   const app = harness(); await app.flush(); const before = app.state(); app.context.PantryUI.renderPantry();
   app.node('pantryStockQuery').value = 'milk'; app.node('pantryStockPlace').value = 'Fridge'; app.node('pantryStockStatus').value = 'all'; app.context.PantryUI.searchStock();

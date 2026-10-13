@@ -3,8 +3,8 @@
   "short_name": "Meal Plan",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f4f6f1",
-  "theme_color": "#2e6745",
+  "background_color": "#f5f7fb",
+  "theme_color": "#294d7b",
   "icons": [
     {
       "src": "/icon.svg",

@@ -117,6 +117,19 @@
     } catch (error) { api.toast(error.message); return null; }
   }
   function viewSaved() { const id = saveBatch(); if (id) { cancel(); api.showRecipe(id); } }
+  function canPrep(recipe) {
+    return Boolean(recipe && !recipe.fixedBatch && Core().ingredients.some(([ingredient]) => ['raw', 'cooked', 'dry', 'drained'].some(basis => Core().anchorMass(recipe, { ingredient, basis }) > 0)));
+  }
+  async function openRecipe(id, wanted = null) {
+    const recipe = api.recipes().find(row => row.id === id);
+    if (!canPrep(recipe)) { api.toast('Open this recipe to review its measured original batch; it cannot be scaled by a supported main ingredient.'); return; }
+    let target = null;
+    for (const [ingredient] of Core().ingredients) for (const basis of ['raw', 'cooked', 'dry', 'drained']) if (!target && Core().anchorMass(recipe, { ingredient, basis }) > 0) target = { ingredient, basis };
+    let brief; try { brief = Core().normalise(wanted || {}); } catch { brief = Core().normalise(); }
+    const grams = brief.ingredient === target.ingredient && brief.basis === target.basis ? brief.grams : null;
+    api.state().kitchenAssistantDraft = { text: '', selected: id, brief: Core().normalise({ ...brief, ...target, grams, query: '' }) };
+    api.save(); await open();
+  }
   function cook() { const id = saveBatch(); if (id) { const portions = shown.portions; cancel(); root.ConsumerUI.start(id, null, null, portions); } }
   function exportGuide() {
     try {
@@ -129,5 +142,5 @@
       api.download('kitchen-prep-guide.txt', lines.join('\n'), 'text/plain'); api.toast('Prep guide downloaded');
     } catch (error) { api.toast(error.message); }
   }
-  root.KitchenAssistantUI = { configure: value => { api = value; }, panel, open, ask, example, edit, questionChanged, cancel, saveBatch, viewSaved, cook, exportGuide };
+  root.KitchenAssistantUI = { configure: value => { api = value; }, panel, open, ask, example, edit, questionChanged, cancel, saveBatch, viewSaved, canPrep, openRecipe, cook, exportGuide };
 })(globalThis);

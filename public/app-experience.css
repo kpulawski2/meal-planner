@@ -221,3 +221,55 @@ html[data-theme=dark] .serving-controls input,html[data-theme=dark] .swap-filter
 .assistant-privacy { margin:12px 0; }
 .kitchen-assistant #kitchenReview { scroll-margin-top:18px; }
 @media(max-width:400px) { .pantry-stock .section-heading { gap:10px; flex-wrap:wrap; } .stock-toolbar .grid { grid-template-columns:1fr; } }
+/* Navy is the default; palettes are independent of light/dark appearance. */
+:root,html[data-palette=navy] {
+  --bg:#f5f7fb;--card:#fff;--text:#202e43;--muted:#5e6d82;--line:#dce3ee;
+  --accent:#294d7b;--green:#416c9f;--danger:#ae4237;--surface:#eef2f8;
+  --soft:#e7edf6;--hero:#e1eaf7;--hero-text:#1f3d63;--hero-muted:#4d6584;
+  --art-bg:#e8edf5;--art-ink:#4b607c;--on-accent:#fff;--plate-shadow:#213b60;
+  --shadow:0 6px 24px #203c6010;
+}
+html[data-palette=clay] {--bg:#faf7f3;--text:#43302a;--muted:#7c665d;--line:#e9dfd6;--accent:#99533a;--green:#a96a51;--surface:#f4eee7;--soft:#f0e5da;--hero:#f0e2d5;--hero-text:#693f2f;--hero-muted:#7b5c4a;--art-bg:#f0e9de;--art-ink:#81624f;--plate-shadow:#70422f}
+html[data-palette=slate] {--bg:#f6f7f8;--text:#29313b;--muted:#626d7a;--line:#dfe3e8;--accent:#424f60;--green:#64758b;--surface:#eef0f3;--soft:#e6e9ee;--hero:#e3e7ed;--hero-text:#313e50;--hero-muted:#5b6677;--art-bg:#e8ebef;--art-ink:#5b697d;--plate-shadow:#344255}
+html[data-theme=dark],html[data-theme=dark][data-palette=navy] {
+  --bg:#111c2c;--card:#1a2940;--text:#edf2fa;--muted:#afbed3;--line:#364b67;
+  --accent:#a6c9f4;--green:#8eb8ed;--danger:#ffaaa0;--surface:#24364f;
+  --soft:#2a3f5c;--hero:#263d5a;--hero-text:#eef4fc;--hero-muted:#bdcfe4;
+  --art-bg:#2a3e59;--art-ink:#c1d2e9;--on-accent:#152942;--plate-shadow:#0a1728;
+}
+html[data-theme=dark][data-palette=clay] {--bg:#251b18;--card:#33241e;--text:#fbf0e8;--muted:#d0b9aa;--line:#594235;--accent:#f1bb9e;--green:#e6a78c;--surface:#423026;--soft:#493529;--hero:#4b3529;--hero-text:#fff0e4;--hero-muted:#dfc6b4;--art-bg:#453126;--art-ink:#e9cdb5;--on-accent:#382217;--plate-shadow:#21140d}
+html[data-theme=dark][data-palette=slate] {--bg:#191d24;--card:#252c36;--text:#f0f3f8;--muted:#b9c2ce;--line:#434e60;--accent:#c1ccd9;--green:#a9b7ca;--surface:#303b4b;--soft:#364354;--hero:#354154;--hero-text:#f2f5fa;--hero-muted:#c4cedd;--art-bg:#364358;--art-ink:#cbd4e2;--on-accent:#263142;--plate-shadow:#101820}
+.welcome-hero .eyebrow,.welcome-hero p,html[data-theme=dark] .welcome-hero .eyebrow,html[data-theme=dark] .welcome-hero p {color:var(--hero-muted)}
+.recipe-art,.art-salad,.art-supper,.art-snack,html[data-theme=dark] .recipe-art,html[data-theme=dark] .art-salad,html[data-theme=dark] .art-supper,html[data-theme=dark] .art-snack {background:var(--art-bg);color:var(--art-ink)}
+.btn,.chip.on,.theme-options button.selected,.day-choice.selected,.recipe-filter.active,html[data-theme=dark] .btn,html[data-theme=dark] .chip.on,html[data-theme=dark] .theme-options button.selected,html[data-theme=dark] .day-choice.selected,html[data-theme=dark] .recipe-filter.active {color:var(--on-accent)}
+.btn.secondary,html[data-theme=dark] .btn.secondary {color:var(--accent)}
+.macro-track i,.macro-tile:nth-child(2) i,.macro-tile:nth-child(3) i,.macro-tile:nth-child(4) i {background:var(--accent)}
+.macro-over .macro-track i {background:var(--danger)}
+.experience-status {border-color:var(--line)}
+.day-choice.selected {box-shadow:none}
+.overview-stat,.dashboard-extra span,.prep-stats>div,.cook-timer,.shopping-done-panel,.cook-ingredients,.swap-preview,.recipe-freeze,.food-diary .import-preview {background:var(--surface);color:var(--text);border-color:var(--line)}
+input:focus,select:focus,textarea:focus {border-color:var(--accent);box-shadow:0 0 0 3px var(--soft)}
+:focus-visible {outline-color:var(--accent)}
+.palette-heading {margin-top:24px!important}.palette-options {display:flex;gap:8px;flex-wrap:wrap}
+.palette-choice {display:flex;gap:8px;align-items:center;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);font-size:12px}
+.palette-choice.selected {border-color:var(--accent);background:var(--soft)}
+.palette-choice>span {width:17px;height:17px;border-radius:50%;background:#294d7b}.palette-clay>span {background:#99533a}.palette-slate>span {background:#424f60}
+.agent-toolbar,.agent-followups,.agent-starters {display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.agent-context {padding:12px;border:1px solid var(--line);border-radius:12px;margin:12px 0}
+.agent-context label {display:flex;gap:9px;align-items:flex-start;margin:14px 0}
+.agent-message {padding:16px;border-radius:16px;border:1px solid var(--line);margin:14px 0;background:var(--card)}
+.agent-user {background:var(--soft);margin-left:24px}.agent-answer-text {white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.65}
+.agent-welcome {padding:20px;border-radius:16px;background:var(--surface);margin:20px 0}
+.agent-recipe-grid {display:grid;gap:12px}.agent-recipe {padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);min-width:0}
+.agent-recipe h4 {margin:0 0 8px;font-size:15px;overflow-wrap:anywhere}.agent-macro-row {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;font-size:11px}
+.agent-macro-row b {font-size:18px;display:block}.agent-compose {padding-top:18px;border-top:1px solid var(--line);margin-top:20px}
+.agent-storage {border-top:1px solid var(--line);padding-top:14px;margin-top:16px;font-size:13px}.agent-storage li {margin-bottom:12px}
+.agent-message .chip,.agent-starters .chip {white-space:normal;text-align:left;font-size:12px}
+.agent-messages {scroll-margin-top:20px}
+.planner-help>summary,.assistant-privacy>summary,.agent-context>summary,.kitchen-chat a,.kitchen-assistant a {color:var(--accent)}
+.agent-stock {font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.modal {background:color-mix(in srgb,var(--plate-shadow) 60%,transparent)}
+.prep-organised {border-color:var(--accent)}
+.barcode-video {background:var(--plate-shadow)}
+@media(min-width:700px) {.agent-recipe-grid {grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:400px) {.agent-user {margin-left:12px}.agent-message {padding:12px}.agent-recipe {padding:12px}.palette-options {flex-direction:column}.agent-toolbar {gap:4px}}
