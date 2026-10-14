@@ -351,11 +351,15 @@ function candidateAmounts(state, template) {
   return amounts;
 }
 
-function candidateCost(state, template, stock, books) {
+function candidateCost(state, template, bindings) {
   let cost = state.cost;
-  for (const [key, quantity] of candidateAmounts(state, template)) {
-    const previous = state.amounts.get(key) || 0, book = books.get(key), inventory = stock.get(key) || 0;
-    const oldCost = book?.cost(Math.max(0, previous - inventory)) ?? (previous <= inventory + EPS ? 0 : Infinity);
+  // Every template visits the same parent basket. Its existing ingredient
+  // costs are exact and can be reused instead of solving them millions of times.
+  const entries = template.batchRecipes?.length
+    ? [...candidateAmounts(state, template)].map(([key, quantity]) => ({ quantity, binding: bindings.get(key) }))
+    : template.pricing;
+  for (const { quantity, binding } of entries) {
+    const { previous, oldCost, book, inventory } = binding;
     const newCost = book?.cost(Math.max(0, previous + quantity - inventory)) ?? (previous + quantity <= inventory + EPS ? 0 : Infinity);
     if (!Number.isFinite(newCost)) return Infinity;
     cost += newCost - oldCost;
@@ -368,14 +372,30 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
   const requiredFamilies = Math.min(policy.requiredFamilies, new Set(templates.flatMap(template => mainIndexes.map(index => template.rows[index].family))).size);
   const cheapest = preferCost || profile.priority === 'Cheapest' || profile.varietyMode === 'Budget focus';
   const saveMoney = activeGoals(profile).includes('Save money'), easy = activeGoals(profile).includes('Make cooking easier');
-  const width = names.length > 7 ? 90 : 72;
+  // Two-week searches have twice as many stages. Bound their frontier to keep
+  // the full period within the free CPU deadline; all acceptance rules stay hard.
+  const width = names.length > 7 ? 48 : 72;
   const slotPolicies = slots.map(slot => Core.slotVarietyPolicy(profile, slot, names.length));
   const repeatLimits = slotPolicies.map(row => row.repeatLimit), minimumDistinct = slotPolicies.map(row => row.minimumDistinct);
-  const clean = { days: [], amounts: new Map(), batchPortions: new Map(), cost: 0, quality: 0, batches: new Set(), counts: new Map(), distinct: slots.map(() => new Set()), ordinaryCounts:new Map(),ordinaryDistinct:slots.map(()=>new Set()),families: new Map(), rank: 0 };
+  const exactLifecyclePricing = Object.keys(request.cookedMeals || {}).length > 0 || Boolean(request.leftovers?.length);
+  const bindings = new Map();
+  const bindingFor = key => {
+    if (!bindings.has(key)) bindings.set(key, { key, book: books.get(key), inventory: stock.get(key) || 0, previous: 0, oldCost: 0 });
+    return bindings.get(key);
+  };
+  const clean = { days: [], amounts: new Map(), ingredientCosts: new Map(), batchPortions: new Map(), cost: 0, quality: 0, batches: new Set(), counts: new Map(), distinct: slots.map(() => new Set()), ordinaryCounts:new Map(),ordinaryDistinct:slots.map(()=>new Set()),families: new Map(), rank: 0 };
+  const familyShapes = new WeakMap();
   const shapeOf = proposal => {
-    const familyCounts = new Map(proposal.state.families);
-    for (const index of mainIndexes) { const family = proposal.template.rows[index].family; familyCounts.set(family, (familyCounts.get(family) || 0) + 1); }
-    return proposal.template.rows.map((row, index) => proposal.state.distinct[index].size + (proposal.state.distinct[index].has(row.id) ? 0 : 1)).join(',') + ':' + [...familyCounts].sort(([a], [b]) => a.localeCompare(b)).map(([family, count]) => `${family}:${count}`).join(',') + ':' + mainIndexes.map(index => proposal.template.rows[index].family).join(',');
+    let shapes = familyShapes.get(proposal.state); if (!shapes) { shapes = new Map(); familyShapes.set(proposal.state, shapes); }
+    const familyKey = proposal.template.familyKey;
+    let familyShape = shapes.get(familyKey);
+    if (familyShape === undefined) {
+      const familyCounts = new Map(proposal.state.families);
+      for (const [family, count] of proposal.template.familyIncrements) familyCounts.set(family, (familyCounts.get(family) || 0) + count);
+      familyShape = [...familyCounts].sort(([a], [b]) => a.localeCompare(b)).map(([family, count]) => `${family}:${count}`).join(',') + ':' + familyKey;
+      shapes.set(familyKey, familyShape);
+    }
+    return proposal.template.rows.map((row, index) => proposal.state.distinct[index].size + (proposal.state.distinct[index].has(row.id) ? 0 : 1)).join(',') + ':' + familyShape;
   };
   let beam = [clean], expansions = 0; const stages = [];
   for (const [dayIndex, name] of names.entries()) {
@@ -386,24 +406,34 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
       if (seenDay.has(signature)) continue; seenDay.add(signature);
       if (!template.amounts) { template.amounts = requirementAmounts([template], people); template.quality = dailyQuality(template.rows, template.factors, profile); }
       if (!template.batchRecipes) template.batchRecipes = batchUses(template, people);
+      if (!template.pricing) template.pricing = [...template.amounts].map(([key, quantity]) => ({ quantity, binding: bindingFor(key) }));
+      if (!template.familyIncrements) {
+        const increments = new Map(); for (const index of mainIndexes) { const family = template.rows[index].family; increments.set(family, (increments.get(family) || 0) + 1); }
+        template.familyIncrements = [...increments];
+        template.familyKey = mainIndexes.map(index => template.rows[index].family).join(',');
+      }
+      if (template.preferencePenalty === undefined) template.preferencePenalty = template.rows.reduce((sum, row) => sum + row.preference * 25, 0);
       options.push(template);
     }
     const proposals = [];
     for (const state of beam) {
+      if (!exactLifecyclePricing) for (const binding of bindings.values()) {
+        binding.previous = state.amounts.get(binding.key) || 0; binding.oldCost = state.ingredientCosts.get(binding.key) || 0;
+      }
       const siblings = [];
       for (const template of options) {
       expansions++;
-      const previous = state.days.at(-1), main = mainIndexes.map(index => template.rows[index]);
+      const previous = state.days.at(-1);
       if (template.rows.some((row, i) => !Intent.exception(profile,slots[i],dayIndex)&&(state.ordinaryCounts.get(row.id) || 0) >= repeatLimits[i] || slotPolicies[i].avoidConsecutive && previous?.rows[i].id === row.id)) continue;
-      const increments = new Map(); for (const row of main) increments.set(row.family, (increments.get(row.family) || 0) + 1);
-      if ([...increments].some(([family, count]) => (state.families.get(family) || 0) + count > policy.dominantFamilyLimit)) continue;
+      const increments = template.familyIncrements;
+      if (increments.some(([family, count]) => (state.families.get(family) || 0) + count > policy.dominantFamilyLimit)) continue;
       const remainingDays = names.length - dayIndex - 1;
       if (template.rows.some((row, i) => state.ordinaryDistinct[i].size + (Intent.exception(profile,slots[i],dayIndex)||state.ordinaryDistinct[i].has(row.id) ? 0 : 1) + remainingDays < minimumDistinct[i])) continue;
-      const familyCount = new Set([...state.families.keys(), ...increments.keys()]).size;
+      let familyCount = state.families.size; for (const [family] of increments) if (!state.families.has(family)) familyCount++;
       if (familyCount + remainingDays * 2 < requiredFamilies) continue;
-      const cost = Object.keys(request.cookedMeals || {}).length || request.leftovers?.length ? basketCost([...state.days,template],people,stock,books,request) : candidateCost(state, template, stock, books); if (!Number.isFinite(cost)) continue;
-      const novelBatches = template.rows.filter(row => !state.batches.has(row.id)), batchPenalty = easy ? novelBatches.reduce((sum, row) => sum + (row.quality?.cookMinutes || 45) * .7, 0) : 0;
-      const quality = state.quality + (template.quality ?? dailyQuality(template.rows, template.factors, profile)) - template.rows.reduce((sum, row) => sum + row.preference * 25, 0) + batchPenalty;
+      const cost = exactLifecyclePricing ? basketCost([...state.days,template],people,stock,books,request) : candidateCost(state, template, bindings); if (!Number.isFinite(cost)) continue;
+      const batchPenalty = easy ? template.rows.reduce((sum, row) => sum + (state.batches.has(row.id) ? 0 : (row.quality?.cookMinutes || 45) * .7), 0) : 0;
+      const quality = state.quality + (template.quality ?? dailyQuality(template.rows, template.factors, profile)) - template.preferencePenalty + batchPenalty;
       const novelty = template.rows.reduce((sum, row, i) => sum + (state.distinct[i].has(row.id) ? 0 : 1), 0);
       const unmet = Math.max(0, requiredFamilies - familyCount) + template.rows.reduce((sum, row, i) => sum + Math.max(0, minimumDistinct[i] - state.ordinaryDistinct[i].size - (Intent.exception(profile,slots[i],dayIndex)||state.ordinaryDistinct[i].has(row.id) ? 0 : 1)), 0);
       // Cost remains in integer pence. Quality only ranks complete, target-safe
@@ -433,8 +463,12 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
       shapes.set(shape, (shapes.get(shape) || 0) + 1); signatures.add(key); selected.push(proposal); if (selected.length >= width) break;
     }
     beam = selected.map(({ state, template, cost, quality, rank }) => {
-      const next = { days: [...state.days, template], amounts: new Map(state.amounts), batchPortions: new Map(state.batchPortions), cost, quality, rank, batches: new Set([...state.batches, ...template.rows.map(row => row.id)]), counts: new Map(state.counts), distinct: state.distinct.map(value => new Set(value)), ordinaryCounts:new Map(state.ordinaryCounts),ordinaryDistinct:state.ordinaryDistinct.map(value=>new Set(value)),families: new Map(state.families) };
-      for (const [key, quantity] of candidateAmounts(state, template)) next.amounts.set(key, (next.amounts.get(key) || 0) + quantity);
+      const next = { days: [...state.days, template], amounts: new Map(state.amounts), ingredientCosts: new Map(state.ingredientCosts), batchPortions: new Map(state.batchPortions), cost, quality, rank, batches: new Set([...state.batches, ...template.rows.map(row => row.id)]), counts: new Map(state.counts), distinct: state.distinct.map(value => new Set(value)), ordinaryCounts:new Map(state.ordinaryCounts),ordinaryDistinct:state.ordinaryDistinct.map(value=>new Set(value)),families: new Map(state.families) };
+      for (const [key, quantity] of candidateAmounts(state, template)) {
+        const total = (next.amounts.get(key) || 0) + quantity, book = books.get(key), inventory = stock.get(key) || 0;
+        next.amounts.set(key, total);
+        next.ingredientCosts.set(key, book?.cost(Math.max(0, total - inventory)) ?? (total <= inventory + EPS ? 0 : Infinity));
+      }
       for (const { row, portions } of template.batchRecipes) next.batchPortions.set(row.id, (next.batchPortions.get(row.id) || 0) + portions);
       template.rows.forEach((row, index) => { next.counts.set(row.id, (next.counts.get(row.id) || 0) + 1); next.distinct[index].add(row.id); if (mainIndexes.includes(index)) next.families.set(row.family, (next.families.get(row.family) || 0) + 1); });
       template.rows.forEach((row,index)=>{if(!Intent.exception(profile,slots[index],dayIndex)){next.ordinaryCounts.set(row.id,(next.ordinaryCounts.get(row.id)||0)+1);next.ordinaryDistinct[index].add(row.id);}});
