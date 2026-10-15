@@ -78,7 +78,7 @@
     if (!preview?.evaluation) return '<p class="sub">Check the full basket before choosing. Household portions are kept.</p>';
     const e = preview.evaluation, day = preview.next.day;
     const delta = e.delta === null ? 'Change unavailable' : e.delta === 0 ? 'No change to checkout' : `${e.delta > 0 ? '+' : '−'}${money(Math.abs(e.delta))} vs current plan`;
-    const cost = e.complete ? `${money(e.total)} plan total · ${html(delta)}` : `${money(e.subtotal)} priced subtotal · complete total unavailable`;
+    const cost = (e.estimatedPrice ? 'Estimated · ' : '') + (e.complete ? `${money(e.total)} plan total · ${html(delta)}` : `${money(e.subtotal)} priced subtotal · complete total unavailable`);
     const detail = e.spent ? `${money(e.spent)} already purchased + ${e.remaining === null ? 'unpriced' : money(e.remaining)} remaining shopping` : 'All remaining supermarket packs after pantry deductions';
     const reasons = [...(!e.budgetMet && e.complete ? [`${money(e.total - e.budget)} over the ${money(e.budget)} budget`] : []),
       ...(!e.nutritionMet ? ['Some days miss nutrition targets'] : []), ...(!e.slotsMet ? ['Some meals no longer suit your settings or meal slots'] : []),

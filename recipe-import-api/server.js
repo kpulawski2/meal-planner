@@ -780,7 +780,7 @@ app.get('/api/catalog/browse', catalogRateLimit, async (req, res) => {
   const store = cleanString(req.query.store || 'Lidl', 40);
   if (store !== 'Lidl') return res.status(400).json({ error: 'Ingredient browsing is currently available for Lidl.' });
   try {
-    const result = await browseCatalog(store, { query: cleanString(req.query.q, 120), category: cleanString(req.query.category, 120), price: cleanString(req.query.price, 20), source: cleanString(req.query.source, 20), offset: req.query.offset, limit: req.query.limit });
+    const result = await browseCatalog(store, { query: cleanString(req.query.q, 120), category: cleanString(req.query.category, 120), price: cleanString(req.query.price, 20), source: cleanString(req.query.source, 20), scope: req.query.scope === 'all' ? 'all' : 'food', allowReferencePrices: req.query.references === '1', offset: req.query.offset, limit: req.query.limit });
     res.json({ ok: true, ...result });
   } catch { res.status(503).json({ error: 'The Lidl ingredient catalogue is unavailable. Your shopping list is saved. Please retry.' }); }
 });
@@ -874,6 +874,7 @@ app.post('/api/catalog/recommend', catalogRateLimit, async (req, res) => {
   try {
     const store = cleanString(req.body?.store || '', 40);
     const rawItems = req.body?.items;
+    if (req.body?.allowReferencePrices !== undefined && typeof req.body.allowReferencePrices !== 'boolean') return res.status(400).json({ error: 'Reference prices must be on or off.' });
     if (!['Asda','Lidl'].includes(store)) return res.status(400).json({error:'Store must be Asda or Lidl.'});
     if (!Array.isArray(rawItems) || rawItems.length < 1 || rawItems.length > 200) {
       return res.status(400).json({ error: 'Send between 1 and 200 shopping-list ingredients.' });
@@ -890,7 +891,7 @@ app.post('/api/catalog/recommend', catalogRateLimit, async (req, res) => {
     activeCatalogRecommendations += 1;
     claimedSlot = true;
     res.once('close', disconnected);
-    const result = await recommendCatalogItems(store, items, { signal: controller.signal });
+    const result = await recommendCatalogItems(store, items, { signal: controller.signal, allowReferencePrices: req.body?.allowReferencePrices === true });
     if (!res.destroyed) res.json({ ok: true, ...result });
   } catch (e) {
     if (!res.destroyed && !res.headersSent) res.status(502).json({ error: `Could not build automatic retailer pack recommendations: ${cleanString(e?.message || 'unknown error', 300)}` });

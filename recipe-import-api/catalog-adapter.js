@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { setImmediate as yieldToServer } from 'node:timers/promises';
 import { createHash } from 'node:crypto';
 import { loadRangeReferences } from './lidl-range-references.js';
+import { loadPriceReferences, referenceProduct, isTrustedReferencePrice } from './lidl-price-references.js';
 
 const CATALOG_STORES = {
   Asda: {
@@ -26,6 +27,7 @@ const catalogCache = new Map();
 const catalogLoads = new Map();
 let catalogGeneration = 0;
 const catalogueStatusCache = new Map();
+const referenceIndexes = new WeakMap();
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ASDA_CATALOGUE_PATH = process.env.ASDA_CATALOGUE_PATH || path.resolve(MODULE_DIR, '../data/products.json');
 const ASDA_METADATA_PATH = process.env.ASDA_CATALOGUE_META_PATH || path.resolve(MODULE_DIR, '../data/catalogue-meta.json');
@@ -159,6 +161,47 @@ async function getIndex(storeName) {
   catalogLoads.set(storeName, loading);
   try { return await loading; }
   finally { if (catalogLoads.get(storeName) === loading) catalogLoads.delete(storeName); }
+}
+
+// Reference prices are a separate, explicit view. The validated live snapshot,
+// its hash and strict callers remain unchanged.
+async function pricingIndex(store, allowReferencePrices = false) {
+  const base = await getIndex(store);
+  if (store !== 'Lidl' || allowReferencePrices !== true) return base;
+  if (!referenceIndexes.has(base)) referenceIndexes.set(base, (async () => {
+    const refs = await loadPriceReferences(), products = [...base.products];
+    const skuKey = value => /^\d+$/.test(String(value || '')) ? String(Number(value)) : '';
+    const nameKey = value => productTokens(value).sort().join(' ');
+    const identityWords = value => productTokens(String(value).replace(/\bmannor\b/gi, 'manor')).filter(word => !/^\d/.test(word) && !['minimum','net','weight','assorted'].includes(word));
+    const bySku = new Map();
+    for (const [index, product] of products.entries()) {
+      const sku = skuKey(product.storeSku); if (!sku) continue;
+      if (!bySku.has(sku)) bySku.set(sku, []);
+      bySku.get(sku).push(index);
+    }
+    for (const ref of refs) {
+      // Lidl sometimes reuses an item number across named listings. The brand
+      // and all variant words must also agree; SKU equality alone is insufficient.
+      const position = ref.storeSku ? bySku.get(skuKey(ref.storeSku))?.find(index => {
+        const referenceWords = new Set(identityWords(ref.name)), currentWords = new Set(identityWords(products[index].name));
+        const percentages = value => String(value).match(/\d+(?:\.\d+)?\s*%/g)?.join(',').replace(/\s/g, '') || '';
+        return referenceWords.size === currentWords.size && [...referenceWords].every(word => currentWords.has(word)) && percentages(ref.name) === percentages(products[index].name);
+      }) : undefined;
+      if (position !== undefined) {
+        const product = products[position], pack = packUnitMeta(product), reference = referenceProduct(ref), refPack = packUnitMeta(reference);
+        // Never overwrite today's price, a removed identity or a different pack.
+        if (productPriceUsable(product) || product.discoveryStatus === 'not_listed' || product.available === false || pack && (!refPack || pack.dimension !== refPack.dimension || Math.abs(pack.capacity - refPack.capacity) > 0.001)) continue;
+        products[position] = referenceProduct(ref, product);
+      } else {
+        // An exact named current listing with a usable price takes precedence.
+        if (products.some(product => nameKey(product.name) === nameKey(ref.name) && productPriceUsable(product) && !product.estimatedPrice)) continue;
+        products.push(referenceProduct(ref));
+      }
+    }
+    return { ...base, products, nameIndex: await buildNameIndex(products), candidateCache: new Map() };
+  })());
+  try { return await referenceIndexes.get(base); }
+  catch (error) { referenceIndexes.delete(base); throw error; }
 }
 
 function slugText(url) {
@@ -532,6 +575,7 @@ function packUnitMeta(product) {
   if (['g', 'gram', 'grams'].includes(unit)) return { dimension: 'mass', capacity: quantity, quantity, unit: 'g' };
   if (['l', 'litre', 'litres', 'liter', 'liters'].includes(unit)) return { dimension: 'volume', capacity: quantity * 1000, quantity, unit: 'l' };
   if (['ml', 'millilitre', 'millilitres', 'milliliter', 'milliliters'].includes(unit)) return { dimension: 'volume', capacity: quantity, quantity, unit: 'ml' };
+  if (unit === 'pint') return { dimension: 'volume', capacity: quantity * 568.26125, quantity, unit: 'pint' };
   if (['piece', 'pieces', 'pcs', 'pc', 'each', 'ea', 'unit', 'units'].includes(unit)) return { dimension: 'count', capacity: quantity, quantity, unit: 'pieces' };
   return null;
 }
@@ -621,6 +665,11 @@ function purchasePackMeta(product, wantedDimension) {
 function priceEvidence(product) {
   const pageSource = product?.store === 'Lidl' && product?.price != null && (!product.priceSource || product.priceSource === 'Lidl GB official product page');
   return {
+    estimatedPrice: product.estimatedPrice === true,
+    priceBasis: product.estimatedPrice === true ? 'reference' : 'website',
+    sourcePeriod: product.sourcePeriod || null,
+    sourceDate: product.sourceDate || null,
+    referenceReviewedAt: product.referenceReviewedAt || null,
     priceSource: product.priceSource || (pageSource ? 'Lidl GB official product page' : null),
     priceSourceUrl: product.priceSourceUrl || (pageSource ? product.url : null),
     priceCheckedAt: product.priceCheckedAt || (pageSource ? product.checkedAt || product.checked || null : null),
@@ -655,6 +704,7 @@ function productSummary(product, score) {
 export function productPriceUsable(product, now = new Date()) {
   if (product?.discoveryStatus === 'not_listed') return false;
   if (product?.price == null || !Number.isFinite(Number(product.price)) || Number(product.price) <= 0) return false;
+  if (product.priceBasis === 'reference' || product.estimatedPrice === true) return isTrustedReferencePrice(product) && !product.regionRestricted;
   if (product.priceMemberOnly === true || product.offer?.validForMemberTier) return false;
   const day = now.toISOString().slice(0, 10);
   const start = product.validFrom || product.offer?.validFrom;
@@ -853,12 +903,12 @@ function makePurchasePlan(counts, offers, requested) {
   const totalQuantity = Number(products.reduce((sum, row) => sum + row.totalQuantity, 0).toFixed(6));
   const totalCostGBP = Number(products.reduce((sum, row) => sum + row.costGBP, 0).toFixed(2));
   if (!Number.isFinite(totalQuantity) || !Number.isFinite(totalCostGBP) || totalQuantity + 1e-6 < requested) return null;
-  return { requestedQuantity: requested, totalQuantity, leftoverQuantity: Number(Math.max(0, totalQuantity - requested).toFixed(6)), totalCostGBP, estimatedQuantity: products.some(product => product.estimatedQuantity), estimateNotes: [...new Set(products.filter(product => product.estimatedQuantity).map(product => product.quantityBasis))], products };
+  return { requestedQuantity: requested, totalQuantity, leftoverQuantity: Number(Math.max(0, totalQuantity - requested).toFixed(6)), totalCostGBP, estimatedPrice: products.some(product => product.estimatedPrice), estimatedQuantity: products.some(product => product.estimatedQuantity), estimateNotes: [...new Set(products.filter(product => product.estimatedQuantity).map(product => product.quantityBasis))], products };
 }
 
-export async function recommendCatalogItems(storeName, items, { signal } = {}) {
+export async function recommendCatalogItems(storeName, items, { signal, allowReferencePrices = false } = {}) {
   if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new Error('Choose Asda or Lidl for automatic recommendations.');
-  const index = await getIndex(storeName);
+  const index = await pricingIndex(storeName, allowReferencePrices);
   if (index.snapshotStatus !== 'complete' || !Array.isArray(index.products)) throw new Error(`A complete ${storeName} website catalogue snapshot is required for automatic recommendations.`);
   const rows = Array.isArray(items) ? items.slice(0, 200) : [];
   const recommendations = [];
@@ -901,8 +951,8 @@ export async function recommendCatalogItems(storeName, items, { signal } = {}) {
 
 // Reuse the same safety filters and quantity assumptions when evaluating many
 // meal plans. The worker builds compact price tables without reloading products.
-export async function catalogPurchaseOffers(items, { signal, store = 'Asda' } = {}) {
-  const index = await getIndex(store);
+export async function catalogPurchaseOffers(items, { signal, store = 'Asda', allowReferencePrices = false } = {}) {
+  const index = await pricingIndex(store, allowReferencePrices);
   if (index.snapshotStatus !== 'complete') throw new Error(`A complete ${store} website catalogue is required to calculate a meal budget.`);
   const rows = [];
   for (const item of items) {
@@ -972,26 +1022,27 @@ export async function searchCatalog(storeName, query, limit = 8, dimension = '')
   };
 }
 
-// Browsing includes unpriced food and separately labelled range references.
-// References never enter the matching index or automatic budget calculations.
-export async function browseCatalog(storeName, { query = '', category = '', price = 'all', source = 'all', offset = 0, limit = 40 } = {}) {
+// Full public product directory; reference pricing is an explicit view.
+export async function browseCatalog(storeName, { query = '', category = '', price = 'all', source = 'all', scope = 'food', allowReferencePrices = false, offset = 0, limit = 40 } = {}) {
   if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new TypeError('Store must be Asda or Lidl.');
-  const index = await getIndex(storeName), now = new Date();
+  const index = await pricingIndex(storeName, allowReferencePrices), now = new Date();
   const refs = storeName === 'Lidl' ? await loadRangeReferences() : [];
   const nameKey = value => productTokens(value).sort().join(' ');
   const categoryOf = product => {
-    if (/\bgift[\s-]*cards?\b/i.test(String(product.name || ''))) return null;
     const parts = String(product.category || '').split(' > ');
-    if (storeName === 'Lidl' && (parts[0] !== 'Food & Drink' || ['Health & Beauty', 'Household', 'Pet', 'Plants & Flowers'].includes(parts[1]))) return null;
-    const group = parts[storeName === 'Lidl' ? 1 : 0] || 'Other food';
-    return /^fruit & veg$/i.test(group) ? 'Fruit & Veg' : group;
+    if (scope !== 'all' && (/\bgift[\s-]*cards?\b/i.test(String(product.name || '')) || storeName === 'Lidl' && (parts[0] !== 'Food & Drink' || ['Health & Beauty', 'Household', 'Pet', 'Plants & Flowers'].includes(parts[1])))) return null;
+    const group = parts[0] === 'Food & Drink' ? parts[1] : parts[0];
+    return /^fruit & veg$/i.test(group) ? 'Fruit & Veg' : group || 'Other products';
   };
   const rows = index.products.flatMap(product => {
     if (product.discoveryStatus === 'not_listed') return [];
     const group = categoryOf(product); if (!group) return [];
+    const usable = productPriceUsable(product, now), reference = product.estimatedPrice === true;
     return [{ id: String(product.id || product.sku || product.url), productName: product.name, category: group, url: product.url, packSize: product.packSize || null,
-      priceGBP: productPriceUsable(product, now) ? Number(product.price) : null, kind: 'product', availability: product.available === false ? 'unavailable' : 'check_in_store',
-      checkedAt: product.checkedAt || null, sourceLabel: storeName + ' official product page', sourcePeriod: null, publishedPack: null }];
+      priceGBP: usable || reference ? Number(product.price) : null, advertisedPriceGBP: !reference && product.price != null ? Number(product.price) : null,
+      budgetEligible: usable && product.available !== false, kind: product.referenceOnly ? 'price_reference' : 'product', availability: product.available === false ? 'unavailable' : 'check_in_store',
+      ...priceEvidence(product), referenceRegions: product.referenceRegions || [], validFrom: product.validFrom || null, validThrough: product.validThrough || null,
+      checkedAt: product.checkedAt || null, sourceLabel: reference ? product.priceSource : storeName + ' official product page', publishedPack: null }];
   });
   const known = new Set(rows.map(row => nameKey(row.productName)));
   for (const ref of refs) {
@@ -1001,13 +1052,14 @@ export async function browseCatalog(storeName, { query = '', category = '', pric
   }
   const categories = [...new Set(rows.map(row => row.category))].sort();
   const words = productTokens(clean(query, 120)), selectedCategory = clean(category, 120);
-  const filterPrice = ['all', 'priced', 'unpriced'].includes(price) ? price : 'all';
-  const filtered = rows.filter(row => (source !== 'products' || row.kind === 'product') && (!selectedCategory || row.category === selectedCategory) && (filterPrice === 'all' || (row.priceGBP !== null) === (filterPrice === 'priced')) && words.every(word => productTokens(row.productName).includes(word)));
+  const filterPrice = ['all', 'priced', 'unpriced', 'reference'].includes(price) ? price : 'all';
+  const filtered = rows.filter(row => (source !== 'products' || row.kind === 'product') && (!selectedCategory || row.category === selectedCategory) && (filterPrice === 'all' || filterPrice === 'reference' && row.estimatedPrice || filterPrice === 'priced' && row.priceGBP !== null || filterPrice === 'unpriced' && row.priceGBP === null) && words.every(word => productTokens(row.productName).includes(word)));
   filtered.sort((a, b) => a.productName.localeCompare(b.productName) || a.id.localeCompare(b.id));
   const start = Number.isFinite(Number(offset)) ? Math.max(0, Math.trunc(Number(offset))) : 0;
   const count = Number.isFinite(Number(limit)) ? Math.max(1, Math.min(100, Math.trunc(Number(limit) || 40))) : 40;
-  return { store: storeName, total: rows.length, matched: filtered.length, priced: rows.filter(row => row.priceGBP !== null).length,
-    verifiedProducts: rows.filter(row => row.kind === 'product').length, rangeReferences: rows.filter(row => row.kind === 'range_reference').length, categories, refreshedAt: index.metadata.refreshed_at, offset: start,
+  return { store: storeName, scope, total: rows.length, matched: filtered.length, priced: rows.filter(row => row.priceGBP !== null).length,
+    referencePrices: rows.filter(row => row.estimatedPrice).length, websitePrices: rows.filter(row => row.priceGBP !== null && !row.estimatedPrice).length,
+    verifiedProducts: rows.filter(row => row.kind === 'product').length, rangeReferences: rows.filter(row => row.kind !== 'product').length, categories, refreshedAt: index.metadata.refreshed_at, offset: start,
     nextOffset: start + count < filtered.length ? start + count : null, results: filtered.slice(start, start + count) };
 }
 

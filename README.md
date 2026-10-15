@@ -11,7 +11,8 @@ The free consumer app also includes a dated food diary (common-food estimates, r
 The **Favourites** tab keeps saved recipes searchable independently of the main
 recipe filters. Lidl shoppers can browse the saved food catalogue from Shopping,
 including unpriced products and additional source-linked range references.
-Historical source prices do not become current basket prices; see
+Lidl Settings can enable clearly labelled historical reference price estimates.
+The catalogue also has an All products department; see
 [Lidl ingredient coverage](docs/lidl-catalogue.md#browse-the-food-range).
 
 ## ASDA catalogue
@@ -37,7 +38,7 @@ Where a recipe uses grams for produce sold by each, or kitchen measures for weig
 
 ## Plan within a budget
 
-Choose **Fit plan to budget** in Today, Plan or Shopping. The planner reads actual pack prices from your selected supermarket and chooses recipes and portions together. It combines shared ingredients across the whole plan, converts compatible recipe units, deducts pantry stock once, and counts the full packs required. It does not use the old fixed recipe cost estimates to generate a plan.
+Choose **Fit plan to budget** in Today, Plan or Shopping. The planner reads pack prices from your selected supermarket (or explicitly enabled Lidl reference estimates) and chooses recipes and portions together. It combines shared ingredients across the whole plan, converts compatible recipe units, deducts pantry stock once, and counts the full packs required. It does not use the old fixed recipe cost estimates to generate a plan.
 
 The weekly budget is for the whole household. A 14-day plan receives twice that amount; a 3-day plan receives three sevenths. Calories and protein are targets **per person, per day**. Accepted plans must keep every day within ±10% of the calorie target and at or above the protein target, with the requested meal count and household servings. Nutrition remains an estimate based on ingredient profiles or recipe values marked verified; it is not a guarantee of exact brand nutrition. The app does not calculate personal calorie targets from body measurements.
 
