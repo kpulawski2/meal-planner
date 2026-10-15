@@ -5,7 +5,12 @@ child sitemap, including gzip files. Every discovered `/p/.../p<number>` page is
 read with four workers and bounded retries. Identity, canonical URL, counts,
 currency and integrity are checked before publishing. A failed page, changed
 sitemap, large catalogue shrink, or lost price coverage retains the healthy
-snapshot. Products and metadata are atomically written individually; the runtime
+snapshot. Explicit product-page HTTP 404/410 responses are checked a second time.
+Confirmed removed pages are recorded separately; their previous identities remain
+as unavailable history with no current price. New verified products can therefore
+be published even when Lidl's sitemap still lists retired offers. Recheck errors,
+other HTTP failures, invalid product data or more than 20% confirmed unavailable
+identities keep the healthy snapshot. Products and metadata are atomically written individually; the runtime
 checks the product-file hash to reject mismatched generations.
 
 The additive refresh also reads Lidl's official public search in complete
@@ -16,6 +21,10 @@ gridboxes are reported as unpublished IDs; URLs are never invented. Previous
 identities are retained when no longer listed, with purchases disabled and their
 last published price kept only as history. Failed or changing discovery leaves
 both healthy files untouched. The previous generation's hash is checked first.
+Discovery is deduplicated by product identity, with current search canonical
+paths preferred over old sitemap slugs. A changed canonical path is accepted
+only when the GB product ID still agrees with its page data. Metadata accounts
+for every discovered identity as a published record or confirmed removed page.
 
 The initial source contains **1,918 website products**, including **1,345 food
 and drink products**. **622** products (**310** food/drink products) publish a GBP
@@ -83,6 +92,9 @@ complete priced branch inventory.
 `refresh-lidl.yml` runs daily at 05:55 UTC, validates the scraper first and commits
 only successful snapshots. ASDA continues on its own daily refresh. Changing
 the selected supermarket invalidates both matching and planner requests.
+Pull requests affecting the Lidl scraper also perform a complete live refresh
+with read-only repository permissions and retain the validated files as a
+seven-day review artifact; they cannot publish to main.
 
 ## Measured lighter meals
 
