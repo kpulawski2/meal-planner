@@ -81,6 +81,8 @@ def member_offers(data):
         price=offer.get('price') or {}; value=positive(price.get('price'))
         if value is not None and not isinstance(price.get('price'),bool) and price.get('currencyCode',currency)=='GBP':
             result.append({'priceGBP':value,'label':text(offer.get('lidlPlusText')) or 'With Lidl Plus',
+                'promotion':text(offer.get('highlightText') or (price.get('discount') or {}).get('discountText')) or None,
+                'unitPriceLabel':text((price.get('basePrice') or {}).get('text')) or None,
                 'regularPriceLabel':text((price.get('packaging') or {}).get('text')) or None})
     return result
 

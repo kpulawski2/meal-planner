@@ -33,24 +33,26 @@ def product(code):
 
 
 class Fixture:
-    def __init__(self,change=None):
-        self.change=change;self.calls=Counter()
+    def __init__(self,change=None,hidden=()):
+        self.change=change;self.calls=Counter();self.hidden=set(hidden)
         self.rows={ROOT:[1,2,3,4,5,6],FRUIT:[1,2,3,4],PANTRY:[5,6],APPLES:[1,2],BEANS:[5,6]}
         self.children={ROOT:[],FRUIT:[(APPLES,'Apples')],PANTRY:[(BEANS,'Beans')],APPLES:[],BEANS:[]}
     def get(self,url):
         split=urlsplit(url);base=split.scheme+'://'+split.netloc+split.path;offset=int(parse_qs(split.query).get('offset',['0'])[0]);self.calls[url]+=1
+        if split.path=='/q/api/gridboxes/GB/en':
+            return json.dumps([None if int(code) in self.hidden else {'country':'GB','data':product(code)['gridBox']['gridBoxData']} for code in parse_qs(split.query)['ids'][0].split(',')])
         if split.path=='/q/api/search' or split.path.startswith('/q/api/category/'):
             q=parse_qs(split.query)
             base=ROOT if split.path=='/q/api/search' else categories.ORIGIN+split.path.removeprefix('/q/api/category')
             if base==ROOT:assert q['category.id']==['10068374']
             self.calls[base+'?offset='+str(offset)]+=1
-            rows=[product(code) for code in self.rows[base][offset:offset+2]]
+            rows=[product(code) for code in self.rows[base][offset:offset+2] if code not in self.hidden or q.get('idsOnly')==['true']]
             return json.dumps({'assortment':'GB','locale':'en_GB','numFound':len(self.rows[base]),'fetchsize':2,'offset':offset,'items':[{'code':p['code'],'gridbox':{'country':p['gridBox']['country'],'data':p['gridBox']['gridBoxData']}} for p in rows]})
         ids=self.rows[base];identity=split.path.rsplit('/',1)[-1][1:];size=2
         globals_={'wonCategory':'10068374'} if base==ROOT else {'categoryId':identity,'breadcrumbPageId':'10068374/'+identity}
         children=[{'label':name,'link':{'categoryPath':urlsplit(child).path,'pageId':'10068374/'+identity+'/'+child.rsplit('/',1)[-1][1:]},'children':[]} for child,name in self.children[base]]
         batches={str(i):[{'gridBox':{'gridBoxData':None}}]*size for i in range(offset//size)}
-        batches[str(offset//size)]=[product(code) for code in ids[offset:offset+size]]
+        batches[str(offset//size)]=[product(code) for code in ids[offset:offset+size] if code not in self.hidden]
         document={'pinia':{'useLocaleStore':{'locale':'en_GB'},'useGlobalStore':globals_,'useRouteStore':{'routePath':split.path,'routeQuery':{'offset':str(offset)}},'useProductStore':{'numFound':len(ids),'products':batches},'useFacetStore':{'rawFacets':[{'code':'category','values':[{'children':children}]}]},'useStorefrontConfigurationStore':{'config':{'fetchSize':size}}}}
         if self.change:self.change(document,base,offset,self.calls[url])
         menu='<ol class="n-header__main-navigation--sub"><li><a href="'+ROOT+'">Food &amp; Drink</a></li><li><a href="'+FRUIT+'">Fruit &amp; veg</a></li><li><a href="'+PANTRY+'">Food Cupboard</a></li></ol>'
@@ -67,6 +69,18 @@ class CategoryTests(unittest.TestCase):
         self.assertEqual(source.calls[ROOT+'?offset=4'],1);self.assertEqual(source.calls[APPLES],2)
         self.assertEqual(next(p for p in meta['menu_products'] if p['id']=='1')['categoryIds'],['10068374','10071012','10095592'])
         self.assertEqual(len(meta['menu_content_sha256']),64)
+    def test_missing_cards_require_complete_ids_and_repeated_explicit_publication_checks(self):
+        source=Fixture(hidden={2});urls,meta=categories.discover_categories(source.get)
+        self.assertEqual(meta['menu_products_identified'],6);self.assertEqual(meta['menu_products_published'],5)
+        self.assertEqual(meta['menu_unpublished_ids'],['2']);self.assertEqual(len(urls),5)
+        self.assertTrue(all(not url.endswith('/p2') for url in urls))
+        self.assertTrue(all(row['productsChecked']==row['productsExpected'] for row in meta['menu_categories']))
+        self.assertTrue(any(row['productsPublished']<row['productsExpected'] for row in meta['menu_categories']))
+        grid=categories.ORIGIN+'/q/api/gridboxes/GB/en?ids=2';self.assertGreaterEqual(source.calls[grid],2)
+        get=source.get
+        def broken(url):return '[]' if '/q/api/gridboxes/' in url else get(url)
+        with self.assertRaises(categories.CategoryError):categories.discover_categories(broken)
+
     def test_invalid_or_changing_pages_are_not_silently_skipped(self):
         def mutate(field):
             def change(d,base,offset,call):

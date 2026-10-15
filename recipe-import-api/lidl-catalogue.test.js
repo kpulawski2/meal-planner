@@ -8,8 +8,10 @@ const directory=await mkdtemp(path.join(os.tmpdir(),'meal-lidl-'));
 process.env.LIDL_CATALOGUE_PATH=path.join(directory,'products.json');process.env.LIDL_CATALOGUE_META_PATH=path.join(directory,'metadata.json');
 const rows=Array.from({length:120},(_,i)=>({store:'Lidl',id:String(10000000+i),name:i===0?'Milbona Semi Skimmed Milk':i===1?'Cucumber':i===2?'Birchwood Chicken Breast Fillets':`Grocery ${i}`,category:i===0?'Food & Drink > Cheese, Dairy & Eggs > Milk & Cream':i===1?'Food & Drink > Fruit & veg > Vegetables':i===2?'Food & Drink > Meat & Poultry > Chicken & Turkey':'Food & Drink > Food Cupboard',url:`https://www.lidl.co.uk/p/product/p${10000000+i}`,packQuantity:i===1?1:1000,packUnit:i===1?'pieces':i===0?'ml':'g',packSize:i===1?'Each':i===0?'1L':'1kg',price:i===0?null:i===1?.79:5,available:null,availability:'in_store_only',checkedAt:'2026-10-10T12:00:00Z'}));
 Object.assign(rows[2],{priceSource:'Lidl GB official search listing',priceSourceUrl:'https://www.lidl.co.uk/q/query/Birchwood%20chicken',priceCheckedAt:new Date().toISOString()});
+Object.assign(rows[0],{memberOffers:[{priceGBP:.79,label:'With Lidl Plus',validFrom:null,validThrough:null}]});
+Object.assign(rows[1],{menuCategoryIds:['10071012','10095593'],memberOffers:[{priceGBP:.49,label:'With Lidl Plus',validFrom:null,validThrough:null}]});
 const raw=JSON.stringify(rows);
-const metadata={store:'Lidl',status:'complete',products_saved:120,products_expected:120,coverage:1,coverage_scope:'official_sitemap_products',entire_store_inventory:false,with_price:119,price_coverage:119/120,refreshed_at:'2026-10-10T12:00:00Z',products_file_sha256:createHash('sha256').update(raw).digest('hex')};
+const metadata={menu_status:'complete',menu_categories:[{id:'10071012',name:'Fruit & veg',url:'https://www.lidl.co.uk/h/fruit/h10071012',parent:null,productsChecked:1},{id:'10095593',name:'Vegetables',url:'https://www.lidl.co.uk/h/veg/h10095593',parent:'https://www.lidl.co.uk/h/fruit/h10071012',productsChecked:1}],store:'Lidl',status:'complete',products_saved:120,products_expected:120,coverage:1,coverage_scope:'official_sitemap_products',entire_store_inventory:false,with_price:119,price_coverage:119/120,refreshed_at:'2026-10-10T12:00:00Z',products_file_sha256:createHash('sha256').update(raw).digest('hex')};
 await writeFile(process.env.LIDL_CATALOGUE_PATH,raw);await writeFile(process.env.LIDL_CATALOGUE_META_PATH,JSON.stringify(metadata));
 const catalog=await import('./catalog-adapter.js');
 const {optimizeMealPlan}=await import('./budget-planner.js');
@@ -26,6 +28,13 @@ test('Lidl loads a complete validated snapshot and matches plain produce and mil
   }
   assert.equal(result.recommendations[1].match.priceSource,'Lidl GB official product page');
   assert.equal(result.recommendations[1].match.priceSourceUrl,rows[1].url);
+});
+test('website menu filtering and member offers do not change public budget prices',async()=>{
+  const page=await catalog.browseCatalog('Lidl',{menu:'10095593',price:'member',source:'products'});
+  assert.equal(page.matched,1);assert.equal(page.results[0].productName,'Cucumber');assert.equal(page.results[0].priceGBP,.79);assert.equal(page.results[0].memberOffers[0].priceGBP,.49);
+  assert.equal(page.websiteMenu.length,2);assert.equal(page.menuCheckedAt,metadata.refreshed_at);
+  assert.equal((await catalog.browseCatalog('Lidl',{menu:'no-such-menu'})).matched,0);
+  const milk=await catalog.recommendCatalogItems('Lidl',[{key:'milk',name:'Milk',dimension:'volume',quantity:1000}]);assert.equal(milk.recommendations[0].plan,null,'a member-only number cannot fill an unpublished public price');
 });
 test('Lidl budget retains saved meals when milk has no published price',async()=>{
   const recipes=[{id:'lunch',name:'Milk lunch',cat:'Lunch',servings:1,ings:[['Milk',1000,'ml']],nutrition:{kcal:400,p:40,complete:true}},{id:'dinner',name:'Chicken dinner',cat:'Dinner',servings:1,ings:[['Chicken breast',100,'g']],nutrition:{kcal:400,p:40,complete:true}}];

@@ -12,7 +12,7 @@ from lidl_categories import discover_categories, MENU_ROOT
 STORE = 'https://www.lidl.co.uk/s/en-GB/store-finder/sheffield/alison-crescent/'
 
 
-def audit(directory=Path('work/lidl-category-audit'), get=fetch):
+def audit(directory=Path('work/lidl-category-audit'), get=fetch, checked_at=None):
     directory.mkdir(parents=True, exist_ok=True)
     manifest = []
     # Keep representative raw evidence; every source URL and semantic product
@@ -28,7 +28,7 @@ def audit(directory=Path('work/lidl-category-audit'), get=fetch):
     except Exception:
         (directory/'source-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
         raise
-    checked = datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00','Z')
+    checked = checked_at or datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00','Z')
     store_source = recorded(STORE)
     entities = [json.loads(raw) for raw in re.findall(r'<script\b[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',store_source,re.S|re.I)]
     store = next((row for row in entities if isinstance(row,dict) and row.get('@type')=='GroceryStore'),None)
@@ -57,8 +57,8 @@ def audit(directory=Path('work/lidl-category-audit'), get=fetch):
             writer=csv.writer(handle);writer.writerow(headers)
             writer.writerows([[cell(value) for value in row] for row in rows])
     products = metadata['menu_products']
-    write_csv('lidl-food-menu-prices.csv', ['Product ID','Product','Public pack price GBP','Explicit regular price GBP','Lidl Plus prices GBP (membership required)','Pack','Offer from','Offer until','Region restricted','Product URL','Category source URL','Categories','Checked at','Previously in catalogue','Saved public price GBP'],
-        [[p['id'],p['name'],p['publicPriceGBP'],p['regularPriceGBP'],'; '.join(str(m['priceGBP']) for m in p['memberOffers']),p['packSize'],p['validFrom'],p['validThrough'],p['regionRestricted'],p['url'],p['sourceUrl'],'; '.join(category_path(categories[i]) for i in p['categoryIds']),checked,p['id'] in saved,saved.get(p['id'],{}).get('price')] for p in products])
+    write_csv('lidl-food-menu-prices.csv', ['Product ID','Product','Public pack price GBP','Explicit regular price GBP','Lidl Plus prices GBP (membership required)','Member offer conditions','Pack','Offer from','Offer until','Region restricted','Product URL','Category source URL','Categories','Checked at','Previously in catalogue','Saved public price GBP'],
+        [[p['id'],p['name'],p['publicPriceGBP'],p['regularPriceGBP'],'; '.join(str(m['priceGBP']) for m in p['memberOffers']),'; '.join(' / '.join(str(m[k]) for k in ['promotion','unitPriceLabel','regularPriceLabel'] if m.get(k)) for m in p['memberOffers']),p['packSize'],p['validFrom'],p['validThrough'],p['regionRestricted'],p['url'],p['sourceUrl'],'; '.join(category_path(categories[i]) for i in p['categoryIds']),checked,p['id'] in saved,saved.get(p['id'],{}).get('price')] for p in products])
     write_csv('lidl-food-menu-categories.csv',['Category','URL','Parent','Products expected','Products checked','Pages checked','Public prices','Member prices','Checked at'],
         [[category_path(c),c['url'],c['parent'],c['productsExpected'],c['productsChecked'],c['pages'],sum(p['publicPriceGBP'] is not None for p in products if c['id'] in p['categoryIds']),sum(bool(p['memberOffers']) for p in products if c['id'] in p['categoryIds']),checked] for c in categories.values()])
     print(json.dumps({key:value for key,value in metadata.items() if key not in ['menu_products','menu_categories','menu_source_urls']},ensure_ascii=False),flush=True)

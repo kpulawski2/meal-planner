@@ -24,8 +24,24 @@ def page(index, priced=True, future=False, item_extra=None):
 
 class LidlTests(unittest.TestCase):
     def setUp(self):
-        self.menu = patch.object(lidl,'discover_categories',return_value=(set(),{})).start()
-        self.addCleanup(patch.stopall)
+        patcher=patch.object(lidl,'discover_categories',return_value=(set(),{}))
+        self.menu=patcher.start();self.addCleanup(patcher.stop)
+
+    def test_menu_only_discovery_is_validated_and_changing_menu_keeps_healthy_files(self):
+        pages=dict(page(i) for i in range(121));urls=sorted(pages);extra=urls[-1];identity=lidl.product_id(extra)
+        meta={'menu_status':'complete','menu_ids_sha256':'same','menu_content_sha256':'same','menu_products':[{'id':identity,'categoryIds':['10068374','10096095']}]}
+        with tempfile.TemporaryDirectory() as directory, patch.object(lidl,'discover',return_value=(urls[:-1],[lidl.SITEMAP])), patch.object(lidl,'discover_supplement',return_value=(set(),{})):
+            products=Path(directory)/'products.json';metadata=Path(directory)/'meta.json'
+            self.menu.return_value=({extra},meta)
+            result=lidl.refresh(products,metadata,pages.__getitem__)
+            self.assertEqual(result['products_saved'],121)
+            record=next(row for row in json.loads(products.read_text()) if row['id']==identity)
+            self.assertEqual(record['discoverySources'],['official_food_menu']);self.assertEqual(record['menuCategoryIds'],['10068374','10096095'])
+            self.assertIn('menu_products',meta,'discovery evidence is not mutated by publication')
+            before=products.read_bytes(),metadata.read_bytes()
+            self.menu.side_effect=[({extra},meta),({extra},{**meta,'menu_content_sha256':'changed'})]
+            with self.assertRaisesRegex(lidl.LidlRefreshError,'food menu changed'):lidl.refresh(products,metadata,pages.__getitem__)
+            self.assertEqual((products.read_bytes(),metadata.read_bytes()),before)
 
     def test_retry_policy_is_bounded_and_honours_retry_after(self):
         retry=lidl.session().get_adapter('https://').max_retries
@@ -65,6 +81,14 @@ class LidlTests(unittest.TestCase):
         with self.assertRaises(lidl.LidlRefreshError): lidl.validate(records[:100],[p['url'] for p in records[:100]],records)
         with self.assertRaises(lidl.LidlRefreshError): lidl.validate([{**p,'price':None} for p in records],[p['url'] for p in records],records)
         self.assertEqual(lidl.pack('4 x 125g'),(500,'g'));self.assertEqual(lidl.pack('20cl'),(200,'ml'));self.assertEqual(lidl.pack('each'),(1,'pieces'))
+
+    def test_public_single_pack_label_is_distinct_from_two_for_member_total(self):
+        extra={'price':{'currencyCode':'GBP'},'lidlPlus':[{'price':{'price':7,'packaging':{'text':'Regular price per 1 pack £4.15'},'basePrice':{'text':'£3.50/per pack'},'discount':{'discountText':'2 FOR'}},'highlightText':'2 FOR','lidlPlusText':'With Lidl Plus'}]}
+        row=lidl.parse_product(*page(0,False,item_extra=extra),'2026-10-15T16:51:33Z')
+        self.assertEqual(row['price'],4.15);self.assertEqual(row['memberOffers'][0]['priceGBP'],7)
+        self.assertEqual(row['memberOffers'][0]['promotion'],'2 FOR');self.assertEqual(row['memberOffers'][0]['unitPriceLabel'],'£3.50/per pack')
+        extra['lidlPlus'][0]['price']['packaging']['text']='Regular price per 2 packs £7.00'
+        self.assertIsNone(lidl.parse_product(*page(0,False,item_extra=extra),'2026-10-15T16:51:33Z')['price'])
 
     def test_explicit_regular_price_is_added_without_member_discount(self):
         member={'price':{'price':.79,'packaging':{'text':'Regular price £0.99'}}}

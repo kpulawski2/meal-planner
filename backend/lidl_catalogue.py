@@ -145,7 +145,7 @@ def regular_price(item):
         info=member.get('price') or {}
         if info.get('currencyCode',(item.get('price') or {}).get('currencyCode'))!='GBP': continue
         label=text((info.get('packaging') or {}).get('text'))
-        match=re.fullmatch(r'Regular price\s+£\s*(\d+(?:\.\d{1,2})?)',label,re.I)
+        match=re.fullmatch(r'Regular price(?:\s+per\s+1\s+pack)?\s+£\s*(\d+(?:\.\d{1,2})?)',label,re.I)
         price=positive(match[1]) if match else None
         if price is not None: labels[price]=label
     return next(iter(labels.items())) if len(labels)==1 else (None,None)
@@ -278,7 +278,8 @@ def refresh(products_path=None, metadata_path=None, get=fetch):
     previous=previous_snapshot(products_path,metadata_path)
     sitemap_urls,maps=discover(get)
     menu_urls,menu_meta=discover_categories(get)
-    menu_products={p['id']:p for p in menu_meta.pop('menu_products',[])}
+    menu_products={p['id']:p for p in menu_meta.get('menu_products',[])}
+    menu_meta={k:v for k,v in menu_meta.items() if k!='menu_products'}
     known=set(sitemap_urls)|{p['url'] for p in previous}
     search_urls,search_meta=discover_supplement(get,known)
     # Search publishes current canonical paths; a stale sitemap can retain the
