@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 
 const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
+const personalCore=await readFile(new URL('../public/personal-prices-core.js',import.meta.url),'utf8');
 function sourceBlock(start,end){
   const from=html.indexOf(start),to=html.indexOf(end,from+start.length);
   assert.ok(from>=0&&to>from,'Pricing source exists: '+start);
@@ -23,7 +24,7 @@ function recommendation(row,price=1.65,packQuantity=2000,packUnit='ml'){
   return {key:row.key,confidence:'high',match:{...product,checkedAt:'2026-10-09',priceRegion:'Great Britain'},plan:{requestedQuantity:row.quantity,totalQuantity:packs*packQuantity,leftoverQuantity:packs*packQuantity-row.quantity,totalCostGBP:packs*price,products:[product]}};
 }
 function harness(entries=[item('Milk',1500,'volume')],options={}){
-  let now=Date.now(),requests=0,exportedBlob=null;
+  let now=Date.now(),requests=0,exportedBlob=null;const requestBodies=[];
   const rendered=[],views=[];
   const state={shoppingStore:'Asda',profile:{supermarkets:['Asda'],supermarket:'Asda',budget:45},week:[{day:'Monday',meals:[]}],shopping:{},packQuotes:{Asda:{milk:{volume:{price:999,size:1,unit:'ml'}}}},...options.state};
   const context={
@@ -32,7 +33,7 @@ function harness(entries=[item('Milk',1500,'volume')],options={}){
     fetch:async(url,request)=>{
       requests++;
       if(options.responseStatus)return {ok:false,status:options.responseStatus,text:async()=>''};
-      const rows=JSON.parse(request.body).items;
+      requestBodies.push(JSON.parse(request.body));const rows=JSON.parse(request.body).items;
       const recommendations=options.respond?options.respond(rows):rows.map(row=>recommendation(row));
       return {ok:true,status:200,text:async()=>JSON.stringify({store:JSON.parse(request.body).store,recommendations})};
     },
@@ -48,8 +49,9 @@ function harness(entries=[item('Milk',1500,'volume')],options={}){
     renderWeek:()=>views.push({view:'week',status:context.readState().status}),
     renderRecipes:()=>views.push({view:'recipes',status:context.readState().status}),
   };
+  if(options.personal){const data=new Map();context.window.localStorage={getItem:key=>data.get(key)??null,setItem:(key,value)=>data.set(key,String(value)),removeItem:key=>data.delete(key)};vm.runInNewContext(personalCore+';globalThis.PersonalPricesCore=window.PersonalPricesCore',context);context.PersonalPricesCore.write(options.personal,context.window.localStorage);}
   vm.runInNewContext(source+'\nglobalThis.requestMatches=requestAutomaticCatalogMatches;globalThis.readState=()=>automaticCatalogState;globalThis.readBasket=()=>automaticCatalogBasket(Object.entries(buildShopping()),selectedShoppingStore());globalThis.readPlanner=()=>renderPackPlanner(Object.entries(buildShopping()));globalThis.readItem=key=>automaticCatalogMarkup(key,buildShopping()[key],selectedShoppingStore());globalThis.readSummary=()=>automaticCatalogSummary(Object.entries(buildShopping()),selectedShoppingStore());globalThis.copyText=shoppingListText;globalThis.exportCsv=exportPriceReferenceCsv;globalThis.recipeCost=automaticRecipeCost;globalThis.readRecipeCostText=recipeCostText;',context);
-  return {...context,rendered,views,get requests(){return requests},advanceTime(ms){now+=ms},async csv(){context.exportCsv();return exportedBlob.text()},async load(){await context.requestMatches(entries,context.state.shoppingStore)}};
+  return {...context,rendered,views,requestBodies,get requests(){return requests},advanceTime(ms){now+=ms},async csv(){context.exportCsv();return exportedBlob.text()},async load(){await context.requestMatches(entries,context.state.shoppingStore)}};
 }
 
 test('legacy manual retailer choice migrates once to ASDA while preserving meal preferences and saved data',()=>{
@@ -196,4 +198,28 @@ test('reference estimates stay labelled in shopping totals, product evidence and
   assert.match(app.readSummary(),/Estimated £1.35/);assert.match(app.readPlanner(),/~£1.35/);assert.match(app.readItem('cannellini beans'),/Reference estimate · May 2026/);
   assert.match(app.copyText(),/Reference price estimate: May 2026/);assert.match(await app.csv(),/Reference price estimate; May 2026/);
   const first=app.requests;app.state.profile.lidlReferencePrices=false;await app.load();assert.ok(app.requests>first,'changing price mode invalidates the saved matching fingerprint');
+});
+
+
+test('opted-in personal packs retain provenance without links and update requests when edited or excluded',async()=>{
+ const today=new Date().toLocaleDateString('en-CA',{timeZone:'Europe/London'});
+ const raw={ingredient:'Oats',productName:'Crownfield oats pack',packQuantity:1000,packUnit:'g',priceGBP:1.25,checkedAt:today,source:'shelf',branch:'Alison Crescent, Sheffield',store:'Lidl'};
+ let app;
+ const respond=rows=>rows.map(row=>{
+  const saved=app.PersonalPricesCore.read().snapshot.prices[0],p={...saved,url:'personal:lidl/'+saved.id,personalPriceId:saved.id,personalIngredient:saved.ingredient,personalSource:saved.source,personalBranch:saved.branch,personalCheckedAt:saved.checkedAt,priceBasis:'personal',estimatedPrice:true,priceSource:'Your Lidl shelf-label price',priceSourceUrl:null};
+  const packs=Math.ceil(row.quantity/p.packQuantity);return {key:row.key,dimension:row.dimension,confidence:'high',match:p,plan:{requestedQuantity:row.quantity,totalQuantity:packs*p.packQuantity,totalCostGBP:packs*p.priceGBP,estimatedPrice:true,products:[{...p,packs,totalQuantity:packs*p.packQuantity,costGBP:packs*p.priceGBP}]}};
+ });
+ app=harness([item('Oats',1100)],{personal:{schemaVersion:1,includeInPlanning:true,prices:[raw]},state:{shoppingStore:'Lidl',automaticPricingVersion:2,profile:{supermarket:'Lidl',supermarkets:['Lidl'],budget:35}},respond});
+ await app.load();assert.equal(app.readBasket().total,2.5);assert.equal(app.requestBodies[0].allowPersonalPrices,true);assert.equal(app.requestBodies[0].personalPrices[0].productName,raw.productName);
+ const markup=app.readItem('oats');assert.match(markup,/Your shelf label price · checked/);assert.match(markup,/Alison Crescent/);assert.doesNotMatch(markup,/href="personal:|Reference estimate|undefined/);
+ assert.match(app.copyText(),/Your shelf label price · checked/);assert.doesNotMatch(app.copyText(),/personal:lidl/);
+ const csv=await app.csv();assert.match(csv,/Your shelf label price · checked/);assert.match(csv,/personal estimate/);assert.doesNotMatch(csv,/personal:lidl|undefined/);
+ app.PersonalPricesCore.upsert({...raw,priceGBP:1.5});assert.equal(app.readBasket().priced,0);await app.load();assert.equal(app.readBasket().total,3);assert.equal(app.requests,2);
+ app.PersonalPricesCore.setIncluded(false);assert.equal(app.readBasket().priced,0);await app.load();assert.equal(app.requestBodies.at(-1).allowPersonalPrices,undefined);assert.equal(app.readBasket().priced,0,'a personal response cannot cost a basket after opt-out');
+});
+
+test('missing Lidl product shows an optional checked-pack action while normal pricing keeps working without notebook assets',async()=>{
+ const app=harness([item('Oats',100)],{state:{shoppingStore:'Lidl',automaticPricingVersion:2,profile:{supermarket:'Lidl',supermarkets:['Lidl']}},respond:rows=>rows.map(row=>({key:row.key,match:null,plan:null}))});
+ await app.load();assert.match(app.readItem('oats'),/excluded from the subtotal/);assert.equal(app.requestBodies[0].personalPrices,undefined);
+ assert.match(html,/onclick="openPersonalPrice\(\)"/);assert.match(html,/personal-prices-core\.js/);assert.match(html,/personal-prices-ui\.js/);
 });

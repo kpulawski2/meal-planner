@@ -17,6 +17,7 @@ from collections import Counter
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit, urlunsplit
@@ -33,6 +34,64 @@ STAPLE = re.compile(r'\b(?:oats?|skyr|berries|tuna|wraps?|mayonnaise|chicken|bro
 LEAFLETS = ORIGIN+'/c/online-leaflets/s10023175'
 VIEWER = re.compile(r'^https://www\.lidl\.co\.uk/l/en/online-leaflets/[^?#]+/ar/\d+$')
 LOCAL = threading.local()
+
+
+class RequestPacer:
+    """One shared request-start rate and server cooldown for all workers."""
+    def __init__(self, clock=None, sleeper=None, wall_clock=None):
+        self.clock=clock or time.monotonic
+        self.sleep=sleeper or time.sleep
+        self.wall_clock=wall_clock or time.time
+        self.lock=threading.Lock()
+        self.next_request=0
+        self.cooldown_until=0
+        self.deadline=None
+        self.blocked=None
+
+    def begin(self, deadline):
+        with self.lock:
+            self.next_request=0
+            self.cooldown_until=0
+            self.deadline=deadline
+            self.blocked=None
+
+    def acquire(self):
+        while True:
+            with self.lock:
+                if self.blocked: raise LidlRefreshError(self.blocked)
+                now=self.clock()
+                ready=max(self.next_request,self.cooldown_until)
+                if self.deadline is not None and max(now,ready)>=self.deadline:
+                    raise LidlRefreshError('Audit time bound reached before another request; no truncated success.')
+                delay=ready-now
+                if delay<=0:
+                    self.next_request=now+1
+                    return
+            # Do not hold the lock while waiting: another worker's HTTP429
+            # must be able to extend the shared cooldown immediately.
+            self.sleep(min(delay,1))
+
+    def defer(self, retry_after, attempt):
+        delay=None
+        if retry_after is not None:
+            value=str(retry_after).strip()
+            if re.fullmatch(r'\d+',value): delay=float(value)
+            else:
+                try:
+                    date=parsedate_to_datetime(value)
+                    if date.tzinfo is not None: delay=max(0,date.timestamp()-self.wall_clock())
+                except (ValueError,TypeError,OverflowError): pass
+        if delay is None: delay=min(30,5*(attempt+1))
+        with self.lock:
+            if delay>60:
+                # Never shorten a server's instruction to fit our retry
+                # budget. Stop this run, retaining its incomplete report.
+                self.blocked='Lidl Retry-After exceeds the 60-second retry bound; stopped without an early retry.'
+                raise LidlRefreshError(self.blocked)
+            self.cooldown_until=max(self.cooldown_until,self.clock()+delay)
+
+
+PACER=RequestPacer()
 
 
 @dataclass
@@ -60,14 +119,16 @@ def fetch_source(url):
     if not hasattr(LOCAL, 'session'):
         LOCAL.session = requests.Session()
         LOCAL.session.headers.update({'User-Agent':'MealPlannerPriceAudit/1.0 (+https://github.com/kpulawski2/meal-planner)'})
-    began = time.monotonic()
     for redirect in range(4):
         for attempt in range(3):
+            PACER.acquire()
+            began = time.monotonic()
             response = LOCAL.session.get(url, timeout=(8,20), allow_redirects=False, stream=True)
-            if response.status_code not in (429,500,502,503,504) or attempt == 2:
+            if response.status_code not in (429,500,502,503,504):
                 break
-            response.close()
-            time.sleep(attempt+1)
+            try: PACER.defer(response.headers.get('Retry-After'),attempt)
+            finally: response.close()
+            if attempt==2: response.raise_for_status()
         with response:
             if response.is_redirect:
                 next_url = canonical(urljoin(url,response.headers.get('Location','')))
@@ -160,7 +221,7 @@ def exclusion(url):
     if not official(url): return 'outside_official_www_lidl_co_uk'
     path=urlsplit(url).path.lower()
     if PRODUCT.fullmatch(url): return 'canonical_product_checked_by_separate_full_catalogue_refresh'
-    if '/store-finder/' in path or path.startswith('/s/en-gb/'): return 'store_directory_hours_and_addresses_not_a_published_shelf_price_feed'
+    if path in ('/s','/s/') or '/store-finder/' in path or path.startswith('/s/en-gb/'): return 'store_directory_hours_and_addresses_not_a_published_shelf_price_feed'
     if re.search(r'\.(?:pdf|png|jpe?g|gif|webp|svg|ico|woff2?|ttf|mp4|css|js|xml|gz)$',path): return 'non_html_asset_link_retained_not_read_as_pack_price'
     if re.search(r'/(?:login|logout|register|account|privacy|data-protection|imprint|terms-and-conditions|accessibility)(?:/|$)',path): return 'account_or_legal_page_not_a_product_price_source'
     return None
@@ -171,12 +232,17 @@ def audit(directory=Path('work/lidl-price-source-audit'), get=fetch_source, *, s
     sources = directory/'sources'; sources.mkdir(exist_ok=True)
     checked=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00','Z')
     deadline=time.monotonic()+seconds
+    if get is fetch_source: PACER.begin(deadline)
     manifest, urls, maps, failures = {}, set(), set(), []
     sitemap_urls=set()
     report={'schemaVersion':1,'checkedAt':checked,'status':'incomplete',
         'scope':'Every robots-declared recursive sitemap URL is accounted for. Non-product HTML content pages are read for candidate price evidence. Canonical products are handled by the separate full catalogue refresh.',
         'notVerified':'Complete in-store inventory, Sheffield shelf prices, linked PDF contents, linked sites outside www.lidl.co.uk, unlisted/orphan pages, client-only content and pagination beyond each listed content page are not verified by this audit.',
-        'pricesPublished':False,'urls':[],'sitemaps':[],'failures':failures}
+        'pricesPublished':False,
+        'requestPolicy':{'sharedMaximumRequestsPerSecond':1,'workers':max(1,min(4,workers)),
+                         'attemptsPerUrlPerRedirect':3,'maximumRetryAfterSeconds':60,
+                         'longerRetryAfter':'Stop without retrying early; retain incomplete evidence.'},
+        'urls':[],'sitemaps':[],'failures':failures}
     records={}
     catalogue_file=catalogue_path or ROOT/'data/lidl-products.json'
     saved={str(row['id']):row for row in json.loads(catalogue_file.read_text(encoding='utf-8'))} if catalogue_file.exists() else {}

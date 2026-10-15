@@ -5,6 +5,7 @@ import { setImmediate as yieldToServer } from 'node:timers/promises';
 import { createHash } from 'node:crypto';
 import { loadRangeReferences } from './lidl-range-references.js';
 import { loadPriceReferences, referenceProduct, isTrustedReferencePrice } from './lidl-price-references.js';
+import { withPersonalPriceIndex, personalIngredientKey, isTrustedPersonalPrice, personalPriceEvidence, personalPurchaseMeta } from './personal-prices.js';
 
 const CATALOG_STORES = {
   Asda: {
@@ -55,7 +56,7 @@ async function readSnapshot(storeName) {
 async function buildNameIndex(products) {
   const postings = new Map();
   for (let index = 0; index < products.length; index++) {
-    for (const token of new Set(productTokens(products[index]?.name))) {
+    for (const token of new Set(ingredientNameWords(products[index]?.name))) {
       let matches = postings.get(token);
       if (!matches) postings.set(token, matches = []);
       matches.push(index);
@@ -179,7 +180,14 @@ async function pricingIndex(store, allowReferencePrices = false) {
       if (!bySku.has(sku)) bySku.set(sku, []);
       bySku.get(sku).push(index);
     }
-    for (const ref of refs) {
+    // Prefer the most recent dated observation for the exact same named pack.
+    // Older evidence remains in the source manifest, not as a competing cheaper
+    // price for that pack. Different variants or weights stay distinct.
+    const observations = new Set();
+    for (const ref of refs.slice().sort((a,b) => String(b.sourceDate || '').localeCompare(String(a.sourceDate || '')))) {
+      const observation = JSON.stringify([identityWords(ref.name).sort(),ref.packQuantity,ref.packUnit,ref.regions.slice().sort()]);
+      if (observations.has(observation)) continue;
+      observations.add(observation);
       // Lidl sometimes reuses an item number across named listings. The brand
       // and all variant words must also agree; SKU equality alone is insufficient.
       const position = ref.storeSku ? bySku.get(skuKey(ref.storeSku))?.find(index => {
@@ -231,6 +239,8 @@ function productTokens(value) {
     .replace(/\bcous\s+cous\b/gi, 'couscous')
     .replace(/\b(?:easy\s+peelers?|clementines?|satsumas?)\b/gi, 'mandarin')
     .replace(/\b(?:summer|forest)\s+fruits?\b/gi, 'berry')
+    .replace(/\ball[ -]+purpose\s+flour\b/gi, 'plain flour')
+    .replace(/\bmayo\b/gi, 'mayonnaise')
     .replace(/\bcooking\s+oil\b/gi, 'oil')
     .replace(/\bcocoa\s+powder\b/gi, 'cocoa')
     .replace(/\b(tikka)\s+(?:curry\s+powder|spice\s+mix)\b/gi, '$1 seasoning')
@@ -254,14 +264,34 @@ function productTokens(value) {
   });
 }
 
+function ingredientNameWords(value) {
+  const words = productTokens(value);
+  // A generic berry ingredient can use a named berry, while a request for
+  // raspberries or a mixed pack must still contain that specific name.
+  if (!words.includes('berry') && words.some(word => ['raspberry', 'strawberry', 'blueberry', 'blackberry'].includes(word))) words.push('berry');
+  return words;
+}
+
 const OPTIONAL_INGREDIENT_WORDS = new Set(['fresh', 'frozen', 'dried', 'raw', 'lean', 'regular', 'bell']);
 const DAIRY_FLAVOURS = new Set(['banana', 'strawberry', 'raspberry', 'blueberry', 'berry', 'superberry', 'peach', 'passionfruit', 'passion', 'mango', 'papaya', 'coconut', 'lemon', 'apple', 'vanilla', 'chocolate', 'cocoa', 'caramel', 'toffee', 'coffee', 'honey', 'cherry', 'flavour', 'flavored', 'flavoured', 'shake', 'milkshake', 'cheesecake']);
 const PLANT_DAIRY_WORDS = new Set(['vegan', 'plant', 'dairyfree', 'almond', 'oat', 'soya', 'soy', 'coconut', 'cashew', 'hemp']);
 const COMPOSITE_FOODS = new Set(['soup', 'sandwich', 'wrap', 'pizza', 'medley', 'dinner', 'meal', 'risotto', 'stirfry', 'skewer', 'kebab', 'casserole', 'bake', 'burger', 'nugget', 'croquette', 'pie', 'dip', 'spread', 'cocktail']);
 
 function ingredientWords(query) {
-  const words = [...new Set(productTokens(query))].filter(word => !OPTIONAL_INGREDIENT_WORDS.has(word));
+  // Serving instructions do not identify a different product. Keep ingredient
+  // qualifiers such as unsalted, wholemeal, light and 0% in the match itself.
+  const identity = String(query || '').replace(/(?:[,;]?\s+)(?:to taste|as needed|as required|for serving|for garnish)\s*[.)]*$/i, '');
+  const words = [...new Set(productTokens(identity))].filter(word => !OPTIONAL_INGREDIENT_WORDS.has(word));
   return words.filter(word => word !== 'cheese' || !words.some(item => ['feta', 'cheddar', 'halloumi', 'parmesan', 'quark'].includes(item)));
+}
+
+function ingredientCategory(product) {
+  const parts = [product?.category, ...(product?.categoryPath || [])].filter(Boolean).flatMap(value => String(value).split(/\s*>\s*/));
+  if (product?.store !== 'Lidl') return parts.join(' > ');
+  // Translate exact official department names. A substring replacement of
+  // "Fruit & veg" also relabels "Frozen Fruit & Vegetables" as fresh produce.
+  const shelves = { 'fruit & veg': 'Fresh Fruit & Fresh Vegetables', baking: 'Home Baking', 'oil & fats': 'Cooking Oil & Fats', 'oils & vinegar': 'Cooking Oil & Vinegar' };
+  return parts.map(part => shelves[part.trim().toLowerCase()] || part).join(' > ');
 }
 
 function ingredientCompatible(query, product, preparedWords = ingredientWords(query)) {
@@ -274,7 +304,7 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   if (/lighter[ -]+than[ -]+light/i.test(query) && !/lighter[ -]+than[ -]+light/i.test(title)) return false;
   const rawCategory = [product?.category, ...(product?.categoryPath || [])].filter(Boolean).join(' ');
   if (product?.store === 'Lidl' && !/^Food & Drink(?:\s|>|$)/i.test(rawCategory)) return false;
-  const category = product?.store === 'Lidl' ? rawCategory.replace(/fruit & veg/gi, 'Fresh Fruit & Fresh Vegetables').replace(/oils & vinegar/gi, 'Cooking oil & vinegar') : rawCategory;
+  const category = ingredientCategory(product);
   const asked = word => words.has(word);
   const unrequested = set => [...set].some(word => name.has(word) && !asked(word));
   // A token hit in candles, pet food or cosmetics is never an ingredient match.
@@ -468,13 +498,13 @@ function scoreCandidate(query, url) {
 function scoreProduct(query, product, dimension = '', preparedQuery = null) {
   if (product?.discoveryStatus === 'not_listed') return 0;
   const queryTokens = preparedQuery || ingredientWords(query);
-  const nameTokens = productTokens(product?.name);
+  const nameTokens = ingredientNameWords(product?.name);
   if (!queryTokens.length || !nameTokens.length) return 0;
   if (!ingredientCompatible(query, product, queryTokens)) return 0;
 
   const name = new Set(nameTokens);
   const brand = new Set(productTokens(product.brand));
-  const categoryText = [product.category, ...(product.categoryPath || [])].filter(Boolean).join(' ');
+  const categoryText = ingredientCategory(product);
   const category = new Set(productTokens(categoryText));
   const nameHits = queryTokens.filter(token => name.has(token)).length;
   if (!nameHits) return 0;
@@ -581,11 +611,12 @@ function packUnitMeta(product) {
 }
 
 // Recipe quantities and retailer packs are often different units. These are
-// explicitly labelled cooking assumptions; they do not change the saved ASDA pack.
+// explicitly labelled cooking assumptions; they do not change the saved retailer pack.
 const PRODUCE_ITEM_GRAMS = { pepper: 130, cucumber: 300, banana: 120, apple: 180, pear: 170, lemon: 60, lime: 45, onion: 150, avocado: 150, orange: 150, mandarin: 80, carrot: 80, potato: 175, kiwi: 75, garlic: 50, lettuce: 250, melon: 700 };
-const SPICE_GRAMS_PER_TSP = { cinnamon: 2.6, paprika: 2.3, cumin: 2.1, chilli: 1.8, curry: 2, herb: 1, dill: 1, seasoning: 2.5, cocoa: 2.5 };
+const SPICE_GRAMS_PER_TSP = { cinnamon: 2.6, paprika: 2.3, cumin: 2.1, chilli: 1.8, curry: 2, herb: 1, dill: 1, seasoning: 2.5, cocoa: 2.5, salt: 6, pepper: 2.3 };
 
 function purchasePackMeta(product, wantedDimension) {
+  if (isTrustedPersonalPrice(product)) return personalPurchaseMeta(product, wantedDimension);
   let meta = packUnitMeta(product);
   // A variable-weight cabbage can only use a declared typical mass when the
   // stored item price agrees with the same snapshot's per-kg price.
@@ -599,8 +630,7 @@ function purchasePackMeta(product, wantedDimension) {
   }
   if (!meta) return null;
   const words = new Set(productTokens(product?.name));
-  const rawCategory = [product?.category, ...(product?.categoryPath || [])].filter(Boolean).join(' ');
-  const category = product?.store === 'Lidl' ? rawCategory.replace(/fruit & veg/gi, 'Fresh Fruit & Fresh Vegetables') : rawCategory;
+  const category = ingredientCategory(product);
   const title = String(product?.name || '');
   // Tin net weight includes water/brine that is not eaten. ASDA's displayed
   // per-kg price for these drained foods uses the edible weight. Infer it only
@@ -637,7 +667,7 @@ function purchasePackMeta(product, wantedDimension) {
   }
   const oil = words.has('oil') && /oil|food cupboard/i.test(category);
   const honey = words.has('honey') && /honey|preserve|spread/i.test(category);
-  const dressing = /sauce|dressing|stock|milk|juice/i.test(title) && !/powder|cube|concentrat/i.test(title);
+  const dressing = /sauce|dressing|mayonnaise|stock|milk|juice/i.test(title) && !/powder|cube|concentrat/i.test(title);
   const density = oil ? 0.92 : honey ? 1.42 : dressing ? 1 : null;
   if (density && wantedDimension === 'mass' && meta.dimension === 'volume') return estimated(meta.capacity * density, `Estimated density ${density} g/ml for ${oil ? 'cooking oil' : honey ? 'honey' : 'sauce or liquid'}; actual density varies.`);
   if (density && wantedDimension === 'volume' && meta.dimension === 'mass') return estimated(meta.capacity / density, `Estimated density ${density} g/ml for ${oil ? 'cooking oil' : honey ? 'honey' : 'sauce or liquid'}; actual density varies.`);
@@ -666,7 +696,8 @@ function priceEvidence(product) {
   const pageSource = product?.store === 'Lidl' && product?.price != null && (!product.priceSource || product.priceSource === 'Lidl GB official product page');
   return {
     estimatedPrice: product.estimatedPrice === true,
-    priceBasis: product.estimatedPrice === true ? 'reference' : 'website',
+    priceBasis: product.priceBasis === 'personal' ? 'personal' : product.estimatedPrice === true ? 'reference' : 'website',
+    ...personalPriceEvidence(product),
     sourcePeriod: product.sourcePeriod || null,
     sourceDate: product.sourceDate || null,
     referenceReviewedAt: product.referenceReviewedAt || null,
@@ -680,7 +711,7 @@ function productSummary(product, score) {
   const inferredPack = packUnitMeta(product);
   return {
     url: product.url,
-    productName: product.name,
+    productName: product.personalProductName || product.name,
     score,
     brand: product.brand || null,
     packSize: product.packSize || null,
@@ -704,6 +735,7 @@ function productSummary(product, score) {
 export function productPriceUsable(product, now = new Date()) {
   if (product?.discoveryStatus === 'not_listed') return false;
   if (product?.price == null || !Number.isFinite(Number(product.price)) || Number(product.price) <= 0) return false;
+  if (product.priceBasis === 'personal' || product.personalPriceId) return isTrustedPersonalPrice(product, now);
   if (product.priceBasis === 'reference' || product.estimatedPrice === true) return isTrustedReferencePrice(product) && !product.regionRestricted;
   if (product.priceMemberOnly === true || product.offer?.validForMemberTier) return false;
   const day = now.toISOString().slice(0, 10);
@@ -732,7 +764,7 @@ export function productPriceUsable(product, now = new Date()) {
 export function rankCatalogCandidates(query, products, dimension = '', limit = 36) {
   const queryTokens = ingredientWords(query);
   const rows = (Array.isArray(products) ? products : [])
-    .map(product => ({ product, score: scoreProduct(query, product, dimension, queryTokens), nameTokens: productTokens(product?.name) }))
+    .map(product => ({ product, score: scoreProduct(query, product, dimension, queryTokens), nameTokens: ingredientNameWords(product?.name) }))
     .filter(row => row.score > 0)
     .sort((a, b) => b.score - a.score || String(a.product.url || '').localeCompare(String(b.product.url || '')));
   const strict = rows.filter(row => queryTokens.every(token => row.nameTokens.includes(token)));
@@ -758,6 +790,11 @@ function indexedProducts(index, query, strict = false) {
 }
 
 function indexedCandidates(index, query, dimension) {
+  // An explicit ingredient assignment belongs only to this shopper/request.
+  // Prefer their observed pack over historical website estimates for that exact
+  // ingredient. A different unit still needs the normal safe conversion rules.
+  const personal = index.personalByIngredient?.get(personalIngredientKey(query));
+  if (personal?.length) return personal.map(product => ({ product, score: 100 })).filter(row => purchasePackMeta(row.product, canonicalDimension(dimension)));
   const cacheKey = JSON.stringify([productTokens(query), canonicalDimension(dimension)]);
   if (index.candidateCache.has(cacheKey)) return index.candidateCache.get(cacheKey);
   // The scorer requires a name-token hit. Full-name matches have priority, so only
@@ -906,9 +943,9 @@ function makePurchasePlan(counts, offers, requested) {
   return { requestedQuantity: requested, totalQuantity, leftoverQuantity: Number(Math.max(0, totalQuantity - requested).toFixed(6)), totalCostGBP, estimatedPrice: products.some(product => product.estimatedPrice), estimatedQuantity: products.some(product => product.estimatedQuantity), estimateNotes: [...new Set(products.filter(product => product.estimatedQuantity).map(product => product.quantityBasis))], products };
 }
 
-export async function recommendCatalogItems(storeName, items, { signal, allowReferencePrices = false } = {}) {
+export async function recommendCatalogItems(storeName, items, { signal, allowReferencePrices = false, allowPersonalPrices = false, personalPrices = [] } = {}) {
   if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new Error('Choose Asda or Lidl for automatic recommendations.');
-  const index = await pricingIndex(storeName, allowReferencePrices);
+  const index = withPersonalPriceIndex(await pricingIndex(storeName, allowReferencePrices), { allowPersonalPrices, personalPrices }, storeName);
   if (index.snapshotStatus !== 'complete' || !Array.isArray(index.products)) throw new Error(`A complete ${storeName} website catalogue snapshot is required for automatic recommendations.`);
   const rows = Array.isArray(items) ? items.slice(0, 200) : [];
   const recommendations = [];
@@ -921,7 +958,7 @@ export async function recommendCatalogItems(storeName, items, { signal, allowRef
       const relevant = candidates;
       const quantity = Number(item?.quantity);
       const queryTokens = ingredientWords(query);
-      const bestNameTokens = productTokens(candidates[0]?.product?.name);
+      const bestNameTokens = ingredientNameWords(candidates[0]?.product?.name);
       const confidence = candidates.length && bestScore >= 9 && queryTokens.every(token => bestNameTokens.includes(token))
         ? 'high'
         : candidates.length ? 'review' : 'none';
@@ -951,15 +988,15 @@ export async function recommendCatalogItems(storeName, items, { signal, allowRef
 
 // Reuse the same safety filters and quantity assumptions when evaluating many
 // meal plans. The worker builds compact price tables without reloading products.
-export async function catalogPurchaseOffers(items, { signal, store = 'Asda', allowReferencePrices = false } = {}) {
-  const index = await pricingIndex(store, allowReferencePrices);
+export async function catalogPurchaseOffers(items, { signal, store = 'Asda', allowReferencePrices = false, allowPersonalPrices = false, personalPrices = [] } = {}) {
+  const index = withPersonalPriceIndex(await pricingIndex(store, allowReferencePrices), { allowPersonalPrices, personalPrices }, store);
   if (index.snapshotStatus !== 'complete') throw new Error(`A complete ${store} website catalogue is required to calculate a meal budget.`);
   const rows = [];
   for (const item of items) {
     signal?.throwIfAborted();
     const query = clean(item.name, 120), dimension = canonicalDimension(item.dimension);
     const candidates = indexedCandidates(index, query, dimension), best = candidates[0];
-    const high = best && best.score >= 9 && ingredientWords(query).every(token => productTokens(best.product.name).includes(token));
+    const high = best && best.score >= 9 && ingredientWords(query).every(token => ingredientNameWords(best.product.name).includes(token));
     const offers = high ? candidates.map(candidate => {
       const meta = purchasePackMeta(candidate.product, dimension), cents = Math.round(Number(candidate.product.price) * 100);
       return meta && meta.capacity > 0 && productPriceUsable(candidate.product) && Number.isFinite(cents) && cents >= 1 ? { capacity: meta.capacity, cents } : null;

@@ -12,7 +12,7 @@ const refs = await loadPriceReferences();
 const item = (name, quantity=500, dimension='mass') => ({key:name,name,quantity,dimension});
 
 test('reference manifest retains explicit original periods and validates packs, regions and evidence', () => {
-  assert.equal(refs.length,102);
+  assert.equal(refs.length,141);
   assert.equal(refs.find(row=>row.storeSku==='1073').priceGBP,.99);
   assert.equal(refs.find(row=>row.storeSku==='1073').sourceDate,null);
   assert.equal(refs.find(row=>row.name==='Alesto Pecan Nuts').packQuantity,200);
@@ -29,6 +29,39 @@ test('reference quantities use whole packs, exclude regional and variable weight
   for(const ref of refs.filter(row=>row.regions.length||row.packQuantity===null))assert.equal(calculatePackPurchase([referenceProduct(ref)],100,'mass'),null);
   const milk=referenceProduct(refs.find(row=>row.packUnit==='pint'));
   assert.equal(calculatePackPurchase([milk],1100,'volume').products[0].packs,1);
+});
+test('the October shopping list preserves drained yields and cannot turn an oil-tuna net tin weight into edible recipe grams', () => {
+  const corn = refs.find(row => row.id === 'oct2026-15');
+  assert.equal(corn.sourceDate, '2026-10-12');
+  assert.match(corn.packSize, /340g.*285g drained/);
+  const purchase = calculatePackPurchase([referenceProduct(corn)], 500, 'mass');
+  assert.equal(purchase.products[0].packs, 2);
+  assert.equal(purchase.totalQuantity, 570);
+  assert.equal(purchase.totalCostGBP, 1.1);
+  const tuna = refs.find(row => row.id === 'oct2026-07');
+  assert.equal(tuna.priceGBP, .65); assert.match(tuna.packSize, /145/);
+  assert.equal(tuna.packQuantity, null);
+  assert.equal(calculatePackPurchase([referenceProduct(tuna)], 150, 'mass'), null);
+});
+test('the newest dated exact mayonnaise pack is used ahead of an older observation', async () => {
+  const result = await recommendCatalogItems('Lidl', [item('light mayonnaise', 500, 'mass')], { allowReferencePrices: true });
+  const product = result.recommendations[0].plan.products[0];
+  assert.equal(product.priceGBP, .89);
+  assert.equal(product.sourceDate, '2026-10-12');
+  assert.equal(product.estimatedQuantity, true);
+  assert.match(product.quantityBasis, /density/);
+});
+test('dated vegetable and oil references use specific food shelves while strict callers keep their gaps', async () => {
+  const requests = [item('Frozen mixed vegetables', 1001), item('Cooking oil', 500, 'volume')];
+  const result = await recommendCatalogItems('Lidl', requests, { allowReferencePrices: true });
+  const vegetables = result.recommendations[0].plan;
+  assert.equal(vegetables.products[0].packs, 2); assert.equal(vegetables.totalCostGBP, 1.98);
+  assert.equal(vegetables.products[0].sourceDate, '2026-10-12');
+  const oil = result.recommendations[1].plan;
+  assert.equal(oil.totalCostGBP, 4.19); assert.match(oil.products[0].productName, /Extra Virgin Olive Oil/);
+  assert.equal(oil.products[0].sourceDate, '2023-02-06');
+  const strict = await recommendCatalogItems('Lidl', requests);
+  assert.ok(strict.recommendations.every(row => row.plan === null));
 });
 test('the same item number cannot transfer Dairy Manor milk or organic egg prices to another variant', async () => {
   const rows=(await browseCatalog('Lidl',{query:'milk',allowReferencePrices:true,limit:100})).results;

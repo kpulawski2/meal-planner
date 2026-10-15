@@ -8,7 +8,7 @@ export function validatePriceReferences(document) {
   const sources = new Map();
   for (const source of document.sources) {
     const url = new URL(source.url);
-    const allowed = url.origin === 'https://www.lidl.co.uk' && /^\/static\/assets\/[^/]+\.pdf$/.test(url.pathname) || url.origin === 'https://corporate.lidl.co.uk' && /^\/media-centre\/pressreleases\/\d{4}\/[\w-]+$/.test(url.pathname);
+    const allowed = url.origin === 'https://www.lidl.co.uk' && /^\/static\/assets\/[^/]+\.pdf$/.test(url.pathname) || url.origin === 'https://corporate.lidl.co.uk' && /^\/media-centre\/pressreleases\/\d{4}\/[\w!-]+$/.test(url.pathname);
     if (!allowed || url.username || url.password || url.search || url.hash || !source.id || sources.has(source.id) || !source.label || !source.period || source.date !== null && !/^\d{4}-\d{2}(?:-\d{2})?$/.test(source.date || '')) throw new Error('Invalid Lidl price reference source.');
     sources.set(source.id, source);
   }

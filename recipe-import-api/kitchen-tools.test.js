@@ -50,7 +50,7 @@ test('real verified Lidl listings match named pasta and Skyr without inventing p
 });
 test('verified-only Lidl browsing excludes historical references while preserving explicitly requested references', async () => {
   const products = await browseCatalog('Lidl', { source: 'products', query: 'Mayonnaise' });
-  assert.equal(products.matched, 0);
+  assert.ok(products.results.every(row => row.kind === 'product' && /^https:\/\/www\.lidl\.co\.uk\/p\//.test(row.url)), 'Mayo aliases may reveal an official assorted sauce, but cannot include a historical range reference');
   assert.ok(products.verifiedProducts > 1000);
   const all = await browseCatalog('Lidl', { source: 'all', query: 'Mayonnaise' });
   assert.ok(all.results.some(row => row.kind === 'range_reference'));

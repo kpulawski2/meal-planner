@@ -1,5 +1,53 @@
 # Lidl GB website catalogue
 
+## Recipe pricing and personal pack prices
+
+The October source review adds 39 exact official references (141 records across
+eight sources), including the live five-family-meals price matrix checked on
+12 October 2026. The original dates remain visible: these are estimates, not
+verified current Sheffield shelf prices. For the exact same named pack and
+region, the newest dated observation takes precedence over an older reference.
+Different brands, variants and weights remain distinct. The source list keeps
+the historical evidence even when a newer observation is preferred.
+
+The matrix's sweetcorn tin is labelled 340g with 285g drained contents; recipe
+purchases use the explicit 285g edible yield. Its 145g sunflower-oil tuna amount
+does not establish a drained yield and cannot cost recipe grams. It also cannot
+stand in for brine or spring-water tuna. Regional cheese and egg references
+remain restricted. Upcoming XXL chicken offers do not become today's prices.
+
+The recipe matcher recognises Lidl's Baking and Oil & Fats shelves, preserves
+frozen produce categories, and safely handles plain/all-purpose flour wording.
+The publisher accepts unambiguous decimal-comma pack quantities such as 1,5kg
+while rejecting size choices, weight ranges and ambiguous thousands separators.
+Mayonnaise and salt/pepper spoon conversions carry explicit quantity estimates.
+
+For unpublished staples, **Settings → Your Lidl pack prices** lets the shopper
+save an observed receipt or shelf-label price with the product name, usable
+quantity, date and optional store. Planning inclusion is a separate opt-in.
+The same price is used by planning, shopping and swaps for the exact assigned
+ingredient; no private price enters the official catalogue or another user's
+request. Checked packs are saved locally and included in device backups.
+Prices older than 30 days are labelled; after 90 days they are excluded until
+rechecked. Editing or disabling prices cancels stale requests and saved quotes.
+Supported cooking conversions are shared by server and client and labelled.
+An estimated future shopping cost never records a new actual pantry purchase.
+
+The [complete website/reference directory export](price-exports/lidl-all-website-prices-2026-10-15.csv)
+includes published listings and separately labelled source references, missing
+prices, offer windows and member conditions. An amount does not establish a
+usable recipe pack, local stock or the full range of a physical store.
+
+`audit-lidl-price-sources.yml` audits every recursive sitemap URL and non-product
+public content page, plus linked official leaflet viewers. Stores/legal/assets
+have explicit dispositions; canonical product URLs belong to the separate full
+product refresh. Source hashes, compressed captures, price contexts and PDF
+links are retained for review. All workers share a one-request-per-second gate
+and honour `Retry-After`; denied or unfinished pages make the report incomplete.
+Extracted text is only evidence to review, never an automatically imported price.
+PDF links, unlisted pages and inaccessible viewer content do not imply complete
+in-store price coverage.
+
 The free refresh follows the official `robots.txt` sitemap declaration and every
 child sitemap, including gzip files. Every discovered `/p/.../p<number>` page is
 read with four workers and bounded retries. Identity, canonical URL, counts,

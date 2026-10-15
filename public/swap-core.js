@@ -8,13 +8,18 @@
   };
   const key = (day, index) => `${day}::${index}`;
   const clone = value => JSON.parse(JSON.stringify(value));
+  function personalPayload(store) {
+    if (!root.PersonalPricesCore) return {};
+    const saved = root.PersonalPricesCore.read();
+    try { return saved.ok ? root.PersonalPricesCore.requestPayload(saved.snapshot, { store }) : {}; } catch { return {}; }
+  }
   function fingerprint(state, recipes, store, catalogue = null, extraIds = []) {
     const ids = new Set([...(state.week || []).flatMap(day => day.meals || []), ...extraIds]);
     const rows = recipes.filter(recipe => ids.has(recipe.id)).map(recipe => ({ id: recipe.id, name: recipe.name, cat: recipe.cat,
       ings: recipe.ings, servings: recipe.servings, fixedBatch: recipe.fixedBatch, kcal: recipe.kcal, p: recipe.p,
       c: recipe.c, f: recipe.f, nutritionStatus: recipe.nutritionStatus, nutrition: recipe.nutrition,
       equipment: recipe.equipment, unavailable: recipe.unavailable, dishFamily: recipe.dishFamily, copiedFrom: recipe.copiedFrom }));
-    return JSON.stringify({ store, catalogue, profile: state.profile, week: state.week, mealServings: state.mealServings,
+    return JSON.stringify({ store, catalogue, personalPrices: personalPayload(store), profile: state.profile, week: state.week, mealServings: state.mealServings,
       locked: state.locked, pantry: state.pantry, ledger: state.pantryLedger, leftovers: state.leftovers,
       feedback: state.recipeFeedback, recent: state.recentMeals, rows });
   }
@@ -67,21 +72,23 @@
     }
     return items;
   }
-  function officialUrl(value, store, product = {}) {
+  function officialUrl(value, store, product = {}, item = {}) {
+    if (product.priceBasis === 'personal' || String(value || '').startsWith('personal:')) return root.PersonalPricesCore?.productMatches?.(product, {store, ingredient:item.name, dimension:item.dimension}) === true;
     try {
       const url = new URL(value);
       return url.protocol === 'https:' && !url.username && !url.password && !url.port && (store === 'Asda'
         ? ['www.asda.com', 'groceries.asda.com'].includes(url.hostname) && /^\/(?:groceries\/)?product\//.test(url.pathname)
-        : store === 'Lidl' && (url.hostname === 'www.lidl.co.uk' && /^\/p\/[^/]+\/p\d+\/?$/.test(url.pathname) || product.estimatedPrice === true && product.priceBasis === 'reference' && (url.hostname === 'www.lidl.co.uk' && /^\/static\/assets\/[^/]+\.pdf$/.test(url.pathname) || url.hostname === 'corporate.lidl.co.uk' && /^\/media-centre\/pressreleases\/\d{4}\/[\w-]+$/.test(url.pathname))));
+        : store === 'Lidl' && (url.hostname === 'www.lidl.co.uk' && /^\/p\/[^/]+\/p\d+\/?$/.test(url.pathname) || product.estimatedPrice === true && product.priceBasis === 'reference' && (url.hostname === 'www.lidl.co.uk' && /^\/static\/assets\/[^/]+\.pdf$/.test(url.pathname) || url.hostname === 'corporate.lidl.co.uk' && /^\/media-centre\/pressreleases\/\d{4}\/[\w!-]+$/.test(url.pathname))));
     } catch { return false; }
   }
-  function planValid(plan, requested, store) {
+  function planValid(plan, requested, store, item = {}) {
     if (!plan || !Array.isArray(plan.products) || !plan.products.length || !amount(plan.totalCostGBP) || !amount(plan.requestedQuantity) ||
       !(Number(plan.totalQuantity) > 0) || !Number.isFinite(Number(plan.totalQuantity)) || Math.abs(Number(plan.requestedQuantity) - requested) > .001 ||
       Number(plan.totalQuantity) < requested - .000001 || !(requested > 0)) return false;
+    if (plan.products.some(product => product.priceBasis === 'personal') && plan.estimatedPrice !== true) return false;
     if (!plan.products.every(product => Number.isInteger(Number(product.packs)) && Number(product.packs) > 0 && amount(product.costGBP) &&
       amount(product.priceGBP) && Number(product.priceGBP) > 0 && Number(product.totalQuantity) > 0 && Number.isFinite(Number(product.totalQuantity)) &&
-      product.available !== false && officialUrl(product.url, store, product) && Math.abs(Number(product.costGBP) - Number(product.packs) * Number(product.priceGBP)) < .011)) return false;
+      product.available !== false && (product.priceBasis !== 'personal' || Boolean(item.dimension)) && officialUrl(product.url, store, product, item) && Math.abs(Number(product.costGBP) - Number(product.packs) * Number(product.priceGBP)) < .011)) return false;
     return Math.abs(plan.products.reduce((sum, product) => sum + Number(product.costGBP), 0) - Number(plan.totalCostGBP)) < .011 &&
       Math.abs(plan.products.reduce((sum, product) => sum + Number(product.totalQuantity), 0) - Number(plan.totalQuantity)) < .00001;
   }
@@ -93,7 +100,7 @@
     let subtotal = 0; const missing = [];
     for (const item of items) {
       const row = data.recommendations.find(result => result.key === item.key);
-      if (!row?.match || row.dimension !== item.dimension || !officialUrl(row.match.url, store, row.match) || !planValid(row.plan, item.quantity, store)) missing.push(item.name);
+      if (!row?.match || row.dimension !== item.dimension || !officialUrl(row.match.url, store, row.match, item) || !planValid(row.plan, item.quantity, store, item)) missing.push(item.name);
       else subtotal += Number(row.plan.totalCostGBP);
     }
     subtotal = Math.round(subtotal * 100) / 100;

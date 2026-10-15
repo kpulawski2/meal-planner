@@ -14,6 +14,7 @@ import { createImportAccess, createAiImportBudget, ImportLimitError } from './im
 import { fetchPublicRecipePage } from './public-recipe-fetch.js';
 import { PRICE_LOOKUP_STORES, lookupStoreItem, splitBatches } from './price-search-adapter.js';
 import { catalogStoreInfo } from './catalog-adapter.js';
+import { normalizePersonalPriceOptions } from './personal-prices.js';
 import { searchCatalog, browseCatalog, recommendCatalogItems, optimizeMealPlan, fetchProductPage, clearCatalogCache, catalogueStatus, cachedCatalogueStatus } from './catalog-service.js';
 import { normalizePlannerRequest } from './planner-request.js';
 import { createBarcodeLookup } from './barcode-products.js';
@@ -891,10 +892,11 @@ app.post('/api/catalog/recommend', catalogRateLimit, async (req, res) => {
     activeCatalogRecommendations += 1;
     claimedSlot = true;
     res.once('close', disconnected);
-    const result = await recommendCatalogItems(store, items, { signal: controller.signal, allowReferencePrices: req.body?.allowReferencePrices === true });
+    const personal = normalizePersonalPriceOptions(req.body, store);
+    const result = await recommendCatalogItems(store, items, { signal: controller.signal, allowReferencePrices: req.body?.allowReferencePrices === true, ...personal });
     if (!res.destroyed) res.json({ ok: true, ...result });
   } catch (e) {
-    if (!res.destroyed && !res.headersSent) res.status(502).json({ error: `Could not build automatic retailer pack recommendations: ${cleanString(e?.message || 'unknown error', 300)}` });
+    if (!res.destroyed && !res.headersSent) res.status(e instanceof TypeError ? 400 : 502).json({ error: `Could not build automatic retailer pack recommendations: ${cleanString(e?.message || 'unknown error', 300)}` });
   } finally {
     if (claimedSlot) activeCatalogRecommendations -= 1;
     res.off('close', disconnected);
