@@ -40,7 +40,7 @@ class Fixture:
     def get(self,url):
         split=urlsplit(url);base=split.scheme+'://'+split.netloc+split.path;offset=int(parse_qs(split.query).get('offset',['0'])[0]);self.calls[url]+=1
         if split.path=='/q/api/search':
-            q=parse_qs(split.query);assert q['wonCategory']==['10068374'];self.calls[ROOT+'?offset='+str(offset)]+=1
+            q=parse_qs(split.query);assert q['category.id']==['10068374'];self.calls[ROOT+'?offset='+str(offset)]+=1
             rows=[product(code) for code in self.rows[ROOT][offset:offset+2]]
             return json.dumps({'assortment':'GB','locale':'en_GB','numFound':len(self.rows[ROOT]),'fetchsize':2,'offset':offset,'items':[{'code':p['code'],'gridbox':{'country':p['gridBox']['country'],'data':p['gridBox']['gridBoxData']}} for p in rows]})
         ids=self.rows[base];identity=split.path.rsplit('/',1)[-1][1:];size=2

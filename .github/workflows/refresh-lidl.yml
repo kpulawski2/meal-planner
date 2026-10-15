@@ -4,10 +4,10 @@ on:
     - cron: '55 5 * * *'
   workflow_dispatch:
   pull_request:
-    paths: ['backend/lidl_catalogue.py', 'backend/lidl_discovery.py', 'backend/refresh_lidl_catalogue.py', 'backend/tests/test_lidl*.py', '.github/workflows/refresh-lidl.yml']
+    paths: ['backend/lidl_catalogue.py', 'backend/lidl_discovery.py', 'backend/lidl_categories.py', 'backend/refresh_lidl_catalogue.py', 'backend/tests/test_lidl*.py', '.github/workflows/refresh-lidl.yml']
   push:
     branches: [main]
-    paths: ['backend/lidl_catalogue.py', 'backend/lidl_discovery.py', 'backend/refresh_lidl_catalogue.py', 'backend/tests/test_lidl*.py', '.github/workflows/refresh-lidl.yml']
+    paths: ['backend/lidl_catalogue.py', 'backend/lidl_discovery.py', 'backend/lidl_categories.py', 'backend/refresh_lidl_catalogue.py', 'backend/tests/test_lidl*.py', '.github/workflows/refresh-lidl.yml']
 permissions:
   contents: read
 concurrency:

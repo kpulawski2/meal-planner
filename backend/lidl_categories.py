@@ -74,6 +74,17 @@ def iso(value):
     except (OverflowError, ValueError) as exc: raise CategoryError('Invalid Lidl category offer date.') from exc
 
 
+def member_offers(data):
+    from lidl_catalogue import text, positive
+    result=[]; currency=(data.get('price') or {}).get('currencyCode')
+    for offer in data.get('lidlPlus') or []:
+        price=offer.get('price') or {}; value=positive(price.get('price'))
+        if value is not None and not isinstance(price.get('price'),bool) and price.get('currencyCode',currency)=='GBP':
+            result.append({'priceGBP':value,'label':text(offer.get('lidlPlusText')) or 'With Lidl Plus',
+                'regularPriceLabel':text((price.get('packaging') or {}).get('text')) or None})
+    return result
+
+
 def card_product(row, source_url):
     from lidl_catalogue import text, positive, regular_price, pack, restricted_region
     code = row.get('code'); box = row.get('gridBox'); data = box.get('gridBoxData') if isinstance(box, dict) else None
@@ -91,12 +102,7 @@ def card_product(row, source_url):
     regular, label = regular_price(data)
     if public is None and not ambiguous: public = regular
     if ambiguous: public = None
-    member = []
-    for offer in data.get('lidlPlus') or []:
-        price = offer.get('price') or {}
-        value = positive(price.get('price'))
-        if value is not None and price.get('currencyCode', info.get('currencyCode')) == 'GBP':
-            member.append({'priceGBP': value, 'label': text(offer.get('lidlPlusText')) or 'With Lidl Plus', 'regularPriceLabel': text((price.get('packaging') or {}).get('text')) or None})
+    member = member_offers(data)
     pack_size = text(facts.get('supplementalDescription') or (info.get('packaging') or {}).get('text')) or None
     quantity, unit = pack(pack_size)
     start, end = iso(data.get('storeStartDate')), iso(data.get('storeEndDate'))
@@ -149,10 +155,10 @@ def parse_category(url, source, offset=0, expected=None, expected_size=None):
 
 
 def root_batch(get, offset, total, size):
-    # The landing page embeds this exact wonCategory search. Its HTML hydration
+    # The landing page embeds this category.id search. Its HTML hydration
     # stops at 21 batches; use the published load-more API for subsequent data.
     url = ORIGIN + '/q/api/search?' + urlencode({'assortment':'GB','locale':'en_GB','version':'v2.0.0',
-        'wonCategory':'10068374','wonCategoryName':'Food & Drink','sort':'storeStartDate-desc','fetchsize':size,'offset':offset})
+        'category.id':'10068374','sort':'storeStartDate-desc','fetchsize':size,'offset':offset})
     try: data = json.loads(get(url))
     except ValueError as exc: raise CategoryError('Lidl menu load-more response is not JSON.') from exc
     if not isinstance(data, dict) or data.get('assortment')!='GB' or data.get('locale')!='en_GB' or data.get('numFound')!=total or data.get('offset')!=offset or data.get('fetchsize')!=size:

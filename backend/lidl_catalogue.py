@@ -15,6 +15,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from lidl_discovery import discover_supplement, confirm_unpublished
+from lidl_categories import discover_categories, member_offers
 
 ROOT = Path(__file__).resolve().parents[1]
 ORIGIN = 'https://www.lidl.co.uk'
@@ -224,7 +225,7 @@ def parse_product(url, source, checked):
         'nutrition':nutrition,'nutritionClaims':[],'checkedAt':checked,'source':'Lidl GB official product page',
         'validFrom':valid_from,'validThrough':valid_until,'priceMissingReason':None if price else 'not_published',
         'offer':{'validFrom':valid_from,'validThrough':valid_until} if valid_from or valid_until else None,
-        'memberOffersAvailable':bool(item.get('lidlPlus')),'regions':item.get('regions') or [],
+        'memberOffersAvailable':bool(item.get('lidlPlus')),'memberOffers':member_offers(item),'regions':item.get('regions') or [],
         'regionRestricted':restricted_region(item,facts),
         'priceSource':'Lidl GB official product page' if price is not None else None,
         'priceSourceUrl':url if price is not None else None,'priceCheckedAt':checked if price is not None else None,
@@ -276,15 +277,19 @@ def refresh(products_path=None, metadata_path=None, get=fetch):
     metadata_path=Path(metadata_path or ROOT/'data/lidl-catalogue-meta.json')
     previous=previous_snapshot(products_path,metadata_path)
     sitemap_urls,maps=discover(get)
+    menu_urls,menu_meta=discover_categories(get)
+    menu_products={p['id']:p for p in menu_meta.pop('menu_products',[])}
     known=set(sitemap_urls)|{p['url'] for p in previous}
     search_urls,search_meta=discover_supplement(get,known)
     # Search publishes current canonical paths; a stale sitemap can retain the
     # old slug for that same ID. Fetch each identity once, preferring search.
     by_id={product_id(url):url for url in sitemap_urls}
+    by_id.update({product_id(url):url for url in sorted(menu_urls)})
     by_id.update({product_id(url):url for url in sorted(search_urls)})
     urls=sorted(by_id.values())
     sitemap_ids={product_id(url) for url in sitemap_urls}
     search_ids={product_id(url) for url in search_urls}
+    menu_ids={product_id(url) for url in menu_urls}
     LOG.info('Discovered %d Lidl identities: %d sitemap URLs, %d additional search identities',len(urls),len(sitemap_urls),len(search_ids-sitemap_ids))
     checked=datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00','Z')
     records,failures,missing=[],[],{}
@@ -328,6 +333,9 @@ def refresh(products_path=None, metadata_path=None, get=fetch):
     final_search_urls,final_search_meta=discover_supplement(get,known)
     if final_search_urls!=search_urls or final_search_meta.get('search_ids_sha256')!=search_meta.get('search_ids_sha256'):
         raise LidlRefreshError('Lidl search changed during refresh; previous snapshot kept.')
+    final_menu_urls,final_menu_meta=discover_categories(get)
+    if final_menu_urls!=menu_urls or final_menu_meta.get('menu_content_sha256')!=menu_meta.get('menu_content_sha256'):
+        raise LidlRefreshError('Lidl food menu changed during refresh; previous snapshot kept.')
     fresh_ids={p['id'] for p in records}
     validate(records,[url for url in urls if url not in confirmed],[p for p in previous if p['id'] in fresh_ids and p.get('discoveryStatus')!='not_listed'])
     removed_ids={product_id(url) for url in confirmed}
@@ -335,7 +343,8 @@ def refresh(products_path=None, metadata_path=None, get=fetch):
     newly_priced=sum(p['price'] is not None and p['id'] in previous_by_id and previous_by_id[p['id']]['price'] is None for p in records)
     for p in records:
         p['discoveryStatus']='listed'
-        p['discoverySources']=(['official_sitemap'] if p['id'] in sitemap_ids else [])+(['official_search'] if p['id'] in search_ids else [])
+        p['discoverySources']=(['official_sitemap'] if p['id'] in sitemap_ids else [])+(['official_search'] if p['id'] in search_ids else [])+(['official_food_menu'] if p['id'] in menu_ids else [])
+        p['menuCategoryIds']=menu_products.get(p['id'],{}).get('categoryIds',[])
     # Preserve prior identities if the publisher removes a page from discovery.
     # A retained entry cannot enter a new basket without fresh publication.
     retained=[{**p,'discoveryStatus':'not_listed','available':False,'availability':'not_listed',
@@ -345,7 +354,7 @@ def refresh(products_path=None, metadata_path=None, get=fetch):
     records.extend(retained)
     records.sort(key=lambda p:(p['name'].casefold(),p['id']))
     meta={'schema_version':2,'store':'Lidl','status':'complete','coverage':1,'coverage_scope':'official_sitemap_and_search_products',
-        'entire_store_inventory':False,'source':'Lidl GB official recursive sitemap, public search and product pages','source_url':SITEMAP,
+        'entire_store_inventory':False,'source':'Lidl GB official recursive sitemap, public search, Food & Drink menu and product pages','source_url':SITEMAP,
         'products_expected':len(records),'products_saved':len(records),'sitemaps':maps,'failed_pages':0,
         'sitemap_products_expected':len(sitemap_urls),'sitemap_products_checked':len(sitemap_urls),
         'current_products_checked':len(urls),'current_products_published':len(fresh_ids),
@@ -360,7 +369,7 @@ def refresh(products_path=None, metadata_path=None, get=fetch):
         'price_note':'Public GBP product offers and explicitly labelled regular prices only. Many Lidl pages say See in store for price; these remain unpriced. Lidl Plus discounts are excluded.',
         'availability_note':'In-store sales channel; no claim of stock at your local branch.',
         'coverage_note':'Every Lidl GB sitemap product and public search identity was checked. Previous product identities are retained; no longer listed entries cannot enter a basket. Lidl does not publish its complete priced in-store inventory.',
-        'sitemap_sha256':hashlib.sha256('\n'.join(sitemap_urls).encode()).hexdigest(),**search_meta}
+        'sitemap_sha256':hashlib.sha256('\n'.join(sitemap_urls).encode()).hexdigest(),**search_meta,**menu_meta}
     for key,field in [('price','price'),('pack_size','packSize'),('sku','sku'),('gtin','gtin'),('brand','brand'),('category','category'),('image','image'),('nutrition','nutrition')]:
         meta['with_'+key]=sum(p.get(field) is not None and p.get(field)!='' for p in records)
     meta['price_coverage']=meta['with_price']/len(records)

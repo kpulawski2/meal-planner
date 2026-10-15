@@ -23,6 +23,10 @@ def page(index, priced=True, future=False, item_extra=None):
     return url,'<script type="application/ld+json">'+json.dumps(product)+'</script><script id="__NUXT_DATA__" type="application/json">'+json.dumps(table)+'</script>'
 
 class LidlTests(unittest.TestCase):
+    def setUp(self):
+        self.menu = patch.object(lidl,'discover_categories',return_value=(set(),{})).start()
+        self.addCleanup(patch.stopall)
+
     def test_retry_policy_is_bounded_and_honours_retry_after(self):
         retry=lidl.session().get_adapter('https://').max_retries
         self.assertEqual(retry.total,4);self.assertIn(429,retry.status_forcelist);self.assertTrue(retry.respect_retry_after_header);self.assertEqual(retry.allowed_methods,{'GET'})
