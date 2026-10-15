@@ -185,3 +185,15 @@ test('CSV export carries automatic products, pack prices and totals and protects
   assert.match(csv,/"ASDA Semi Skimmed Milk","1","2000 ml","1.65","1.65"/);
   assert.match(csv,/Automatically priced/);
 });
+
+test('reference estimates stay labelled in shopping totals, product evidence and both exports',async()=>{
+  const app=harness([item('Cannellini beans',500)],{state:{shoppingStore:'Lidl',automaticPricingVersion:2,profile:{supermarket:'Lidl',supermarkets:['Lidl'],budget:35,lidlReferencePrices:true}},respond:rows=>rows.map(row=>{
+    const result=recommendation(row,.45,240,'g');result.plan.estimatedPrice=true;
+    for(const product of result.plan.products)Object.assign(product,{productName:'Freshona Cannellini Beans',estimatedPrice:true,priceBasis:'reference',sourcePeriod:'May 2026',priceSourceUrl:'https://www.lidl.co.uk/static/assets/Lidl5-for-20-May2026-2204485.pdf',url:'https://www.lidl.co.uk/static/assets/Lidl5-for-20-May2026-2204485.pdf#lidl-reference-beans'});
+    result.match={...result.plan.products[0]};return result;
+  })});
+  await app.load();assert.equal(app.readBasket().estimatedPrice,true);assert.equal(app.readBasket().estimated,false,'price estimates do not claim produce weight assumptions');
+  assert.match(app.readSummary(),/Estimated £1.35/);assert.match(app.readPlanner(),/~£1.35/);assert.match(app.readItem('cannellini beans'),/Reference estimate · May 2026/);
+  assert.match(app.copyText(),/Reference price estimate: May 2026/);assert.match(await app.csv(),/Reference price estimate; May 2026/);
+  const first=app.requests;app.state.profile.lidlReferencePrices=false;await app.load();assert.ok(app.requests>first,'changing price mode invalidates the saved matching fingerprint');
+});

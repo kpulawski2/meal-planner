@@ -32,7 +32,7 @@ parentPort.on('message', async message => {
     const result = method === 'optimizeMealPlan'
       ? await optimizeMealPlan(args[0], { signal: controller.signal })
       : method === 'recommendCatalogItems'
-      ? await recommendCatalogItems(args[0], args[1], { signal: controller.signal })
+      ? await recommendCatalogItems(args[0], args[1], { allowReferencePrices: args[2]?.allowReferencePrices === true, signal: controller.signal })
       : await operations[method](...args);
     parentPort.postMessage({ id, ok: true, result, status: cachedCatalogueStatus(), statuses: statuses() });
   } catch (error) {

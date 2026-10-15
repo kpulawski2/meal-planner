@@ -510,7 +510,7 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   if (items.size > 400) return unavailable('This recipe selection contains more than 400 different ingredient requirements. Select a smaller recipe library to calculate the budget safely.');
   signal?.throwIfAborted();
   let catalogue;
-  try { catalogue = await catalogPurchaseOffers([...items.values()], { signal, store }); }
+  try { catalogue = await catalogPurchaseOffers([...items.values()], { signal, store, allowReferencePrices: profile.lidlReferencePrices === true }); }
   catch (error) { if (signal?.aborted) throw error; return unavailable(error.message); }
   const books = new Map(), stock = stockAmounts(pantry);
   for (const [index, row] of catalogue.rows.entries()) {
@@ -573,8 +573,9 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   const uniqueMeals = new Set(plan.week.flatMap(day => day.meals)).size;
   if (!variety.met) warnings.push('No plan meeting the required meal variety was found. Repetition and protein-family limits have not been relaxed. Add alternatives, unlock conflicting meals or review the budget and targets.');
   if (Object.values(shopping).some(item => item.quantityNotes?.length)) warnings.push('Shopping quantities include labelled typical weights and cooking conversions. Actual weights and local prices can vary.');
+  if (recommendations.some(row => row.plan?.estimatedPrice)) warnings.push('This budget is an estimate using historical or undated official Lidl reference prices. Check current pack prices and stock in store before shopping.');
   return { store, status: feasible ? 'feasible' : 'no_feasible_plan', ...plan,
-    basket: { store, totalCostGBP: round(totalCents / 100), complete, items: basketItems, recommendations, indexSize: catalogue.indexSize, refreshedAt: catalogue.refreshedAt },
+    basket: { store, totalCostGBP: round(totalCents / 100), complete, estimatedPrice: recommendations.some(row => row.plan?.estimatedPrice), items: basketItems, recommendations, indexSize: catalogue.indexSize, refreshedAt: catalogue.refreshedAt },
     nutrition: { days: nutritionDays, calorieMin: targets.min, calorieMax: targets.max, proteinTarget: targets.protein, perPerson: true, source: 'recipe nutrition estimates' },
     budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP), overGBP: round(Math.max(0, totalCents - budgetCents) / 100), household: true },
     variety, goals, warnings, diagnostics: { elapsedMs: Date.now() - started, searchCostGBP: round(best.cost / 100), combinations, evaluatedPortions: examined, mealCoverage, budgetRecovery:searched.budgetRecovery||null,weekExpansions: searched.expansions, stages: searched.stages, searchVarietyViolations: searched.searchVarietyViolations, recipeCount: recipes.length, ingredientCount: books.size, uniqueMeals, search: 'bounded main-meal pairs and weekly beam search, goal-aware portions, shared full-pack basket, hard variety and nutrition limits' } };

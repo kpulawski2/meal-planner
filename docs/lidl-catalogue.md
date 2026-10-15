@@ -58,8 +58,8 @@ This is complete coverage of the official product sitemap, **not a complete
 priced in-store inventory**. Many everyday pages explicitly say “See in store
 for price” without any regular-price label. The publisher does not expose those prices, GTINs or nutrition in
 the examined public product data. Missing fields stay null. `InStoreOnly` is
-a sales channel, not verification of a local branch's stock. A Lidl budget can
-only be accepted if every needed ingredient is actually priced and purchasable.
+a sales channel, not verification of a local branch's stock. A Lidl budget estimate requires a usable pack price for every needed ingredient,
+from the current snapshot or the explicitly enabled reference view.
 Otherwise the user sees what is missing and their saved meals are retained.
 
 Sources: [official robots](https://www.lidl.co.uk/robots.txt),
@@ -70,35 +70,65 @@ Sources: [official robots](https://www.lidl.co.uk/robots.txt),
 
 ## Browse the food range
 
-Shopping at Lidl now includes **Browse Lidl ingredients**, available even before
-creating a meal plan. Search, food-category and price filters cover the entire
-saved food catalogue with stable, bounded pages. Health, household, pets and
-plants departments are excluded. A price filter means a usable website price;
-it does not verify local stock.
+**Browse Lidl ingredients** in Shopping opens the **Lidl catalogue**. Food &
+drink is the initial department; **All products, including household** exposes
+every currently published product page in the saved snapshot. Search, category,
+price and source filters use bounded, stable pagination. Household goods, pets,
+gift cards and other non-food products never become recipe ingredients.
 
-`data/lidl-range-references.json` adds 61 named food references from Lidl's
-[May 2026 shopping list](https://www.lidl.co.uk/static/assets/Lidl5-for-20-May2026-2204485.pdf)
-and [2025 most-loved range survey](https://www.lidl.co.uk/c/your-lidl-favourites/s10049239).
-After name deduplication against the current product snapshot, **45** additional
-entries join **1,246** food product pages: **1,291** browsable food entries.
-Counts may change as the daily product catalogue refreshes.
+The 15 October snapshot contains 2,090 discovered identities: **1,828 published
+product pages** and **262 confirmed removed pages**. Food browsing includes
+**1,261 current food listings**, with **297 usable website prices** at the check.
+The full directory includes upcoming offers with their advertised amount and
+dates, separately from prices eligible for a budget. Published listings do not
+establish local stock or a complete branch inventory.
 
-These sources include light mayonnaise, tortilla wraps, wholemeal rolls,
-cannellini beans, fresh herbs, cheese and frozen vegetables. Range references
-show their source period and source link. Any published pack is labelled as
-historical information; current pack, price and stock must be checked in store.
-The old PDF prices are deliberately omitted. References have no invented product
-page, SKU, nutrition, price or current availability assertion. They never enter
-the validated matching index or budget optimiser, and a daily product refresh
-cannot erase them. This expands the ingredient directory without claiming a
-complete priced branch inventory.
+## Reference price estimates
 
-`refresh-lidl.yml` runs daily at 05:55 UTC, validates the scraper first and commits
-only successful snapshots. ASDA continues on its own daily refresh. Changing
-the selected supermarket invalidates both matching and planner requests.
-Pull requests affecting the Lidl scraper also perform a complete live refresh
-with read-only repository permissions and retain the validated files as a
-seven-day review artifact; they cannot publish to main.
+The app includes **102 explicit Lidl pack-price reference records** in
+`data/lidl-price-references.json`. Their sources are:
+
+- [Lidl's price comparison PDF](https://www.lidl.co.uk/static/assets/Morrisons_Price_Conparison-Online-MainList-2134661.pdf): only the Lidl retail-price column, not competitors or printed unit prices. No usable date is printed; the app shows **Undated**.
+- [May 2026 shopping list](https://www.lidl.co.uk/static/assets/Lidl5-for-20-May2026-2204485.pdf): keeps **May 2026**, including explicit regional alternatives. A newer webpage linking this PDF does not make its prices current.
+- [Royal Menu shopping list](https://corporate.lidl.co.uk/media-centre/pressreleases/2025/royal-warrant): retains the stated **14–15 January 2025** price-check period. Variable-weight lamb and chicken packs are browsable but cannot supply a fixed purchasing capacity.
+
+**Use reference prices for estimates** is enabled by default in Lidl Settings.
+Turning it off restores current website prices only. Direct API callers remain
+strict unless `allowReferencePrices: true` is supplied to recommendations, or
+`profile.lidlReferencePrices: true` to the planner. Browsing uses `references=1`
+and `scope=all` for the expanded view; its independent Price sources control can
+hide references. Original 61 unpriced range records remain available too.
+
+Reference records are validated separately. They do not modify the product
+snapshot, its hash, its health counts or strict matching caches. An existing
+usable website price takes priority. Attaching a reference to a product page
+requires the exact Lidl store item number, matching brand and variant words,
+and a compatible known pack. An unknown pack can be supplied by that exact
+reference. Lidl reuses item numbers: Dairy Manor's milk price must not transfer
+to Milbona, and organic egg prices must not transfer to ordinary eggs. Other
+references use identifiable source-document entries with source links and no
+invented product page, SKU or stock assertion.
+
+Reference products can enter the estimate index only with the explicit mode on.
+Ingredient compatibility and whole-pack calculations are shared with normal
+shopping and planning. Regional references remain visible but cannot supply a
+universal GB budget; ambiguous pack weights remain unpriceable. Missing prices
+stay unknown. Source dates are never replaced with the review date or reported
+as a current shelf-price check. These manually reviewed reference records do
+not auto-refresh; changed source values require another evidence review.
+
+Basket totals, accepted plans, swap previews, product details, copied shopping
+lists and CSV exports identify reference estimates and preserve source periods
+and links. Receipt spending is not automatically recorded from reference
+estimates; the purchase flow explains this instead of treating them as actual
+spending. Nutrition, variety, locks, pantry deductions and the full-pack budget
+limit continue to apply. A feasible reference-based result is an estimated
+budget fit, not verification of today's Sheffield shelf prices.
+
+`refresh-lidl.yml` continues its daily refresh at 05:55 UTC and preserves a healthy
+snapshot on failure. Scraper pull requests also run a read-only full source
+audit and retain the resulting validated files as a review artifact. New public
+products join browsing automatically after successful refreshes.
 
 ## Measured lighter meals
 
@@ -113,34 +143,9 @@ or light mayonnaise cannot replace it silently. Source:
 [Hellmann's product](https://www.hellmanns.com/uk/p/lighter-than-light-squeezy-mayonnaise.html/08722700479499)
 and [label nutrition supplied by Unilever on Tesco](https://www.tesco.com/shop/en-GB/products/257130705).
 
-## Verified-only browsing and ingredient matching
+## Ingredient compatibility
 
-The ingredient browser now defaults to verified official product listings.
-Historical range references require an explicit Listings selection. The API
-supports `source=products` and reports `verifiedProducts` separately from
-`rangeReferences`; the existing API default continues to include both. Prices
-remain subject to the existing availability, offer-date and source checks.
-
-The 11 October 2026 snapshot contains 1,918 Lidl listings versus 49,628 ASDA
-listings. It already covers all product pages found in the official recursive
-sitemap and public search. No additional current product identity was verified
-during this change. Archived links and historical range publications are not
-added as current product records; the product snapshot is preserved. Scheduled
-refreshes continue to add newly published and validated official product pages.
-This does not establish complete branch inventory or parity with ASDA.
-
-The **15 October 2026** refresh adds **172** verified product identities,
-including **51** food listings. All 2,090 discovered identities were accounted
-for: **1,828** published product pages and **262** confirmed removed pages.
-Removed identities remain only as unavailable history. The ingredient browser
-contains **1,261** current verified food listings, including **297** with usable
-website prices at this check. Gift cards are excluded even if Lidl categorises
-one as a ready meal. Newly discovered listings include upcoming offers; offer
-dates, local stock, missing prices and uncertain pack sizes can still prevent
-budgeting a recipe. A published price does not establish local availability.
-
-Matching recognises Skyr yoghurt when the official name says Skyr, and named
-pasta shapes such as fusilli for generic Pasta requests. Prepared tuna salad
-and sweetened oat bites cannot stand in for plain tuna and oats. Existing
-verified Lidl examples include Baresa Fusilli (10000271) and Milbona High Protein
-Skyr (10041733). Their unpublished prices remain unknown.
+Matching recognises Skyr yoghurt and named pasta shapes such as fusilli.
+Prepared tuna salad and sweetened oat bites cannot stand in for plain tuna
+and oats. Explicit reference pricing does not relax ingredient compatibility.
+An unpublished product without a suitable exact reference stays unpriced.

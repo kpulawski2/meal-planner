@@ -67,12 +67,12 @@
     }
     return items;
   }
-  function officialUrl(value, store) {
+  function officialUrl(value, store, product = {}) {
     try {
       const url = new URL(value);
       return url.protocol === 'https:' && !url.username && !url.password && !url.port && (store === 'Asda'
         ? ['www.asda.com', 'groceries.asda.com'].includes(url.hostname) && /^\/(?:groceries\/)?product\//.test(url.pathname)
-        : store === 'Lidl' && url.hostname === 'www.lidl.co.uk' && /^\/p\/[^/]+\/p\d+\/?$/.test(url.pathname));
+        : store === 'Lidl' && (url.hostname === 'www.lidl.co.uk' && /^\/p\/[^/]+\/p\d+\/?$/.test(url.pathname) || product.estimatedPrice === true && product.priceBasis === 'reference' && (url.hostname === 'www.lidl.co.uk' && /^\/static\/assets\/[^/]+\.pdf$/.test(url.pathname) || url.hostname === 'corporate.lidl.co.uk' && /^\/media-centre\/pressreleases\/\d{4}\/[\w-]+$/.test(url.pathname))));
     } catch { return false; }
   }
   function planValid(plan, requested, store) {
@@ -81,7 +81,7 @@
       Number(plan.totalQuantity) < requested - .000001 || !(requested > 0)) return false;
     if (!plan.products.every(product => Number.isInteger(Number(product.packs)) && Number(product.packs) > 0 && amount(product.costGBP) &&
       amount(product.priceGBP) && Number(product.priceGBP) > 0 && Number(product.totalQuantity) > 0 && Number.isFinite(Number(product.totalQuantity)) &&
-      product.available !== false && officialUrl(product.url, store) && Math.abs(Number(product.costGBP) - Number(product.packs) * Number(product.priceGBP)) < .011)) return false;
+      product.available !== false && officialUrl(product.url, store, product) && Math.abs(Number(product.costGBP) - Number(product.packs) * Number(product.priceGBP)) < .011)) return false;
     return Math.abs(plan.products.reduce((sum, product) => sum + Number(product.costGBP), 0) - Number(plan.totalCostGBP)) < .011 &&
       Math.abs(plan.products.reduce((sum, product) => sum + Number(product.totalQuantity), 0) - Number(plan.totalQuantity)) < .00001;
   }
@@ -93,11 +93,11 @@
     let subtotal = 0; const missing = [];
     for (const item of items) {
       const row = data.recommendations.find(result => result.key === item.key);
-      if (!row?.match || row.dimension !== item.dimension || !officialUrl(row.match.url, store) || !planValid(row.plan, item.quantity, store)) missing.push(item.name);
+      if (!row?.match || row.dimension !== item.dimension || !officialUrl(row.match.url, store, row.match) || !planValid(row.plan, item.quantity, store)) missing.push(item.name);
       else subtotal += Number(row.plan.totalCostGBP);
     }
     subtotal = Math.round(subtotal * 100) / 100;
-    return { complete: !missing.length, subtotal, total: missing.length ? null : subtotal, missing: [...new Set(missing)], recommendations: data.recommendations, generation: data.refreshedAt };
+    return { complete: !missing.length, estimatedPrice: data.recommendations.some(row => row.plan?.estimatedPrice), subtotal, total: missing.length ? null : subtotal, missing: [...new Set(missing)], recommendations: data.recommendations, generation: data.refreshedAt };
   }
   function spend(state, pantryCore = root.PantryCore) {
     const summary = pantryCore?.spentSummary?.(state, { planOnly: true });
@@ -131,7 +131,7 @@
     const cookedMeals = Object.fromEntries(prospectiveState.week.flatMap(row=>row.meals.map((id,index)=>cookedPortions(prospectiveState,row.day,index,recipes)>0 ? [key(row.day,index),{recipeId:id}] : null).filter(Boolean)));
     const variety = core?.inspectVariety ? core.inspectVariety(prospectiveState.week, permitted, prospectiveState.profile, cookedMeals) : null;
     const varietyMet = variety?.met === true;
-    return { complete: after.complete && spending.complete, beforeTotal, total, spent: spending.total, remaining: after.total, subtotal: after.subtotal + spending.total,
+    return { complete: after.complete && spending.complete, estimatedPrice: after.estimatedPrice === true, beforeTotal, total, spent: spending.total, remaining: after.total, subtotal: after.subtotal + spending.total,
       delta: priced ? Math.round((total - beforeTotal) * 100) / 100 : null, budget, budgetMet, dayMet: day.met,
       nutritionMet, slotsMet, days, safe: after.complete && spending.complete && budgetMet && nutritionMet && slotsMet && varietyMet,
       variety, varietyMet, missing: after.missing, generation: after.generation, beforeGeneration: before.generation };

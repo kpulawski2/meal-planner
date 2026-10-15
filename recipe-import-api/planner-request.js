@@ -15,8 +15,10 @@ export function normalizePlannerRequest(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) fail('Send planner settings and a recipe library.');
   const input = body.profile || {};
   if (input.supermarket != null && !['Asda','Lidl'].includes(input.supermarket)) fail('Choose Asda or Lidl as your supermarket.');
+  if (input.lidlReferencePrices !== undefined && typeof input.lidlReferencePrices !== 'boolean') fail('Lidl reference prices must be on or off.');
   const profile = {
     supermarket: input.supermarket || 'Asda',
+    lidlReferencePrices: input.lidlReferencePrices === true,
     calories: number(input.calories, 2000, 400, 10000, 'Daily calories'),
     protein: number(input.protein, 200, 0, 1000, 'Daily protein'),
     budget: number(input.budget, 45, 0, 10000, 'Weekly household budget'),
