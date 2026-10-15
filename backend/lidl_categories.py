@@ -61,7 +61,7 @@ def parse_menu(source):
     result = []
     for row in groups[0][1:]:
         url = category_url(row['url'])
-        if not row['name'] or any(item['url'] == url for item in result):
+        if not row['name'] or url == MENU_ROOT or any(item['url'] == url for item in result):
             raise CategoryError('Invalid or duplicate Lidl menu category.')
         result.append({'url': url, 'name': row['name'], 'parent': MENU_ROOT})
     return result
@@ -130,7 +130,7 @@ def parse_category(url, source, offset=0, expected=None, expected_size=None):
         raise CategoryError('Lidl category returned a different category identity.')
     batches = product_store.get('products'); batch = batches.get(str(offset // size), []) if isinstance(batches, dict) else None
     if not isinstance(batch, list) or len(batch) != min(size, max(0, total - offset)):
-        raise CategoryError('Incomplete Lidl category product batch.')
+        raise CategoryError(f'Incomplete Lidl category product batch: {url}, offset {offset}, size {size}, total {total}, batch sizes {[(k,len(v)) for k,v in (batches or {}).items()]}.')
     source_url = url + (f'?offset={offset}' if offset else '')
     products = [card_product(row, source_url) for row in batch]
     if len({p['id'] for p in products}) != len(products): raise CategoryError('Duplicate Lidl product identities in a category batch.')
@@ -167,7 +167,7 @@ def discover_categories(get):
         if len(products) != first['total'] or len({p['id'] for p in products}) != first['total']:
             raise CategoryError('Lidl category identities are duplicated or incomplete across pages.')
         again_source = get(url); again = parse_category(url, again_source, expected=first['total'], expected_size=first['pageSize'])
-        if [p['id'] for p in again['products']] != [p['id'] for p in first['products']] or again['children'] != first['children']:
+        if again['products'] != first['products'] or again['children'] != first['children']:
             raise CategoryError('Lidl category head changed during discovery.')
         if url == MENU_ROOT and parse_menu(again_source) != menu: raise CategoryError('Lidl sidebar changed during discovery.')
         return {**entry, 'id': first['id'], 'productsExpected': first['total'], 'productsChecked': len(products),
@@ -195,5 +195,6 @@ def discover_categories(get):
         'menu_with_public_price': sum(row['publicPriceGBP'] is not None for row in products),
         'menu_with_member_price': sum(bool(row['memberOffers']) for row in products),
         'menu_source_urls': sorted(source_urls), 'menu_ids_sha256': hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest(),
+        'menu_content_sha256': hashlib.sha256(json.dumps([{k:v for k,v in p.items() if k!='sourceUrl'} for p in products],sort_keys=True).encode()).hexdigest(),
         'menu_products': products}
     return {row['url'] for row in products}, metadata

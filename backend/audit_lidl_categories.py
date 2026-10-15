@@ -21,10 +21,13 @@ def audit(directory=Path('work/lidl-category-audit'), get=fetch):
         source = get(url)
         digest = hashlib.sha256(source.encode()).hexdigest()
         manifest.append({'url': url, 'sha256': digest, 'bytes': len(source.encode())})
-        if url in [MENU_ROOT, MENU_ROOT+'?offset=180', STORE] or len(manifest) <= 6:
-            (directory / (hashlib.sha256(url.encode()).hexdigest()[:12]+'.html')).write_text(source, encoding='utf-8')
+        (directory / (hashlib.sha256(url.encode()).hexdigest()[:12]+'.html')).write_text(source, encoding='utf-8')
         return source
-    _, metadata = discover_categories(recorded)
+    try:
+        _, metadata = discover_categories(recorded)
+    except Exception:
+        (directory/'source-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
+        raise
     checked = datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00','Z')
     store_source = recorded(STORE)
     entities = [json.loads(raw) for raw in re.findall(r'<script\b[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',store_source,re.S|re.I)]
