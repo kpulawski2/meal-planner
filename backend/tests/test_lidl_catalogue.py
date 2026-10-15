@@ -216,4 +216,24 @@ class LidlTests(unittest.TestCase):
         self.assertEqual(lidl.parse_product(old,pages[renamed],'2026-10-15T12:00:00Z')['url'],renamed)
         with self.assertRaises(lidl.LidlRefreshError): lidl.parse_product(old,pages[renamed].replace(renamed,'https://other.example/p/renamed/p10000000'),'2026-10-15T12:00:00Z')
 
+    def test_empty_product_page_requires_independent_twice_unpublished_evidence(self):
+        pages=dict(page(i) for i in range(120));urls=sorted(pages);calls=[]
+        with tempfile.TemporaryDirectory() as directory, patch.object(lidl,'discover',return_value=(urls,[lidl.SITEMAP])), patch.object(lidl,'discover_supplement',return_value=(set(),{})):
+            product=Path(directory)/'products.json';meta=Path(directory)/'meta.json';lidl.refresh(product,meta,pages.__getitem__)
+            def get(url):
+                calls.append(url)
+                if '/q/api/gridboxes/' in url: return '[null]'
+                return '<html>Page unavailable</html>' if url==urls[0] else pages[url]
+            status=lidl.refresh(product,meta,get)
+            self.assertEqual(status['confirmed_unpublished_count'],1);self.assertEqual(status['current_products_published'],119)
+            self.assertEqual(sum('/q/api/gridboxes/' in url for url in calls),2);self.assertEqual(calls.count(urls[0]),2)
+            proof=status['confirmed_unpublished_products'][0];self.assertEqual(proof['httpStatus'],200);self.assertIn('gridboxes',proof['confirmationSourceUrl'])
+
+    def test_product_data_schema_errors_do_not_become_removed_products(self):
+        url,source=page(0)
+        with self.assertRaises(lidl.LidlRefreshError) as error: lidl.parse_product(url,source.split('<script id=')[0],'2026-10-15T12:00:00Z')
+        self.assertNotIsInstance(error.exception,lidl.ProductDataUnavailable)
+        with self.assertRaises(lidl.LidlRefreshError) as error: lidl.parse_product(url,source.replace('"sku": "10000000"','"sku": "99999999"'),'2026-10-15T12:00:00Z')
+        self.assertNotIsInstance(error.exception,lidl.ProductDataUnavailable)
+
 if __name__=='__main__': unittest.main()

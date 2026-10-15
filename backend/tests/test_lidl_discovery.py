@@ -73,6 +73,16 @@ class SearchFixture:
 
 
 class LidlDiscoveryTests(unittest.TestCase):
+    def test_publication_confirmation_rejects_published_changing_or_incomplete_gridboxes(self):
+        code='10000100';source=SearchFixture(recovered={100})
+        with self.assertRaises(discovery.DiscoveryError): discovery.confirm_unpublished(source.get,[code])
+        def change(rows,codes,call):
+            if call==2: rows[0]=SearchFixture.gridbox(100)
+        with self.assertRaises(discovery.DiscoveryError): discovery.confirm_unpublished(SearchFixture(gridbox_change=change).get,[code])
+        with self.assertRaises(discovery.DiscoveryError): discovery.confirm_unpublished(lambda url:'[]',[code])
+        for codes in [[],[code,code],['wrong'],[str(i) for i in range(49)]]:
+            with self.assertRaises(discovery.DiscoveryError): discovery.confirm_unpublished(source.get,codes)
+
     def test_complete_search_adds_new_urls_and_accounts_for_known_hidden_ids(self):
         source = SearchFixture(hidden=range(6), delay=.001)
         urls, metadata = discovery.discover_supplement(source.get, [product_url(i) for i in range(100)])

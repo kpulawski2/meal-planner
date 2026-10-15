@@ -14,7 +14,7 @@ from xml.etree import ElementTree as ET
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from lidl_discovery import discover_supplement
+from lidl_discovery import discover_supplement, confirm_unpublished
 
 ROOT = Path(__file__).resolve().parents[1]
 ORIGIN = 'https://www.lidl.co.uk'
@@ -31,6 +31,10 @@ class ProductUnavailable(LidlRefreshError):
     def __init__(self, url, status):
         super().__init__(f'Lidl product page returned HTTP {status}: {url}')
         self.url, self.status = url, status
+
+class ProductDataUnavailable(LidlRefreshError):
+    """No product entity in either of the official page's data sources."""
+    pass
 
 def product_id(url):
     if not isinstance(url, str) or not PRODUCT.fullmatch(url):
@@ -160,9 +164,12 @@ def parse_product(url, source, checked):
         entities.extend(doc if isinstance(doc,list) else doc.get('@graph',[doc]))
     product=next((x for x in entities if x.get('@type') == 'Product'),None)
     match=re.search(r'<script\b[^>]*id=["\']__NUXT_DATA__["\'][^>]*>(.*?)</script>',source,re.S|re.I)
-    if not product or not match: raise LidlRefreshError('No validated Lidl product data on '+url)
+    if not product and not match: raise ProductDataUnavailable('No published product data on '+url)
+    if not match: raise LidlRefreshError('No validated Lidl product table on '+url)
     data=decode_nuxt(json.loads(match[1]))
     item=next((row for row in data.get('data',{}).values() if isinstance(row,dict) and 'erpNumber' in row),None)
+    if not product and not item: raise ProductDataUnavailable('No published product data on '+url)
+    if not product or not item: raise LidlRefreshError('Incomplete Lidl product data on '+url)
     if not item or str(item['erpNumber']) != url.rsplit('/p',1)[-1] or str(product.get('sku')) != str(item['erpNumber']):
         raise LidlRefreshError('Product identity mismatch: '+url)
     canonical = urljoin(ORIGIN,item.get('canonicalUrl',''))
@@ -289,21 +296,32 @@ def refresh(products_path=None, metadata_path=None, get=fetch):
         for count,future in enumerate(as_completed(futures),1):
             try: records.append(future.result())
             except ProductUnavailable as exc: missing[futures[future]]=exc.status
+            except ProductDataUnavailable: missing[futures[future]]=200
             except Exception as exc: failures.append((futures[future],str(exc)))
             if count%100==0 or count==len(urls): LOG.info('Checked %d/%d pages; failures %d',count,len(urls),len(failures))
     if failures: raise LidlRefreshError(f'{len(failures)} Lidl pages failed; previous snapshot kept. First failures: {failures[:5]}')
     # Confirm removals independently. Transport errors, access denial, invalid
     # markup and identity mismatches must still preserve the healthy snapshot.
-    confirmed={}
+    confirmed,needs_confirmation={},set()
     with ThreadPoolExecutor(max_workers=4) as pool:
         futures={pool.submit(load,url):url for url in missing}
         for future in as_completed(futures):
             url=futures[future]
             try: records.append(future.result())
-            except ProductUnavailable as exc: confirmed[url]=exc.status
+            except ProductUnavailable as exc:
+                confirmed[url]=exc.status
+                if missing[url]==200: needs_confirmation.add(url)
+            except ProductDataUnavailable:
+                confirmed[url]=200;needs_confirmation.add(url)
             except Exception as exc: raise LidlRefreshError(f'Could not confirm removed product {url}; previous snapshot kept.') from exc
     if len(confirmed)>len(urls)*.2:
         raise LidlRefreshError('More than 20% of Lidl product pages are unavailable; previous snapshot kept.')
+    confirmation_sources={}
+    ordered=sorted(needs_confirmation)
+    for offset in range(0,len(ordered),48):
+        batch=ordered[offset:offset+48]
+        source_url=confirm_unpublished(get,[product_id(url) for url in batch])
+        confirmation_sources.update({url:source_url for url in batch})
     LOG.info('Confirmed %d removed pages; %d published product records',len(confirmed),len(records))
     final_urls,final_maps=discover(get)
     if final_urls!=sitemap_urls or final_maps!=maps: raise LidlRefreshError('Lidl sitemap changed during refresh; previous snapshot kept.')
@@ -334,7 +352,8 @@ def refresh(products_path=None, metadata_path=None, get=fetch):
         'additional_search_products':len(search_ids-sitemap_ids),'additional_search_urls':len(search_urls-set(sitemap_urls)),
         'discovery_products_expected':len(urls),'discovery_products_accounted_for':len(fresh_ids)+len(confirmed),
         'confirmed_unpublished_count':len(confirmed),
-        'confirmed_unpublished_products':[{'id':product_id(url),'url':url,'httpStatus':status,'checkedAt':checked} for url,status in sorted(confirmed.items())],
+        'confirmed_unpublished_products':[{'id':product_id(url),'url':url,'httpStatus':status,'checkedAt':checked,
+            'confirmationSourceUrl':confirmation_sources.get(url),'evidence':'repeated_page_and_explicit_unpublished_gridbox' if url in confirmation_sources else 'repeated_http_status'} for url,status in sorted(confirmed.items())],
         'retained_not_listed':len(retained),'new_products_added':len(fresh_ids-previous_by_id.keys()),'new_prices_added':newly_priced,
         'refreshed_at':checked,'last_successful_at':checked,'duration_seconds':round(time.monotonic()-start,2),
         'category_count':len({p['category'] for p in records}),'category_counts':dict(Counter(p['category'] for p in records)),

@@ -6,8 +6,12 @@ read with four workers and bounded retries. Identity, canonical URL, counts,
 currency and integrity are checked before publishing. A failed page, changed
 sitemap, large catalogue shrink, or lost price coverage retains the healthy
 snapshot. Explicit product-page HTTP 404/410 responses are checked a second time.
+If a page instead returns HTTP 200 without either product entity, it is read
+again and its ID must also receive two explicit unpublished responses from
+Lidl's official gridbox endpoint. Missing markup alone never establishes removal.
 Confirmed removed pages are recorded separately; their previous identities remain
-as unavailable history with no current price. New verified products can therefore
+as unavailable history with no current price and are excluded from current
+browsing and matching. New verified products can therefore
 be published even when Lidl's sitemap still lists retired offers. Recheck errors,
 other HTTP failures, invalid product data or more than 20% confirmed unavailable
 identities keep the healthy snapshot. Products and metadata are atomically written individually; the runtime
