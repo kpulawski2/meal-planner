@@ -119,8 +119,12 @@ class LidlTests(unittest.TestCase):
         self.assertFalse(lidl.restricted_region({}, {'supplementalDescription':'Scottish milk 4pint'}))
 
     def test_pack_choices_and_weight_ranges_are_not_fixed_packs(self):
-        for value in ('70/85g','175g, 125g','1.2kg - 1.6kg','1.2kg–1.6kg','0,5l','per bunch','Loose'):
+        for value in ('70/85g','175g, 125g','1.2kg - 1.6kg','1.2kg–1.6kg','1,500g','1,5kg - 2kg','1,5kg/2kg','1,5kg, 2kg','per bunch','Loose'):
             self.assertEqual(lidl.pack(value),(None,None),value)
+        self.assertEqual(lidl.pack('1,5kg'),(1.5,'kg'))
+        self.assertEqual(lidl.pack('0,5l'),(.5,'l'))
+        self.assertEqual(lidl.pack('2 x 0,75l'),(1.5,'l'))
+        self.assertEqual(lidl.pack('1,25 kg'),(1.25,'kg'))
         self.assertEqual(lidl.pack('4pint'),(2273.045,'ml'))
         self.assertEqual(lidl.pack('6 x 110g'),(660,'g'))
         self.assertEqual(lidl.pack('6 Pack'),(6,'pieces'))
