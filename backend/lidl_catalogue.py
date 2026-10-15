@@ -225,7 +225,7 @@ def parse_product(url, source, checked):
         'nutrition':nutrition,'nutritionClaims':[],'checkedAt':checked,'source':'Lidl GB official product page',
         'validFrom':valid_from,'validThrough':valid_until,'priceMissingReason':None if price else 'not_published',
         'offer':{'validFrom':valid_from,'validThrough':valid_until} if valid_from or valid_until else None,
-        'memberOffersAvailable':bool(item.get('lidlPlus')),'memberOffers':member_offers(item),'regions':item.get('regions') or [],
+        'memberOffersAvailable':bool(item.get('lidlPlus')),'memberOffers':[{**row,'validFrom':valid_from,'validThrough':valid_until} for row in member_offers(item)],'regions':item.get('regions') or [],
         'regionRestricted':restricted_region(item,facts),
         'priceSource':'Lidl GB official product page' if price is not None else None,
         'priceSourceUrl':url if price is not None else None,'priceCheckedAt':checked if price is not None else None,
@@ -334,7 +334,7 @@ def refresh(products_path=None, metadata_path=None, get=fetch):
     if final_search_urls!=search_urls or final_search_meta.get('search_ids_sha256')!=search_meta.get('search_ids_sha256'):
         raise LidlRefreshError('Lidl search changed during refresh; previous snapshot kept.')
     final_menu_urls,final_menu_meta=discover_categories(get)
-    if final_menu_urls!=menu_urls or final_menu_meta.get('menu_content_sha256')!=menu_meta.get('menu_content_sha256'):
+    if final_menu_urls!=menu_urls or final_menu_meta.get('menu_ids_sha256')!=menu_meta.get('menu_ids_sha256') or final_menu_meta.get('menu_content_sha256')!=menu_meta.get('menu_content_sha256'):
         raise LidlRefreshError('Lidl food menu changed during refresh; previous snapshot kept.')
     fresh_ids={p['id'] for p in records}
     validate(records,[url for url in urls if url not in confirmed],[p for p in previous if p['id'] in fresh_ids and p.get('discoveryStatus')!='not_listed'])

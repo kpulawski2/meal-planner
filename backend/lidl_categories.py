@@ -96,7 +96,7 @@ def card_product(row, source_url):
     name = text(data.get('fullTitle'))
     if not name: raise CategoryError('Lidl category product name is missing.')
     info = data.get('price') or {}; facts = data.get('keyfacts') or {}
-    public = positive(info.get('price')) if info.get('currencyCode') == 'GBP' else None
+    public = positive(info.get('price')) if info.get('currencyCode') == 'GBP' and not isinstance(info.get('price'),bool) else None
     # A "from" figure or different-price variant cannot price a fixed pack.
     ambiguous = info.get('variantsHaveDifferentPrices') is True or (info.get('discount') or {}).get('showFrom') is True
     regular, label = regular_price(data)
@@ -135,7 +135,7 @@ def parse_category(url, source, offset=0, expected=None, expected_size=None):
     elif route.get('routePath') != urlsplit(url).path or globals_.get('categoryId') != identity:
         raise CategoryError('Lidl category returned a different category identity.')
     batches = product_store.get('products'); batch = batches.get(str(offset // size), []) if isinstance(batches, dict) else None
-    if not isinstance(batch, list) or len(batch) != min(size, max(0, total - offset)):
+    if not isinstance(batch, list) or len(batch) > min(size, max(0, total - offset)):
         raise CategoryError(f'Incomplete Lidl category product batch: {url}, offset {offset}, size {size}, total {total}, batch sizes {[(k,len(v)) for k,v in (batches or {}).items()]}.')
     source_url = url + (f'?offset={offset}' if offset else '')
     products = [card_product(row, source_url) for row in batch]
@@ -151,26 +151,48 @@ def parse_category(url, source, offset=0, expected=None, expected_size=None):
     for facet in pinia.get('useFacetStore', {}).get('rawFacets', []):
         if facet.get('code') == 'category':
             for node in facet.get('values') or []: visit(node)
-    return {'url': url, 'id': identity, 'total': total, 'pageSize': size, 'products': products, 'children': list(children.values())}
+    api = ORIGIN + '/q/api/category' + urlsplit(url).path + '?' + urlencode({'assortment':'GB','locale':'en_GB','version':'v2.0.0','sort':'relevancy','pageId':breadcrumb})
+    if url == MENU_ROOT: api = ORIGIN + '/q/api/search?' + urlencode({'assortment':'GB','locale':'en_GB','version':'v2.0.0','category.id':'10068374','sort':'storeStartDate-desc'})
+    return {'url': url, 'id': identity, 'total': total, 'pageSize': size, 'products': products, 'children': list(children.values()), 'apiUrl': api}
 
 
-def root_batch(get, offset, total, size):
-    # The landing page embeds this category.id search. Its HTML hydration
-    # stops at 21 batches; use the published load-more API for subsequent data.
-    url = ORIGIN + '/q/api/search?' + urlencode({'assortment':'GB','locale':'en_GB','version':'v2.0.0',
-        'category.id':'10068374','sort':'storeStartDate-desc','fetchsize':size,'offset':offset})
-    try: data = json.loads(get(url))
-    except ValueError as exc: raise CategoryError('Lidl menu load-more response is not JSON.') from exc
-    if not isinstance(data, dict) or data.get('assortment')!='GB' or data.get('locale')!='en_GB' or data.get('numFound')!=total or data.get('offset')!=offset or data.get('fetchsize')!=size:
-        raise CategoryError(f'Lidl menu load-more context or count differs: {url}; response keys {list(data) if isinstance(data,dict) else type(data)}, count {data.get("numFound") if isinstance(data,dict) else None}.')
-    items = data.get('items')
-    if not isinstance(items,list) or len(items)!=min(size,total-offset): raise CategoryError('Incomplete Lidl menu load-more batch.')
-    products=[]
+def api_batch(get, api, offset, total, size):
+    url = api + '&' + urlencode({'fetchsize':size,'offset':offset})
+    def read(source_url):
+        try: data = json.loads(get(source_url))
+        except ValueError as exc: raise CategoryError('Lidl menu load-more response is not JSON.') from exc
+        if not isinstance(data, dict) or data.get('assortment')!='GB' or data.get('locale')!='en_GB' or data.get('numFound')!=total or data.get('offset')!=offset or data.get('fetchsize')!=size:
+            raise CategoryError(f'Lidl menu load-more context or count differs: {source_url}.')
+        if not isinstance(data.get('items'),list): raise CategoryError('Invalid Lidl menu load-more items.')
+        return data
+    data=read(url); items=data['items']; expected=min(size,total-offset)
+    if len(items)>expected: raise CategoryError('Too many Lidl menu products in a batch.')
+    products=[]; sources=[url]; unpublished=[]
     for item in items:
         box=item.get('gridbox') or {}
         products.append(card_product({'code':item.get('code'),'gridBox':{'country':box.get('country'),'gridBoxData':box.get('data')}},url))
-    if len({row['id'] for row in products})!=len(products): raise CategoryError('Repeated Lidl menu load-more identities.')
-    return products,url
+    codes=[row['id'] for row in products]
+    if len(set(codes))!=len(codes): raise CategoryError('Repeated Lidl menu load-more identities.')
+    if len(items)<expected:
+        identities_url=url+'&idsOnly=true'; identities=read(identities_url)['items']; sources.append(identities_url)
+        all_codes=[item.get('code') for item in identities]
+        if len(all_codes)!=expected or len(set(all_codes))!=expected or any(not isinstance(code,str) or not re.fullmatch(r'\d+',code) for code in all_codes) or not set(codes)<=set(all_codes):
+            raise CategoryError('Incomplete or inconsistent Lidl category identity page.')
+        missing=[code for code in all_codes if code not in codes]
+        grid_url=ORIGIN+'/q/api/gridboxes/GB/en?'+urlencode({'ids':','.join(missing)})
+        confirmations=[]
+        for _ in range(2):
+            grids=json.loads(get(grid_url));sources.append(grid_url)
+            if not isinstance(grids,list) or len(grids)!=len(missing): raise CategoryError('Incomplete Lidl category identity confirmation.')
+            recovered=[];removed=[]
+            for code,box in zip(missing,grids):
+                if box is None:removed.append(code)
+                elif isinstance(box,dict):recovered.append(card_product({'code':code,'gridBox':{'country':box.get('country'),'gridBoxData':box.get('data')}},grid_url))
+                else:raise CategoryError('Invalid Lidl category identity confirmation.')
+            confirmations.append((recovered,removed))
+        if confirmations[0]!=confirmations[1]: raise CategoryError('Lidl category publication changed during confirmation.')
+        products.extend(confirmations[0][0]);unpublished=confirmations[0][1];codes=all_codes
+    return products,codes,unpublished,sources
 
 
 def discover_categories(get):
@@ -182,32 +204,32 @@ def discover_categories(get):
     """
     root_source = get(MENU_ROOT); menu = parse_menu(root_source)
     queue = [{'url': MENU_ROOT, 'name': 'Food & Drink offers', 'parent': None}, *menu]
-    visited, categories, all_products, source_urls = set(), [], {}, set()
+    visited, categories, all_products, source_urls, all_ids, unpublished_ids = set(), [], {}, set(), set(), set()
     def load_category(entry):
         url = entry['url']; source = root_source if url == MENU_ROOT else get(url)
-        first = parse_category(url, source); products = list(first['products']); sources = [url]
+        first = parse_category(url, source); products = list(first['products']); sources = [url]; codes=[p['id'] for p in products]; unpublished=[]
+        if len(products)!=min(first['pageSize'],first['total']):
+            recovered, codes, unpublished, api_sources=api_batch(get,first['apiUrl'],0,first['total'],first['pageSize']);sources.extend(api_sources)
+            if [p['id'] for p in recovered]!=[p['id'] for p in products]: raise CategoryError('Lidl HTML product batch differs from its publication confirmation.')
+            products=recovered
         for offset in range(first['pageSize'], first['total'], first['pageSize']):
-            if url == MENU_ROOT:
-                rows,source_url=root_batch(get,offset,first['total'],first['pageSize']);products.extend(rows)
-            else:
-                source_url = url + f'?offset={offset}'
-                page = parse_category(url, get(source_url), offset, first['total'], first['pageSize']); products.extend(page['products'])
-            sources.append(source_url)
-        if len(products) != first['total'] or len({p['id'] for p in products}) != first['total']:
+            rows,identities,removed,api_sources=api_batch(get,first['apiUrl'],offset,first['total'],first['pageSize'])
+            products.extend(rows);codes.extend(identities);unpublished.extend(removed);sources.extend(api_sources)
+        if len(codes) != first['total'] or len(set(codes)) != first['total'] or len(products)+len(unpublished)!=first['total']:
             raise CategoryError('Lidl category identities are duplicated or incomplete across pages.')
         again_source = get(url); again = parse_category(url, again_source, expected=first['total'], expected_size=first['pageSize'])
         if again['products'] != first['products'] or again['children'] != first['children']:
             raise CategoryError('Lidl category head changed during discovery.')
         if url == MENU_ROOT and parse_menu(again_source) != menu: raise CategoryError('Lidl sidebar changed during discovery.')
-        return {**entry, 'id': first['id'], 'productsExpected': first['total'], 'productsChecked': len(products),
-            'pages': len(sources), 'productIds': sorted(p['id'] for p in products), 'sourceUrls': sources}, products, first['children']
+        return {**entry, 'id': first['id'], 'productsExpected': first['total'], 'productsChecked': len(codes),
+            'pages': max(1,(first['total']+first['pageSize']-1)//first['pageSize']), 'productsPublished':len(products), 'unpublishedIds':sorted(unpublished), 'productIds': sorted(codes), 'sourceUrls': sources}, products, first['children']
     while queue:
         batch = [row for row in queue if row['url'] not in visited]; queue = []
         for row in batch: visited.add(row['url'])
         if len(visited) > MAX_CATEGORIES: raise CategoryError('Lidl category graph exceeds the audit bound; no truncated publication.')
         with ThreadPoolExecutor(max_workers=4) as pool:
             for summary, products, children in pool.map(load_category, batch):
-                categories.append(summary); source_urls.update(summary['sourceUrls']); queue.extend(children)
+                categories.append(summary); source_urls.update(summary['sourceUrls']); queue.extend(children); all_ids.update(summary['productIds']); unpublished_ids.update(summary['unpublishedIds'])
                 for product in products:
                     previous = all_products.get(product['id'])
                     if previous and any(previous[key] != product[key] for key in ['url','publicPriceGBP','regularPriceGBP','memberOffers','packSize','validFrom','validThrough','regionRestricted']):
@@ -218,9 +240,9 @@ def discover_categories(get):
         queue = list({row['url']: row for row in queue if row['url'] not in visited}.values())
     categories.sort(key=lambda row: row['url'])
     products = [{**row, 'categoryIds': sorted(row['categoryIds'])} for _, row in sorted(all_products.items())]
-    identity = [{'url': row['url'], 'products': row['productIds']} for row in categories]
+    identity = [{'url': row['url'], 'name':row['name'], 'parent':row['parent'], 'products': row['productIds']} for row in categories]
     metadata = {'menu_status': 'complete', 'menu_root': MENU_ROOT, 'menu_departments': menu, 'menu_categories': categories,
-        'menu_categories_checked': len(categories), 'menu_pages_checked': len(source_urls), 'menu_products_identified': len(products),
+        'menu_categories_checked': len(categories), 'menu_pages_checked': len(source_urls), 'menu_products_identified': len(all_ids), 'menu_products_published':len(products), 'menu_unpublished_ids':sorted(unpublished_ids),
         'menu_with_public_price': sum(row['publicPriceGBP'] is not None for row in products),
         'menu_with_member_price': sum(bool(row['memberOffers']) for row in products),
         'menu_source_urls': sorted(source_urls), 'menu_ids_sha256': hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest(),

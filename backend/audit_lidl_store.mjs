@@ -13,7 +13,7 @@ try {
  async function rejectOptionalCookies(){const button=page.locator('#onetrust-reject-all-handler');if(await button.isVisible().catch(()=>false))await button.click();}
  async function snapshot(label){await settle();await page.getByText('Load more products',{exact:true}).first().click({timeout:5000}).catch(()=>{});await settle();report.prices[label]=await page.evaluate(()=>Array.from(document.querySelectorAll('[data-product-id]')).slice(0,50).map(el=>({id:el.getAttribute('data-product-id'),text:el.textContent.replace(/\s+/g,' ').slice(0,350)})));await page.screenshot({path:folder+'/store-'+label+'.png',fullPage:false});}
  await page.goto('https://www.lidl.co.uk/c/food-drink/s10068374',{waitUntil:'domcontentloaded',timeout:60000});await rejectOptionalCookies();await snapshot('before');
- phase='selection';await page.getByText('Select your Lidl store for special offers in your area',{exact:false}).first().click({timeout:15000});await settle();
+ phase='selection';await page.evaluate(()=>scrollTo(0,0));report.selectorHit=await page.evaluate(()=>({tag:document.elementFromPoint(260,42)?.tagName,classes:document.elementFromPoint(260,42)?.className}));await page.mouse.click(260,42);await settle();
  report.selectorFrames=page.frames().map(frame=>frame.url()).filter(url=>url.includes('lidl.co.uk'));
  const selector=page.frames().find(frame=>frame!==page.mainFrame()&&frame.url().includes('/s/'));
  if(!selector)throw new Error('The store selector did not expose a store-finder frame.');
