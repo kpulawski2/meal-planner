@@ -227,6 +227,7 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   const fullWords = new Set(productTokens(query));
   const name = new Set(productTokens(product?.name));
   const title = String(product?.name || '');
+  if (/\bgift[\s-]*cards?\b/i.test(title)) return false;
   if (/lighter[ -]+than[ -]+light/i.test(query) && !/lighter[ -]+than[ -]+light/i.test(title)) return false;
   const rawCategory = [product?.category, ...(product?.categoryPath || [])].filter(Boolean).join(' ');
   if (product?.store === 'Lidl' && !/^Food & Drink(?:\s|>|$)/i.test(rawCategory)) return false;
@@ -979,6 +980,7 @@ export async function browseCatalog(storeName, { query = '', category = '', pric
   const refs = storeName === 'Lidl' ? await loadRangeReferences() : [];
   const nameKey = value => productTokens(value).sort().join(' ');
   const categoryOf = product => {
+    if (/\bgift[\s-]*cards?\b/i.test(String(product.name || ''))) return null;
     const parts = String(product.category || '').split(' > ');
     if (storeName === 'Lidl' && (parts[0] !== 'Food & Drink' || ['Health & Beauty', 'Household', 'Pet', 'Plants & Flowers'].includes(parts[1]))) return null;
     const group = parts[storeName === 'Lidl' ? 1 : 0] || 'Other food';

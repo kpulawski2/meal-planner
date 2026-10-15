@@ -14,7 +14,7 @@ test('Lidl browsing exposes every food entry across stable pages and excludes no
   assert.ok(first.total > 1000); assert.ok(first.rangeReferences > 0);
   assert.ok(rows.every(row => !['Health & Beauty', 'Household', 'Pet', 'Plants & Flowers'].includes(row.category)));
   const snapshot = JSON.parse(await readFile(new URL('../data/lidl-products.json', import.meta.url)));
-  const expected = snapshot.filter(row => row.discoveryStatus !== 'not_listed' && row.category.startsWith('Food & Drink > ') && !['Health & Beauty', 'Household', 'Pet', 'Plants & Flowers'].includes(row.category.split(' > ')[1]));
+  const expected = snapshot.filter(row => row.discoveryStatus !== 'not_listed' && row.category.startsWith('Food & Drink > ') && !/\bgift[\s-]*cards?\b/i.test(row.name) && !['Health & Beauty', 'Household', 'Pet', 'Plants & Flowers'].includes(row.category.split(' > ')[1]));
   assert.equal(rows.filter(row => row.kind === 'product').length, expected.length);
   assert.equal(first.total, expected.length + first.rangeReferences);
 });
