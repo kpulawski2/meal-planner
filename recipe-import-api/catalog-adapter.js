@@ -1023,7 +1023,7 @@ export async function searchCatalog(storeName, query, limit = 8, dimension = '')
 }
 
 // Full public product directory; reference pricing is an explicit view.
-export async function browseCatalog(storeName, { query = '', category = '', price = 'all', source = 'all', scope = 'food', allowReferencePrices = false, offset = 0, limit = 40 } = {}) {
+export async function browseCatalog(storeName, { query = '', category = '', menu = '', price = 'all', source = 'all', scope = 'food', allowReferencePrices = false, offset = 0, limit = 40 } = {}) {
   if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new TypeError('Store must be Asda or Lidl.');
   const index = await pricingIndex(storeName, allowReferencePrices), now = new Date();
   const refs = storeName === 'Lidl' ? await loadRangeReferences() : [];
@@ -1042,6 +1042,7 @@ export async function browseCatalog(storeName, { query = '', category = '', pric
       priceGBP: usable || reference ? Number(product.price) : null, advertisedPriceGBP: !reference && product.price != null ? Number(product.price) : null,
       budgetEligible: usable && product.available !== false, kind: product.referenceOnly ? 'price_reference' : 'product', availability: product.available === false ? 'unavailable' : 'check_in_store',
       ...priceEvidence(product), referenceRegions: product.referenceRegions || [], validFrom: product.validFrom || null, validThrough: product.validThrough || null,
+      menuCategoryIds: product.menuCategoryIds || [], memberOffers: product.memberOffers || [],
       checkedAt: product.checkedAt || null, sourceLabel: reference ? product.priceSource : storeName + ' official product page', publishedPack: null }];
   });
   const known = new Set(rows.map(row => nameKey(row.productName)));
@@ -1052,12 +1053,13 @@ export async function browseCatalog(storeName, { query = '', category = '', pric
   }
   const categories = [...new Set(rows.map(row => row.category))].sort();
   const words = productTokens(clean(query, 120)), selectedCategory = clean(category, 120);
-  const filterPrice = ['all', 'priced', 'unpriced', 'reference'].includes(price) ? price : 'all';
-  const filtered = rows.filter(row => (source !== 'products' || row.kind === 'product') && (!selectedCategory || row.category === selectedCategory) && (filterPrice === 'all' || filterPrice === 'reference' && row.estimatedPrice || filterPrice === 'priced' && row.priceGBP !== null || filterPrice === 'unpriced' && row.priceGBP === null) && words.every(word => productTokens(row.productName).includes(word)));
+  const filterPrice = ['all', 'priced', 'unpriced', 'reference', 'member'].includes(price) ? price : 'all';
+  const filtered = rows.filter(row => (source !== 'products' || row.kind === 'product') && (!selectedCategory || row.category === selectedCategory) && (!menu || row.menuCategoryIds?.includes(menu)) && (filterPrice === 'all' || filterPrice === 'reference' && row.estimatedPrice || filterPrice === 'member' && row.memberOffers?.length || filterPrice === 'priced' && row.priceGBP !== null || filterPrice === 'unpriced' && row.priceGBP === null) && words.every(word => productTokens(row.productName).includes(word)));
   filtered.sort((a, b) => a.productName.localeCompare(b.productName) || a.id.localeCompare(b.id));
   const start = Number.isFinite(Number(offset)) ? Math.max(0, Math.trunc(Number(offset))) : 0;
   const count = Number.isFinite(Number(limit)) ? Math.max(1, Math.min(100, Math.trunc(Number(limit) || 40))) : 40;
   return { store: storeName, scope, total: rows.length, matched: filtered.length, priced: rows.filter(row => row.priceGBP !== null).length,
+    websiteMenu: (index.metadata.menu_categories || []).map(({id,name,url,parent,productsChecked,productsPublished})=>({id,name,url,parent,productsChecked,productsPublished})), menuCheckedAt: index.metadata.menu_status === 'complete' ? index.metadata.refreshed_at : null,
     referencePrices: rows.filter(row => row.estimatedPrice).length, websitePrices: rows.filter(row => row.priceGBP !== null && !row.estimatedPrice).length,
     verifiedProducts: rows.filter(row => row.kind === 'product').length, rangeReferences: rows.filter(row => row.kind !== 'product').length, categories, refreshedAt: index.metadata.refreshed_at, offset: start,
     nextOffset: start + count < filtered.length ? start + count : null, results: filtered.slice(start, start + count) };

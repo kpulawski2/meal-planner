@@ -5,7 +5,7 @@
   "coverage": 1,
   "coverage_scope": "official_sitemap_and_search_products",
   "entire_store_inventory": false,
-  "source": "Lidl GB official recursive sitemap, public search and product pages",
+  "source": "Lidl GB official recursive sitemap, public search, Food & Drink menu and product pages",
   "source_url": "https://www.lidl.co.uk/static/sitemap.xml",
   "products_expected": 2090,
   "products_saved": 2090,
@@ -19,18 +19,18 @@
   "sitemap_products_expected": 1918,
   "sitemap_products_checked": 1918,
   "current_products_checked": 2090,
-  "current_products_published": 1828,
+  "current_products_published": 1825,
   "additional_search_products": 172,
   "additional_search_urls": 172,
   "discovery_products_expected": 2090,
   "discovery_products_accounted_for": 2090,
-  "confirmed_unpublished_count": 262,
+  "confirmed_unpublished_count": 265,
   "confirmed_unpublished_products": [
     {
       "id": "10055840",
       "url": "https://www.lidl.co.uk/p/alpenfest-style-styrian-pumpkin-seed-oil-p-g-i/p10055840",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -38,7 +38,7 @@
       "id": "10055545",
       "url": "https://www.lidl.co.uk/p/autumn-heather/p10055545",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -46,7 +46,7 @@
       "id": "10054665",
       "url": "https://www.lidl.co.uk/p/baby-einstein-baby-drums/p10054665",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -54,7 +54,7 @@
       "id": "10054666",
       "url": "https://www.lidl.co.uk/p/baby-einstein-baby-guitar/p10054666",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -62,7 +62,7 @@
       "id": "10054664",
       "url": "https://www.lidl.co.uk/p/baby-einstein-baby-piano/p10054664",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -70,7 +70,7 @@
       "id": "10054675",
       "url": "https://www.lidl.co.uk/p/bluey-creation-station/p10054675",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -78,7 +78,7 @@
       "id": "10054800",
       "url": "https://www.lidl.co.uk/p/bluey-doodad-mechanic-play-set/p10054800",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -86,7 +86,7 @@
       "id": "10054798",
       "url": "https://www.lidl.co.uk/p/bluey-smoothie-play-set/p10054798",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -94,7 +94,7 @@
       "id": "10055548",
       "url": "https://www.lidl.co.uk/p/british-bedding-plants/p10055548",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -102,7 +102,7 @@
       "id": "10056091",
       "url": "https://www.lidl.co.uk/p/budweiser-4-5-20x300ml/p10056091",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -110,7 +110,7 @@
       "id": "10056089",
       "url": "https://www.lidl.co.uk/p/carlsberg-lager-3-4-18x440ml/p10056089",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -118,7 +118,7 @@
       "id": "10055846",
       "url": "https://www.lidl.co.uk/p/cauliflower/p10055846",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -126,7 +126,7 @@
       "id": "10055550",
       "url": "https://www.lidl.co.uk/p/ceramic-pot-24cm/p10055550",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -134,7 +134,7 @@
       "id": "10055814",
       "url": "https://www.lidl.co.uk/p/chef-select-2-tortillas-assorted/p10055814",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -142,7 +142,7 @@
       "id": "10055842",
       "url": "https://www.lidl.co.uk/p/chestnut-mushrooms/p10055842",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -150,7 +150,7 @@
       "id": "10055549",
       "url": "https://www.lidl.co.uk/p/chrysanthemum-pot/p10055549",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -158,7 +158,7 @@
       "id": "10055502",
       "url": "https://www.lidl.co.uk/p/crockpot-3-7l-slow-cooker/p10055502",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -166,7 +166,7 @@
       "id": "10055848",
       "url": "https://www.lidl.co.uk/p/cucumber/p10055848",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -174,7 +174,7 @@
       "id": "10055852",
       "url": "https://www.lidl.co.uk/p/deluxe-12-british-chorizo-style-pork-meatballs/p10055852",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -182,7 +182,7 @@
       "id": "10055849",
       "url": "https://www.lidl.co.uk/p/deluxe-5-scottish-salmon-fillets/p10055849",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -190,7 +190,7 @@
       "id": "10055843",
       "url": "https://www.lidl.co.uk/p/deluxe-seedless-easy-peelers/p10055843",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -198,7 +198,7 @@
       "id": "10055812",
       "url": "https://www.lidl.co.uk/p/deluxe-speciality-teas-assorted/p10055812",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -206,7 +206,7 @@
       "id": "10055819",
       "url": "https://www.lidl.co.uk/p/deluxe-spreadable-butter-cornish-sea-salt/p10055819",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -214,7 +214,7 @@
       "id": "10055815",
       "url": "https://www.lidl.co.uk/p/deluxe-stir-in-pasta-sauces-assorted/p10055815",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -222,7 +222,7 @@
       "id": "10055820",
       "url": "https://www.lidl.co.uk/p/deluxe-west-country-butter-with-sea-salt/p10055820",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -230,7 +230,7 @@
       "id": "10055810",
       "url": "https://www.lidl.co.uk/p/dentalux-kids-toothbrush/p10055810",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -238,7 +238,7 @@
       "id": "10054678",
       "url": "https://www.lidl.co.uk/p/gabby-s-dollhouse-creation-station/p10054678",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -246,7 +246,7 @@
       "id": "10054799",
       "url": "https://www.lidl.co.uk/p/gabby-s-dollhouse-tea-cake-shop-play-set/p10054799",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -254,7 +254,7 @@
       "id": "10054820",
       "url": "https://www.lidl.co.uk/p/gabby-s-dollhouse-wooden-kitchen/p10054820",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -262,7 +262,7 @@
       "id": "10055503",
       "url": "https://www.lidl.co.uk/p/grillmeister-jet-flame-lighter/p10055503",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -270,7 +270,7 @@
       "id": "10055804",
       "url": "https://www.lidl.co.uk/p/in-store-bakery-chocolate-twist/p10055804",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -278,7 +278,7 @@
       "id": "10055803",
       "url": "https://www.lidl.co.uk/p/in-store-bakery-rosemary-and-sea-salt-focaccia-roll/p10055803",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -286,7 +286,7 @@
       "id": "10055845",
       "url": "https://www.lidl.co.uk/p/lemons/p10055845",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -294,7 +294,7 @@
       "id": "10054756",
       "url": "https://www.lidl.co.uk/p/lupilu-2-in-1-tabletop-grill-32-pieces/p10054756",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -302,7 +302,7 @@
       "id": "10054808",
       "url": "https://www.lidl.co.uk/p/lupilu-5-in-1-activity-cube-5-pieces/p10054808",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -310,7 +310,7 @@
       "id": "10054719",
       "url": "https://www.lidl.co.uk/p/lupilu-abacus/p10054719",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -318,7 +318,7 @@
       "id": "10054816",
       "url": "https://www.lidl.co.uk/p/lupilu-abacus/p10054816",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -326,7 +326,7 @@
       "id": "10054787",
       "url": "https://www.lidl.co.uk/p/lupilu-afternoon-tea-play-set-20-pieces/p10054787",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -334,7 +334,7 @@
       "id": "10054674",
       "url": "https://www.lidl.co.uk/p/lupilu-amusement-park-train-set-34-pieces/p10054674",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -342,7 +342,7 @@
       "id": "10054821",
       "url": "https://www.lidl.co.uk/p/lupilu-balance-board/p10054821",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -350,7 +350,7 @@
       "id": "10054744",
       "url": "https://www.lidl.co.uk/p/lupilu-beautician-set-14-pieces/p10054744",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -358,7 +358,7 @@
       "id": "10054751",
       "url": "https://www.lidl.co.uk/p/lupilu-blue-stacking-train/p10054751",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -366,7 +366,7 @@
       "id": "10054697",
       "url": "https://www.lidl.co.uk/p/lupilu-breakfast-play-set-17-pieces/p10054697",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -374,7 +374,7 @@
       "id": "10054705",
       "url": "https://www.lidl.co.uk/p/lupilu-burger-fries-play-set-42-pieces/p10054705",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -382,7 +382,7 @@
       "id": "10054780",
       "url": "https://www.lidl.co.uk/p/lupilu-burger-fries-play-set-42-pieces/p10054780",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -390,7 +390,7 @@
       "id": "10054689",
       "url": "https://www.lidl.co.uk/p/lupilu-cactus-peg-game-28-pieces/p10054689",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -398,7 +398,7 @@
       "id": "10054692",
       "url": "https://www.lidl.co.uk/p/lupilu-cake-play-set-23-pieces/p10054692",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -406,7 +406,7 @@
       "id": "10054781",
       "url": "https://www.lidl.co.uk/p/lupilu-cake-play-set-31-pieces/p10054781",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -414,7 +414,7 @@
       "id": "10054656",
       "url": "https://www.lidl.co.uk/p/lupilu-car-race-tower-5-pieces/p10054656",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -422,7 +422,7 @@
       "id": "10054772",
       "url": "https://www.lidl.co.uk/p/lupilu-car-transporter-7-pieces/p10054772",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -430,7 +430,7 @@
       "id": "10054688",
       "url": "https://www.lidl.co.uk/p/lupilu-carrot-peg-game-8-pieces/p10054688",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -438,7 +438,7 @@
       "id": "10054667",
       "url": "https://www.lidl.co.uk/p/lupilu-city-building-blocks-50-pieces/p10054667",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -446,7 +446,7 @@
       "id": "10054747",
       "url": "https://www.lidl.co.uk/p/lupilu-city-sound-puzzle/p10054747",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -454,7 +454,7 @@
       "id": "10054813",
       "url": "https://www.lidl.co.uk/p/lupilu-city-vehicles-box/p10054813",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -462,7 +462,7 @@
       "id": "10054714",
       "url": "https://www.lidl.co.uk/p/lupilu-clock-puzzle-13-pieces/p10054714",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -470,7 +470,7 @@
       "id": "10054793",
       "url": "https://www.lidl.co.uk/p/lupilu-clock-puzzle-13-pieces/p10054793",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -478,7 +478,7 @@
       "id": "10054786",
       "url": "https://www.lidl.co.uk/p/lupilu-coffee-machine-play-set-9-pieces/p10054786",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -486,7 +486,7 @@
       "id": "10054761",
       "url": "https://www.lidl.co.uk/p/lupilu-construction-site-first-train-set-22-pieces/p10054761",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -494,7 +494,7 @@
       "id": "10054673",
       "url": "https://www.lidl.co.uk/p/lupilu-construction-site-train-set-59-pieces/p10054673",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -502,7 +502,7 @@
       "id": "10054811",
       "url": "https://www.lidl.co.uk/p/lupilu-construction-site-vehicles-box/p10054811",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -510,7 +510,7 @@
       "id": "10054767",
       "url": "https://www.lidl.co.uk/p/lupilu-construction-vehicle-set/p10054767",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -518,7 +518,7 @@
       "id": "10054727",
       "url": "https://www.lidl.co.uk/p/lupilu-construction-vehicles-puzzle/p10054727",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -526,7 +526,7 @@
       "id": "10054790",
       "url": "https://www.lidl.co.uk/p/lupilu-cooking-play-set-20-pieces/p10054790",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -534,7 +534,7 @@
       "id": "10054717",
       "url": "https://www.lidl.co.uk/p/lupilu-counting-sticks-151-pieces/p10054717",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -542,7 +542,7 @@
       "id": "10054814",
       "url": "https://www.lidl.co.uk/p/lupilu-counting-sticks-151-pieces/p10054814",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -550,7 +550,7 @@
       "id": "10054788",
       "url": "https://www.lidl.co.uk/p/lupilu-crepe-maker-play-set-13-pieces/p10054788",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -558,7 +558,7 @@
       "id": "10054708",
       "url": "https://www.lidl.co.uk/p/lupilu-cube-puzzle-9-pieces/p10054708",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -566,7 +566,7 @@
       "id": "10054782",
       "url": "https://www.lidl.co.uk/p/lupilu-cube-puzzle-9-pieces/p10054782",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -574,7 +574,7 @@
       "id": "10054743",
       "url": "https://www.lidl.co.uk/p/lupilu-dentist-set-21-pieces/p10054743",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -582,7 +582,7 @@
       "id": "10054745",
       "url": "https://www.lidl.co.uk/p/lupilu-detective-set-12-pieces/p10054745",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -590,7 +590,7 @@
       "id": "10054691",
       "url": "https://www.lidl.co.uk/p/lupilu-dinosaur-train-set-46-pieces/p10054691",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -598,7 +598,7 @@
       "id": "10054679",
       "url": "https://www.lidl.co.uk/p/lupilu-disney-princess-castle/p10054679",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -606,7 +606,7 @@
       "id": "10054683",
       "url": "https://www.lidl.co.uk/p/lupilu-doll-s-house-bendable-doll-family-6-pieces/p10054683",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -614,7 +614,7 @@
       "id": "10054684",
       "url": "https://www.lidl.co.uk/p/lupilu-doll-s-house-garden-playground-furniture-9-pieces/p10054684",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -622,7 +622,7 @@
       "id": "10054680",
       "url": "https://www.lidl.co.uk/p/lupilu-doll-s-house-kitchen-furniture-16-pieces/p10054680",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -630,7 +630,7 @@
       "id": "10054682",
       "url": "https://www.lidl.co.uk/p/lupilu-doll-s-house-living-room-furniture-15-pieces/p10054682",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -638,7 +638,7 @@
       "id": "10054681",
       "url": "https://www.lidl.co.uk/p/lupilu-doll-s-house-nursery-furniture-16-pieces/p10054681",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -646,7 +646,7 @@
       "id": "10054802",
       "url": "https://www.lidl.co.uk/p/lupilu-double-sided-easel/p10054802",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -654,7 +654,7 @@
       "id": "10054758",
       "url": "https://www.lidl.co.uk/p/lupilu-dressing-table-stool/p10054758",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -662,7 +662,7 @@
       "id": "10054733",
       "url": "https://www.lidl.co.uk/p/lupilu-elephant-first-puzzle/p10054733",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -670,7 +670,7 @@
       "id": "10054766",
       "url": "https://www.lidl.co.uk/p/lupilu-emergency-vehicle-set/p10054766",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -678,7 +678,7 @@
       "id": "10054810",
       "url": "https://www.lidl.co.uk/p/lupilu-emergency-vehicles-box/p10054810",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -686,7 +686,7 @@
       "id": "10054776",
       "url": "https://www.lidl.co.uk/p/lupilu-europe-map-puzzle/p10054776",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -694,7 +694,7 @@
       "id": "10054777",
       "url": "https://www.lidl.co.uk/p/lupilu-european-train-set-47-pieces/p10054777",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -702,7 +702,7 @@
       "id": "10054663",
       "url": "https://www.lidl.co.uk/p/lupilu-farm-animals-box-11-pieces/p10054663",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -710,7 +710,7 @@
       "id": "10054728",
       "url": "https://www.lidl.co.uk/p/lupilu-farm-animals-puzzle/p10054728",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -718,7 +718,7 @@
       "id": "10054759",
       "url": "https://www.lidl.co.uk/p/lupilu-farm-first-train-set-19-pieces/p10054759",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -726,7 +726,7 @@
       "id": "10054748",
       "url": "https://www.lidl.co.uk/p/lupilu-farm-sound-puzzle/p10054748",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -734,7 +734,7 @@
       "id": "10054690",
       "url": "https://www.lidl.co.uk/p/lupilu-farm-train-set-58-pieces/p10054690",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -742,7 +742,7 @@
       "id": "10054768",
       "url": "https://www.lidl.co.uk/p/lupilu-farm-vehicle-set/p10054768",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -750,7 +750,7 @@
       "id": "10054812",
       "url": "https://www.lidl.co.uk/p/lupilu-farm-vehicles-box/p10054812",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -758,7 +758,7 @@
       "id": "10054760",
       "url": "https://www.lidl.co.uk/p/lupilu-fire-brigade-first-train-set-21-pieces/p10054760",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -766,7 +766,7 @@
       "id": "10054730",
       "url": "https://www.lidl.co.uk/p/lupilu-fire-engine-first-puzzle/p10054730",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -774,7 +774,7 @@
       "id": "10054660",
       "url": "https://www.lidl.co.uk/p/lupilu-forest-animals-box-10-pieces/p10054660",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -782,7 +782,7 @@
       "id": "10054668",
       "url": "https://www.lidl.co.uk/p/lupilu-forest-building-blocks-58-pieces/p10054668",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -790,7 +790,7 @@
       "id": "10054702",
       "url": "https://www.lidl.co.uk/p/lupilu-fridge/p10054702",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -798,7 +798,7 @@
       "id": "10054699",
       "url": "https://www.lidl.co.uk/p/lupilu-fruit-play-set-14-pieces/p10054699",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -806,7 +806,7 @@
       "id": "10054742",
       "url": "https://www.lidl.co.uk/p/lupilu-gingerbread-house-22-pieces/p10054742",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -814,7 +814,7 @@
       "id": "10054806",
       "url": "https://www.lidl.co.uk/p/lupilu-hammer-bench-2-pieces/p10054806",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -822,7 +822,7 @@
       "id": "10054805",
       "url": "https://www.lidl.co.uk/p/lupilu-hammer-bench-with-xylophone-6-pieces/p10054805",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -830,7 +830,7 @@
       "id": "10054732",
       "url": "https://www.lidl.co.uk/p/lupilu-hedgehog-first-puzzle/p10054732",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -838,7 +838,7 @@
       "id": "10054796",
       "url": "https://www.lidl.co.uk/p/lupilu-ice-cream-cart-18-pieces/p10054796",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -846,7 +846,7 @@
       "id": "10054693",
       "url": "https://www.lidl.co.uk/p/lupilu-ice-cream-play-set-17-pieces/p10054693",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -854,7 +854,7 @@
       "id": "10054687",
       "url": "https://www.lidl.co.uk/p/lupilu-letter-cube-game-39-pieces/p10054687",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -862,7 +862,7 @@
       "id": "10054721",
       "url": "https://www.lidl.co.uk/p/lupilu-logic-game-76-pieces/p10054721",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -870,7 +870,7 @@
       "id": "10054818",
       "url": "https://www.lidl.co.uk/p/lupilu-logic-game-76-pieces/p10054818",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -878,7 +878,7 @@
       "id": "10054804",
       "url": "https://www.lidl.co.uk/p/lupilu-magic-cauldron-25-pieces/p10054804",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -886,7 +886,7 @@
       "id": "10054716",
       "url": "https://www.lidl.co.uk/p/lupilu-magnetic-maze-1-piece/p10054716",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -894,7 +894,7 @@
       "id": "10054795",
       "url": "https://www.lidl.co.uk/p/lupilu-magnetic-maze-1-piece/p10054795",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -902,7 +902,7 @@
       "id": "10054718",
       "url": "https://www.lidl.co.uk/p/lupilu-magnetic-maze-3-pieces/p10054718",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -910,7 +910,7 @@
       "id": "10054815",
       "url": "https://www.lidl.co.uk/p/lupilu-magnetic-maze-3-pieces/p10054815",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -918,7 +918,7 @@
       "id": "10054720",
       "url": "https://www.lidl.co.uk/p/lupilu-maths-toy/p10054720",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -926,7 +926,7 @@
       "id": "10054817",
       "url": "https://www.lidl.co.uk/p/lupilu-maths-toy/p10054817",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -934,7 +934,7 @@
       "id": "10054712",
       "url": "https://www.lidl.co.uk/p/lupilu-maze-game-1-piece/p10054712",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -942,7 +942,7 @@
       "id": "10054791",
       "url": "https://www.lidl.co.uk/p/lupilu-maze-game-1-piece/p10054791",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -950,7 +950,7 @@
       "id": "10054700",
       "url": "https://www.lidl.co.uk/p/lupilu-meat-fish-play-set-16-pieces/p10054700",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -958,7 +958,7 @@
       "id": "10054686",
       "url": "https://www.lidl.co.uk/p/lupilu-memory-game-26-pieces/p10054686",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -966,7 +966,7 @@
       "id": "10054707",
       "url": "https://www.lidl.co.uk/p/lupilu-mosaic-puzzle-43-pieces/p10054707",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -974,7 +974,7 @@
       "id": "10054746",
       "url": "https://www.lidl.co.uk/p/lupilu-music-sound-puzzle/p10054746",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -982,7 +982,7 @@
       "id": "10054657",
       "url": "https://www.lidl.co.uk/p/lupilu-musical-marble-tree-23-pieces/p10054657",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -990,7 +990,7 @@
       "id": "10054662",
       "url": "https://www.lidl.co.uk/p/lupilu-ocean-animals-box-11-pieces/p10054662",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -998,7 +998,7 @@
       "id": "10054669",
       "url": "https://www.lidl.co.uk/p/lupilu-ocean-building-blocks-58-pieces/p10054669",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1006,7 +1006,7 @@
       "id": "10054695",
       "url": "https://www.lidl.co.uk/p/lupilu-picnic-play-set-25-pieces/p10054695",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1014,7 +1014,7 @@
       "id": "10054750",
       "url": "https://www.lidl.co.uk/p/lupilu-pink-stacking-train/p10054750",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1022,7 +1022,7 @@
       "id": "10054803",
       "url": "https://www.lidl.co.uk/p/lupilu-pizza-oven-13-pieces/p10054803",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1030,7 +1030,7 @@
       "id": "10054694",
       "url": "https://www.lidl.co.uk/p/lupilu-pizza-play-set-27-pieces/p10054694",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1038,7 +1038,7 @@
       "id": "10054754",
       "url": "https://www.lidl.co.uk/p/lupilu-play-food-set-29-pieces/p10054754",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1046,7 +1046,7 @@
       "id": "10054722",
       "url": "https://www.lidl.co.uk/p/lupilu-play-kitchen/p10054722",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1054,7 +1054,7 @@
       "id": "10054723",
       "url": "https://www.lidl.co.uk/p/lupilu-play-kitchenette-7-pieces/p10054723",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1062,7 +1062,7 @@
       "id": "10054724",
       "url": "https://www.lidl.co.uk/p/lupilu-play-shop-35-pieces/p10054724",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1070,7 +1070,7 @@
       "id": "10054755",
       "url": "https://www.lidl.co.uk/p/lupilu-play-shopping-basket-5-pieces/p10054755",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1078,7 +1078,7 @@
       "id": "10054789",
       "url": "https://www.lidl.co.uk/p/lupilu-pop-up-toaster-play-set-12-pieces/p10054789",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1086,7 +1086,7 @@
       "id": "10054725",
       "url": "https://www.lidl.co.uk/p/lupilu-premium-balance-beam/p10054725",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1094,7 +1094,7 @@
       "id": "10054823",
       "url": "https://www.lidl.co.uk/p/lupilu-premium-climbing-triangle-with-ladder-slide/p10054823",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1102,7 +1102,7 @@
       "id": "10054765",
       "url": "https://www.lidl.co.uk/p/lupilu-premium-toy-air-fryer-7-pieces/p10054765",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1110,7 +1110,7 @@
       "id": "10054762",
       "url": "https://www.lidl.co.uk/p/lupilu-premium-toy-coffee-maker-12-pieces/p10054762",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1118,7 +1118,7 @@
       "id": "10054764",
       "url": "https://www.lidl.co.uk/p/lupilu-premium-toy-cooking-pot-16-pieces/p10054764",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1126,7 +1126,7 @@
       "id": "10054763",
       "url": "https://www.lidl.co.uk/p/lupilu-premium-toy-food-processor-10-pieces/p10054763",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1134,7 +1134,7 @@
       "id": "10054807",
       "url": "https://www.lidl.co.uk/p/lupilu-pull-along-fox-8-pieces/p10054807",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1142,7 +1142,7 @@
       "id": "10054769",
       "url": "https://www.lidl.co.uk/p/lupilu-racing-car-set/p10054769",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1150,7 +1150,7 @@
       "id": "10054736",
       "url": "https://www.lidl.co.uk/p/lupilu-remote-control-express-train/p10054736",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1158,7 +1158,7 @@
       "id": "10054738",
       "url": "https://www.lidl.co.uk/p/lupilu-remote-control-freight-train/p10054738",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1166,7 +1166,7 @@
       "id": "10054737",
       "url": "https://www.lidl.co.uk/p/lupilu-remote-control-steam-train/p10054737",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1174,7 +1174,7 @@
       "id": "10054739",
       "url": "https://www.lidl.co.uk/p/lupilu-ride-on-car/p10054739",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1182,7 +1182,7 @@
       "id": "10054741",
       "url": "https://www.lidl.co.uk/p/lupilu-roast-chicken-15-pieces/p10054741",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1190,7 +1190,7 @@
       "id": "10054740",
       "url": "https://www.lidl.co.uk/p/lupilu-rocking-horse/p10054740",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1198,7 +1198,7 @@
       "id": "10054773",
       "url": "https://www.lidl.co.uk/p/lupilu-safari-animal-truck-11-pieces/p10054773",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1206,7 +1206,7 @@
       "id": "10054661",
       "url": "https://www.lidl.co.uk/p/lupilu-safari-animals-box-10-pieces/p10054661",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1214,7 +1214,7 @@
       "id": "10054749",
       "url": "https://www.lidl.co.uk/p/lupilu-safari-sound-puzzle/p10054749",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1222,7 +1222,7 @@
       "id": "10054704",
       "url": "https://www.lidl.co.uk/p/lupilu-salad-play-set-43-pieces/p10054704",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1230,7 +1230,7 @@
       "id": "10054779",
       "url": "https://www.lidl.co.uk/p/lupilu-salad-play-set-43-pieces/p10054779",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1238,7 +1238,7 @@
       "id": "10054698",
       "url": "https://www.lidl.co.uk/p/lupilu-sandwich-play-set-16-pieces/p10054698",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1246,7 +1246,7 @@
       "id": "10054753",
       "url": "https://www.lidl.co.uk/p/lupilu-scales-set-10-pieces/p10054753",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1254,7 +1254,7 @@
       "id": "10054729",
       "url": "https://www.lidl.co.uk/p/lupilu-sea-creatures-puzzle/p10054729",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1262,7 +1262,7 @@
       "id": "10054709",
       "url": "https://www.lidl.co.uk/p/lupilu-shape-sorter-10-pieces/p10054709",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1270,7 +1270,7 @@
       "id": "10054783",
       "url": "https://www.lidl.co.uk/p/lupilu-shape-sorter-10-pieces/p10054783",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1278,7 +1278,7 @@
       "id": "10054809",
       "url": "https://www.lidl.co.uk/p/lupilu-shark-sound-game-5-pieces/p10054809",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1286,7 +1286,7 @@
       "id": "10054752",
       "url": "https://www.lidl.co.uk/p/lupilu-shop-till-set-27-pieces/p10054752",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1294,7 +1294,7 @@
       "id": "10054696",
       "url": "https://www.lidl.co.uk/p/lupilu-shopping-bag-food-play-set-19-pieces/p10054696",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1302,7 +1302,7 @@
       "id": "10054710",
       "url": "https://www.lidl.co.uk/p/lupilu-sort-stack-sea-creatures-16-pieces/p10054710",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1310,7 +1310,7 @@
       "id": "10054784",
       "url": "https://www.lidl.co.uk/p/lupilu-sort-stack-sea-creatures-16-pieces/p10054784",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1318,7 +1318,7 @@
       "id": "10054711",
       "url": "https://www.lidl.co.uk/p/lupilu-stacking-tower-9-pieces/p10054711",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1326,7 +1326,7 @@
       "id": "10054785",
       "url": "https://www.lidl.co.uk/p/lupilu-stacking-tower-9-pieces/p10054785",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1334,7 +1334,7 @@
       "id": "10054659",
       "url": "https://www.lidl.co.uk/p/lupilu-stacking-toy-17-pieces/p10054659",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1342,7 +1342,7 @@
       "id": "10054713",
       "url": "https://www.lidl.co.uk/p/lupilu-stamp-puzzle-11-pieces/p10054713",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1350,7 +1350,7 @@
       "id": "10054792",
       "url": "https://www.lidl.co.uk/p/lupilu-stamp-puzzle-11-pieces/p10054792",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1358,7 +1358,7 @@
       "id": "10054685",
       "url": "https://www.lidl.co.uk/p/lupilu-sticks-game-78-pieces/p10054685",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1366,7 +1366,7 @@
       "id": "10054797",
       "url": "https://www.lidl.co.uk/p/lupilu-sweet-shop-cart-36-pieces/p10054797",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1374,7 +1374,7 @@
       "id": "10054715",
       "url": "https://www.lidl.co.uk/p/lupilu-threading-toy-26-pieces/p10054715",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1382,7 +1382,7 @@
       "id": "10054794",
       "url": "https://www.lidl.co.uk/p/lupilu-threading-toy-32-pieces/p10054794",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1390,7 +1390,7 @@
       "id": "10054658",
       "url": "https://www.lidl.co.uk/p/lupilu-toolbox-22-pieces/p10054658",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1398,7 +1398,7 @@
       "id": "10054757",
       "url": "https://www.lidl.co.uk/p/lupilu-toy-bakery-33-pieces/p10054757",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1406,7 +1406,7 @@
       "id": "10054771",
       "url": "https://www.lidl.co.uk/p/lupilu-tractor-13-pieces/p10054771",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1414,7 +1414,7 @@
       "id": "10054731",
       "url": "https://www.lidl.co.uk/p/lupilu-train-first-puzzle/p10054731",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1422,7 +1422,7 @@
       "id": "10054770",
       "url": "https://www.lidl.co.uk/p/lupilu-transport-vehicle-set/p10054770",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1430,7 +1430,7 @@
       "id": "10054734",
       "url": "https://www.lidl.co.uk/p/lupilu-turtle-first-puzzle/p10054734",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1438,7 +1438,7 @@
       "id": "10054701",
       "url": "https://www.lidl.co.uk/p/lupilu-vegetable-play-set-16-pieces/p10054701",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1446,7 +1446,7 @@
       "id": "10054726",
       "url": "https://www.lidl.co.uk/p/lupilu-vehicles-puzzle/p10054726",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1454,7 +1454,7 @@
       "id": "10054703",
       "url": "https://www.lidl.co.uk/p/lupilu-washing-machine/p10054703",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1462,7 +1462,7 @@
       "id": "10054735",
       "url": "https://www.lidl.co.uk/p/lupilu-whale-first-puzzle/p10054735",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1470,7 +1470,7 @@
       "id": "10054774",
       "url": "https://www.lidl.co.uk/p/lupilu-wooden-food-truck/p10054774",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1478,7 +1478,7 @@
       "id": "10054775",
       "url": "https://www.lidl.co.uk/p/lupilu-world-map-puzzle/p10054775",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1486,7 +1486,7 @@
       "id": "10054778",
       "url": "https://www.lidl.co.uk/p/lupilu-worldwide-train-set-48-pieces/p10054778",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1494,7 +1494,31 @@
       "id": "10055811",
       "url": "https://www.lidl.co.uk/p/maribel-100-nut-butters/p10055811",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
+      "confirmationSourceUrl": null,
+      "evidence": "repeated_http_status"
+    },
+    {
+      "id": "10055728",
+      "url": "https://www.lidl.co.uk/p/max-mila-s-world-pet-stairs-with-mesh-pockets/p10055728",
+      "httpStatus": 404,
+      "checkedAt": "2026-10-15T16:57:56Z",
+      "confirmationSourceUrl": null,
+      "evidence": "repeated_http_status"
+    },
+    {
+      "id": "10055729",
+      "url": "https://www.lidl.co.uk/p/max-mila-s-world-pet-stairs-with-scratching-mat/p10055729",
+      "httpStatus": 404,
+      "checkedAt": "2026-10-15T16:57:56Z",
+      "confirmationSourceUrl": null,
+      "evidence": "repeated_http_status"
+    },
+    {
+      "id": "10055730",
+      "url": "https://www.lidl.co.uk/p/max-mila-s-world-pet-steam-grooming-brush/p10055730",
+      "httpStatus": 404,
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1502,7 +1526,7 @@
       "id": "10055807",
       "url": "https://www.lidl.co.uk/p/mckinlay-s-mashed-vegetables-assorted-400g-450g/p10055807",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1510,7 +1534,7 @@
       "id": "10055821",
       "url": "https://www.lidl.co.uk/p/ocean-sea-msc-cod-fillet-in-sauce/p10055821",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1518,7 +1542,7 @@
       "id": "10055546",
       "url": "https://www.lidl.co.uk/p/peperomia-mix/p10055546",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1526,7 +1550,7 @@
       "id": "10054801",
       "url": "https://www.lidl.co.uk/p/peppa-pig-shopping-trolley-play-set/p10054801",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1534,7 +1558,7 @@
       "id": "10055544",
       "url": "https://www.lidl.co.uk/p/plant-in-woven-pot/p10055544",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1542,7 +1566,7 @@
       "id": "10055841",
       "url": "https://www.lidl.co.uk/p/pomegranate/p10055841",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1550,7 +1574,7 @@
       "id": "10055855",
       "url": "https://www.lidl.co.uk/p/premium-spring-flowering-bulbs/p10055855",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1558,7 +1582,7 @@
       "id": "10055547",
       "url": "https://www.lidl.co.uk/p/rhododendron/p10055547",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1566,7 +1590,7 @@
       "id": "10055813",
       "url": "https://www.lidl.co.uk/p/rivercote-butter-straws-assorted/p10055813",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1574,7 +1598,7 @@
       "id": "10055816",
       "url": "https://www.lidl.co.uk/p/rowan-hill-bakery-swiss-rolls-assorted/p10055816",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1582,7 +1606,7 @@
       "id": "10055827",
       "url": "https://www.lidl.co.uk/p/seguret-cotes-du-rhone-villages-wine-2025-14-5/p10055827",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1590,7 +1614,7 @@
       "id": "10055481",
       "url": "https://www.lidl.co.uk/p/silvercrest-20l-microwave/p10055481",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1598,7 +1622,7 @@
       "id": "10055501",
       "url": "https://www.lidl.co.uk/p/silvercrest-24cm-cast-aluminium-frying-pan/p10055501",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1606,7 +1630,7 @@
       "id": "10055463",
       "url": "https://www.lidl.co.uk/p/silvercrest-28cm-cast-aluminium-frying-pan/p10055463",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1614,7 +1638,7 @@
       "id": "10055464",
       "url": "https://www.lidl.co.uk/p/silvercrest-28cm-cast-aluminium-saute-pan/p10055464",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1622,7 +1646,7 @@
       "id": "10055500",
       "url": "https://www.lidl.co.uk/p/silvercrest-3-in-1-sandwich-toaster/p10055500",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1630,7 +1654,7 @@
       "id": "10055483",
       "url": "https://www.lidl.co.uk/p/silvercrest-antibacterial-chopping-board-black/p10055483",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1638,7 +1662,7 @@
       "id": "10055482",
       "url": "https://www.lidl.co.uk/p/silvercrest-antibacterial-chopping-board-grey/p10055482",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1646,7 +1670,7 @@
       "id": "10055484",
       "url": "https://www.lidl.co.uk/p/silvercrest-antibacterial-chopping-boards-2-pack/p10055484",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1654,7 +1678,7 @@
       "id": "10055479",
       "url": "https://www.lidl.co.uk/p/silvercrest-black-2-slice-toaster/p10055479",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1662,7 +1686,7 @@
       "id": "10055486",
       "url": "https://www.lidl.co.uk/p/silvercrest-black-electric-salt-or-pepper-mill/p10055486",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1670,7 +1694,7 @@
       "id": "10055488",
       "url": "https://www.lidl.co.uk/p/silvercrest-black-hand-blender-set/p10055488",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1678,7 +1702,7 @@
       "id": "10055490",
       "url": "https://www.lidl.co.uk/p/silvercrest-black-kettle/p10055490",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1686,7 +1710,7 @@
       "id": "10055495",
       "url": "https://www.lidl.co.uk/p/silvercrest-black-smoothie-maker/p10055495",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1694,7 +1718,7 @@
       "id": "10055497",
       "url": "https://www.lidl.co.uk/p/silvercrest-black-vacuum-sealer/p10055497",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1702,7 +1726,7 @@
       "id": "10055465",
       "url": "https://www.lidl.co.uk/p/silvercrest-cast-aluminium-roasting-dish/p10055465",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1710,7 +1734,7 @@
       "id": "10055467",
       "url": "https://www.lidl.co.uk/p/silvercrest-coarse-ceramic-sharpening-rod/p10055467",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1718,7 +1742,7 @@
       "id": "10055466",
       "url": "https://www.lidl.co.uk/p/silvercrest-fine-ceramic-sharpening-rod/p10055466",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1726,7 +1750,7 @@
       "id": "10055491",
       "url": "https://www.lidl.co.uk/p/silvercrest-microwaveable-container-set-3-pieces/p10055491",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1734,7 +1758,7 @@
       "id": "10055492",
       "url": "https://www.lidl.co.uk/p/silvercrest-mini-chopper/p10055492",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1742,7 +1766,7 @@
       "id": "10055499",
       "url": "https://www.lidl.co.uk/p/silvercrest-narrow-vacuum-sealer-rolls-3-pack/p10055499",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1750,7 +1774,7 @@
       "id": "10055471",
       "url": "https://www.lidl.co.uk/p/silvercrest-premium-jug-blender/p10055471",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1758,7 +1782,7 @@
       "id": "10055469",
       "url": "https://www.lidl.co.uk/p/silvercrest-rectangular-food-storage-container-set-3-pieces/p10055469",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1766,7 +1790,7 @@
       "id": "10055493",
       "url": "https://www.lidl.co.uk/p/silvercrest-rice-cooker/p10055493",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1774,7 +1798,7 @@
       "id": "10055470",
       "url": "https://www.lidl.co.uk/p/silvercrest-round-food-storage-container-set-3-pieces/p10055470",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1782,7 +1806,7 @@
       "id": "10055468",
       "url": "https://www.lidl.co.uk/p/silvercrest-square-food-storage-container-set-3-pieces/p10055468",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1790,7 +1814,7 @@
       "id": "10055476",
       "url": "https://www.lidl.co.uk/p/silvercrest-stainless-steel-ladle/p10055476",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1798,7 +1822,7 @@
       "id": "10055477",
       "url": "https://www.lidl.co.uk/p/silvercrest-stainless-steel-potato-masher/p10055477",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1806,7 +1830,7 @@
       "id": "10055478",
       "url": "https://www.lidl.co.uk/p/silvercrest-stainless-steel-serving-spoon/p10055478",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1814,7 +1838,7 @@
       "id": "10055474",
       "url": "https://www.lidl.co.uk/p/silvercrest-stainless-steel-skimming-ladle/p10055474",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1822,7 +1846,7 @@
       "id": "10055472",
       "url": "https://www.lidl.co.uk/p/silvercrest-stainless-steel-slotted-turner/p10055472",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1830,7 +1854,7 @@
       "id": "10055473",
       "url": "https://www.lidl.co.uk/p/silvercrest-stainless-steel-spaghetti-spoon/p10055473",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1838,7 +1862,7 @@
       "id": "10055475",
       "url": "https://www.lidl.co.uk/p/silvercrest-stainless-steel-whisk/p10055475",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1846,7 +1870,7 @@
       "id": "10055480",
       "url": "https://www.lidl.co.uk/p/silvercrest-white-2-slice-toaster/p10055480",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1854,7 +1878,7 @@
       "id": "10055485",
       "url": "https://www.lidl.co.uk/p/silvercrest-white-electric-salt-or-pepper-mill/p10055485",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1862,7 +1886,7 @@
       "id": "10055487",
       "url": "https://www.lidl.co.uk/p/silvercrest-white-hand-blender-set/p10055487",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1870,7 +1894,7 @@
       "id": "10055489",
       "url": "https://www.lidl.co.uk/p/silvercrest-white-kettle/p10055489",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1878,7 +1902,7 @@
       "id": "10055494",
       "url": "https://www.lidl.co.uk/p/silvercrest-white-smoothie-maker/p10055494",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1886,7 +1910,7 @@
       "id": "10055496",
       "url": "https://www.lidl.co.uk/p/silvercrest-white-vacuum-sealer/p10055496",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1894,7 +1918,7 @@
       "id": "10055498",
       "url": "https://www.lidl.co.uk/p/silvercrest-wide-vacuum-sealer-rolls-2-pack/p10055498",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1902,7 +1926,7 @@
       "id": "10055514",
       "url": "https://www.lidl.co.uk/p/sistema-1-15l-stax-lunchbox-blue/p10055514",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1910,7 +1934,7 @@
       "id": "10055513",
       "url": "https://www.lidl.co.uk/p/sistema-1-15l-stax-lunchbox-green/p10055513",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1918,7 +1942,7 @@
       "id": "10055512",
       "url": "https://www.lidl.co.uk/p/sistema-1l-stax-lunchbox-blue/p10055512",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1926,7 +1950,7 @@
       "id": "10055511",
       "url": "https://www.lidl.co.uk/p/sistema-1l-stax-lunchbox-green/p10055511",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1934,7 +1958,7 @@
       "id": "10055509",
       "url": "https://www.lidl.co.uk/p/sistema-850ml-traverse-water-bottle-blue/p10055509",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1942,7 +1966,7 @@
       "id": "10055510",
       "url": "https://www.lidl.co.uk/p/sistema-850ml-traverse-water-bottle-green/p10055510",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1950,7 +1974,7 @@
       "id": "10055508",
       "url": "https://www.lidl.co.uk/p/sistema-850ml-traverse-water-bottle-purple/p10055508",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1958,7 +1982,7 @@
       "id": "10055822",
       "url": "https://www.lidl.co.uk/p/solevita-bio-ginger-shot-xxl/p10055822",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1966,7 +1990,7 @@
       "id": "10054676",
       "url": "https://www.lidl.co.uk/p/spidey-his-amazing-friends-creation-station/p10054676",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1974,7 +1998,7 @@
       "id": "10055856",
       "url": "https://www.lidl.co.uk/p/spring-flowering-bulbs/p10055856",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1982,7 +2006,7 @@
       "id": "10055847",
       "url": "https://www.lidl.co.uk/p/spring-onions/p10055847",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1990,7 +2014,7 @@
       "id": "10054677",
       "url": "https://www.lidl.co.uk/p/stitch-creation-station/p10054677",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -1998,7 +2022,7 @@
       "id": "10055817",
       "url": "https://www.lidl.co.uk/p/taste-of-thai-curry-pastes-assorted/p10055817",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -2006,7 +2030,7 @@
       "id": "10055844",
       "url": "https://www.lidl.co.uk/p/tenderstem-broccoli/p10055844",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -2014,7 +2038,7 @@
       "id": "10054671",
       "url": "https://www.lidl.co.uk/p/trefl-gabby-s-dollhouse-tumbling-tower/p10054671",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -2022,7 +2046,7 @@
       "id": "10054672",
       "url": "https://www.lidl.co.uk/p/trefl-jurassic-world-tumbling-tower/p10054672",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -2030,7 +2054,7 @@
       "id": "10054670",
       "url": "https://www.lidl.co.uk/p/trefl-paw-patrol-tumbling-tower/p10054670",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -2038,7 +2062,7 @@
       "id": "10055818",
       "url": "https://www.lidl.co.uk/p/vemondo-vegan-tortelloni-assorted/p10055818",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -2046,7 +2070,7 @@
       "id": "10055504",
       "url": "https://www.lidl.co.uk/p/w5-rectangular-compost-bin/p10055504",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -2054,7 +2078,7 @@
       "id": "10055505",
       "url": "https://www.lidl.co.uk/p/w5-round-compost-bin/p10055505",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -2062,7 +2086,7 @@
       "id": "10055506",
       "url": "https://www.lidl.co.uk/p/w5-white-and-grey-kitchen-hand-towel-and-tea-towel-set-5-pieces/p10055506",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -2070,7 +2094,7 @@
       "id": "10055507",
       "url": "https://www.lidl.co.uk/p/w5-white-and-red-kitchen-hand-towel-and-tea-towel-set-5-pieces/p10055507",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -2078,7 +2102,7 @@
       "id": "10056087",
       "url": "https://www.lidl.co.uk/p/wine-of-the-week-australia-merlot-limestone-coast-wine-75cl/p10056087",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -2086,7 +2110,7 @@
       "id": "10056088",
       "url": "https://www.lidl.co.uk/p/wine-of-the-week-australia-merlot-limestone-coast-wine-75cl/p10056088",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -2094,7 +2118,7 @@
       "id": "10055851",
       "url": "https://www.lidl.co.uk/p/xxl-12-pork-loin-steaks/p10055851",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -2102,7 +2126,7 @@
       "id": "10055850",
       "url": "https://www.lidl.co.uk/p/xxl-4-british-beef-steaks/p10055850",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -2110,7 +2134,7 @@
       "id": "10055854",
       "url": "https://www.lidl.co.uk/p/xxl-4-lamb-leg-chops/p10055854",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     },
@@ -2118,17 +2142,17 @@
       "id": "10055853",
       "url": "https://www.lidl.co.uk/p/xxl-salt-chilli-pork-belly-slices/p10055853",
       "httpStatus": 404,
-      "checkedAt": "2026-10-15T11:16:55Z",
+      "checkedAt": "2026-10-15T16:57:56Z",
       "confirmationSourceUrl": null,
       "evidence": "repeated_http_status"
     }
   ],
-  "retained_not_listed": 262,
-  "new_products_added": 172,
-  "new_prices_added": 0,
-  "refreshed_at": "2026-10-15T11:16:55Z",
-  "last_successful_at": "2026-10-15T11:16:55Z",
-  "duration_seconds": 384.5,
+  "retained_not_listed": 265,
+  "new_products_added": 0,
+  "new_prices_added": 1,
+  "refreshed_at": "2026-10-15T16:57:56Z",
+  "last_successful_at": "2026-10-15T16:57:56Z",
+  "duration_seconds": 366.1,
   "category_count": 108,
   "category_counts": {
     "Home > Decoration": 47,
@@ -2281,12 +2305,12 @@
     "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=2.1.0&fetchsize=48&productsOnly=true&idsOnly=false&offset=672",
     "https://www.lidl.co.uk/q/api/gridboxes/GB/en?ids=10048393%2C10048394%2C10048407%2C10048408%2C10048421%2C10048422"
   ],
-  "search_products_expected": 690,
-  "search_products_identified": 690,
-  "search_products_rendered": 684,
+  "search_products_expected": 687,
+  "search_products_identified": 687,
+  "search_products_rendered": 681,
   "search_products_unrendered": 6,
   "search_products_recovered": 0,
-  "search_products_discovered": 684,
+  "search_products_discovered": 681,
   "search_products_unpublished": 6,
   "search_unpublished_ids": [
     "10048393",
@@ -2296,12 +2320,12 @@
     "10048421",
     "10048422"
   ],
-  "search_card_coverage": 0.991304347826087,
-  "search_url_coverage": 0.991304347826087,
+  "search_card_coverage": 0.9912663755458515,
+  "search_url_coverage": 0.9912663755458515,
   "search_gridbox_source_urls": [
     "https://www.lidl.co.uk/q/api/gridboxes/GB/en?ids=10048393%2C10048394%2C10048407%2C10048408%2C10048421%2C10048422"
   ],
-  "search_products_new": 172,
+  "search_products_new": 0,
   "search_unrendered_ids": [
     "10048393",
     "10048394",
@@ -2312,8 +2336,2240 @@
   ],
   "search_pages": 15,
   "search_page_size": 48,
-  "search_ids_sha256": "48e6f664d8d1e07fff5d848c55059502203653b4a4d1da50527584f86ec80481",
-  "with_price": 757,
+  "search_ids_sha256": "3332bbdca54d402e41317bfdecbf6cfe5abcd5caa6c39f81e737cb6ebff4eb26",
+  "menu_status": "complete",
+  "menu_root": "https://www.lidl.co.uk/c/food-drink/s10068374",
+  "menu_departments": [
+    {
+      "url": "https://www.lidl.co.uk/h/fruit-vegetables/h10071012",
+      "name": "Fruit & veg",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374"
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/fresh-meat-poultry/h10095752",
+      "name": "Meat & Poultry",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374"
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/cheese-dairy-eggs/h10095761",
+      "name": "Cheese, Dairy & Eggs",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374"
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/bakery/h10096086",
+      "name": "Bakery",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374"
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/food-cupboard/h10096095",
+      "name": "Food Cupboard",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374"
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/oils-condiments-sauces/h10096110",
+      "name": "Oils, Condiments & Sauces",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374"
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/chilled-food/h10071020",
+      "name": "Ready meals",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374"
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/cereals-spreads/h10096153",
+      "name": "Cereals & Spreads",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374"
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/frozen-food/h10071049",
+      "name": "Frozen",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374"
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/confectionery-snacks/h10096205",
+      "name": "Confectionery & Snacks",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374"
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/drinks/h10071022",
+      "name": "Drinks",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374"
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/coffee-tea-hot-chocolate/h10071683",
+      "name": "Coffee, Tea & Cocoa",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374"
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/wine-beer-spirits/h10096268",
+      "name": "Wine, Beer & Spirits",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374"
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/household/h10096287",
+      "name": "Household",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374"
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/plants-flowers/h10071024",
+      "name": "Plants & Flowers",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374"
+    }
+  ],
+  "menu_categories": [
+    {
+      "url": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "name": "Food & Drink offers",
+      "parent": null,
+      "id": "10068374",
+      "productsExpected": 326,
+      "productsChecked": 326,
+      "pages": 28,
+      "productsPublished": 325,
+      "unpublishedIds": [
+        "10048408"
+      ],
+      "productIds": [
+        "10028186",
+        "10028187",
+        "10028188",
+        "10028189",
+        "10028190",
+        "10028192",
+        "10030963",
+        "10040810",
+        "10042344",
+        "10042839",
+        "10044438",
+        "10045593",
+        "10045595",
+        "10048408",
+        "10049229",
+        "10049230",
+        "10049231",
+        "10049233",
+        "10049234",
+        "10049235",
+        "10049236",
+        "10051828",
+        "10051829",
+        "10051830",
+        "10051831",
+        "10051833",
+        "10051834",
+        "10051835",
+        "10051836",
+        "10051837",
+        "10051838",
+        "10051839",
+        "10051840",
+        "10051841",
+        "10051842",
+        "10051843",
+        "10051889",
+        "10052237",
+        "10052239",
+        "10052648",
+        "10052660",
+        "10052698",
+        "10052748",
+        "10054825",
+        "10054826",
+        "10054827",
+        "10054828",
+        "10054829",
+        "10054830",
+        "10054840",
+        "10054841",
+        "10054842",
+        "10054845",
+        "10054846",
+        "10054847",
+        "10054848",
+        "10054849",
+        "10054850",
+        "10054851",
+        "10054852",
+        "10054853",
+        "10054855",
+        "10054856",
+        "10054857",
+        "10054858",
+        "10054859",
+        "10054860",
+        "10054861",
+        "10054862",
+        "10054863",
+        "10054864",
+        "10054865",
+        "10054866",
+        "10054867",
+        "10054868",
+        "10054869",
+        "10055304",
+        "10055305",
+        "10055306",
+        "10055318",
+        "10055319",
+        "10055320",
+        "10055322",
+        "10055323",
+        "10055329",
+        "10055330",
+        "10055331",
+        "10055337",
+        "10055340",
+        "10055341",
+        "10055342",
+        "10055343",
+        "10055344",
+        "10055345",
+        "10055346",
+        "10055350",
+        "10055351",
+        "10055352",
+        "10055353",
+        "10055354",
+        "10055355",
+        "10055356",
+        "10055357",
+        "10055358",
+        "10055359",
+        "10055360",
+        "10055361",
+        "10055365",
+        "10055371",
+        "10055373",
+        "10055375",
+        "10055377",
+        "10055379",
+        "10055381",
+        "10055383",
+        "10055385",
+        "10055387",
+        "10055389",
+        "10055391",
+        "10055393",
+        "10055397",
+        "10055401",
+        "10055403",
+        "10055405",
+        "10055407",
+        "10055409",
+        "10055411",
+        "10055413",
+        "10055415",
+        "10055417",
+        "10055419",
+        "10055427",
+        "10055429",
+        "10055431",
+        "10055440",
+        "10055441",
+        "10055442",
+        "10055443",
+        "10055444",
+        "10055445",
+        "10055447",
+        "10055448",
+        "10055449",
+        "10055450",
+        "10055451",
+        "10055452",
+        "10055453",
+        "10055454",
+        "10055456",
+        "10055457",
+        "10055458",
+        "10055459",
+        "10055805",
+        "10055806",
+        "10055808",
+        "10055809",
+        "10055823",
+        "10055824",
+        "10055825",
+        "10055826",
+        "10055828",
+        "10055829",
+        "10055830",
+        "10055831",
+        "10055832",
+        "10055834",
+        "10055835",
+        "10055836",
+        "10055837",
+        "10055838",
+        "10055839",
+        "10055860",
+        "10055866",
+        "10055868",
+        "10055872",
+        "10055874",
+        "10055876",
+        "10055878",
+        "10055882",
+        "10055886",
+        "10055888",
+        "10055892",
+        "10055894",
+        "10055898",
+        "10055900",
+        "10055902",
+        "10055904",
+        "10055908",
+        "10055910",
+        "10055912",
+        "10055914",
+        "10055922",
+        "10055924",
+        "10055934",
+        "10055938",
+        "10055942",
+        "10055946",
+        "10055948",
+        "10055950",
+        "10055956",
+        "10055964",
+        "10055966",
+        "10055992",
+        "10056012",
+        "10056013",
+        "10056014",
+        "10056017",
+        "10056019",
+        "10056021",
+        "10056023",
+        "10056027",
+        "10056031",
+        "10056035",
+        "10056037",
+        "10056039",
+        "10056050",
+        "10056051",
+        "10056052",
+        "10056054",
+        "10056090",
+        "10056191",
+        "10056192",
+        "10056208",
+        "10056209",
+        "10056210",
+        "10056212",
+        "10056213",
+        "10056214",
+        "10056215",
+        "10056218",
+        "10056219",
+        "10056220",
+        "10056221",
+        "10056222",
+        "10056223",
+        "10056224",
+        "10056226",
+        "10056228",
+        "10056231",
+        "10056232",
+        "10056233",
+        "10056234",
+        "10056235",
+        "10056236",
+        "10056237",
+        "10056238",
+        "10056239",
+        "10056240",
+        "10056241",
+        "10056242",
+        "10056243",
+        "10056244",
+        "10056245",
+        "10056380",
+        "10056381",
+        "10056382",
+        "10056384",
+        "10056385",
+        "10056415",
+        "10056416",
+        "10056417",
+        "10056418",
+        "10056419",
+        "10056420",
+        "10056421",
+        "10056422",
+        "10056423",
+        "10056424",
+        "10056425",
+        "10056426",
+        "10056427",
+        "10056428",
+        "10056429",
+        "10056430",
+        "10056431",
+        "10056432",
+        "10056433",
+        "10056434",
+        "10056436",
+        "10056437",
+        "10056438",
+        "10056439",
+        "10056440",
+        "10056441",
+        "10056442",
+        "10056443",
+        "10056444",
+        "10056445",
+        "10056446",
+        "10056447",
+        "10056448",
+        "10056450",
+        "10056453",
+        "10056454",
+        "10056455",
+        "10056456",
+        "10056457",
+        "10056458",
+        "10056460",
+        "10056461",
+        "10056462",
+        "10056468",
+        "10056469",
+        "10056470",
+        "10056471",
+        "10056472",
+        "10056473",
+        "10056474",
+        "10056475",
+        "10056476",
+        "10056477",
+        "10056478",
+        "10056481",
+        "10056488",
+        "10056489",
+        "10056490",
+        "10056491",
+        "10056492",
+        "10056493",
+        "11029936",
+        "11150819",
+        "11150868",
+        "11151063",
+        "11151073",
+        "11151261",
+        "11493500"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/c/food-drink/s10068374",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=12",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=24",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=36",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=48",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=60",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=72",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=84",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=96",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=108",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=120",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=132",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=144",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=156",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=168",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=180",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=192",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=204",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=216",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=228",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=240",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=252",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=264",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=276",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=288",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=288&idsOnly=true",
+        "https://www.lidl.co.uk/q/api/gridboxes/GB/en?ids=10048408",
+        "https://www.lidl.co.uk/q/api/gridboxes/GB/en?ids=10048408",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=300",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=312",
+        "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=324"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/bakery/h10096086",
+      "name": "Bakery",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "id": "10096086",
+      "productsExpected": 25,
+      "productsChecked": 25,
+      "pages": 1,
+      "productsPublished": 25,
+      "unpublishedIds": [],
+      "productIds": [
+        "10054827",
+        "10055318",
+        "10055340",
+        "10055343",
+        "10055344",
+        "10055345",
+        "10055346",
+        "10055350",
+        "10055351",
+        "10055352",
+        "10055353",
+        "10055354",
+        "10055355",
+        "10055866",
+        "10055868",
+        "10055942",
+        "10055964",
+        "10056019",
+        "10056023",
+        "10056208",
+        "10056209",
+        "10056210",
+        "10056444",
+        "10056454",
+        "10056456"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/bakery/h10096086"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/baking/h10096099",
+      "name": "Baking",
+      "parent": "https://www.lidl.co.uk/h/food-cupboard/h10096095",
+      "id": "10096099",
+      "productsExpected": 20,
+      "productsChecked": 20,
+      "pages": 1,
+      "productsPublished": 20,
+      "unpublishedIds": [],
+      "productIds": [
+        "10054828",
+        "10054829",
+        "10054830",
+        "10054842",
+        "10055440",
+        "10055441",
+        "10055442",
+        "10055443",
+        "10055444",
+        "10055445",
+        "10055447",
+        "10055448",
+        "10055449",
+        "10055450",
+        "10055452",
+        "10055453",
+        "10055454",
+        "10055456",
+        "10055457",
+        "10055458"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/baking/h10096099"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/beer/h10067586",
+      "name": "Beer",
+      "parent": "https://www.lidl.co.uk/h/wine-beer-spirits/h10096268",
+      "id": "10067586",
+      "productsExpected": 12,
+      "productsChecked": 12,
+      "pages": 1,
+      "productsPublished": 12,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055828",
+        "10055829",
+        "10055830",
+        "10055888",
+        "10055892",
+        "10055992",
+        "10056012",
+        "10056013",
+        "10056014",
+        "10056090",
+        "10056214",
+        "10056215"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/beer/h10067586"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/biscuits-cookies/h10096209",
+      "name": "Biscuits & Cookies",
+      "parent": "https://www.lidl.co.uk/h/confectionery-snacks/h10096205",
+      "id": "10096209",
+      "productsExpected": 19,
+      "productsChecked": 19,
+      "pages": 1,
+      "productsPublished": 19,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055304",
+        "10055305",
+        "10055306",
+        "10055319",
+        "10055320",
+        "10055322",
+        "10055323",
+        "10055329",
+        "10055337",
+        "10055341",
+        "10055342",
+        "10055835",
+        "10055836",
+        "10055837",
+        "10055838",
+        "10055878",
+        "10056021",
+        "10056438",
+        "10056455"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/biscuits-cookies/h10096209"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/cereals-muesli/h10096160",
+      "name": "Cereals & Muesli",
+      "parent": "https://www.lidl.co.uk/h/cereals-spreads/h10096153",
+      "id": "10096160",
+      "productsExpected": 2,
+      "productsChecked": 2,
+      "pages": 1,
+      "productsPublished": 2,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056469",
+        "10056481"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/cereals-muesli/h10096160"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/cereals-spreads/h10096153",
+      "name": "Cereals & Spreads",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "id": "10096153",
+      "productsExpected": 4,
+      "productsChecked": 4,
+      "pages": 1,
+      "productsPublished": 4,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056469",
+        "10056470",
+        "10056477",
+        "10056481"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/cereals-spreads/h10096153"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/cheese-dairy-eggs/h10095761",
+      "name": "Cheese, Dairy & Eggs",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "id": "10095761",
+      "productsExpected": 10,
+      "productsChecked": 10,
+      "pages": 1,
+      "productsPublished": 10,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055872",
+        "10055894",
+        "10055914",
+        "10055938",
+        "10055966",
+        "10056035",
+        "10056220",
+        "10056423",
+        "10056441",
+        "10056468"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/cheese-dairy-eggs/h10095761"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/cheese/h10096077",
+      "name": "Cheese",
+      "parent": "https://www.lidl.co.uk/h/cheese-dairy-eggs/h10095761",
+      "id": "10096077",
+      "productsExpected": 6,
+      "productsChecked": 6,
+      "pages": 1,
+      "productsPublished": 6,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055872",
+        "10055894",
+        "10055914",
+        "10055938",
+        "10055966",
+        "10056423"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/cheese/h10096077"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/chilled-food/h10071020",
+      "name": "Ready meals",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "id": "10071020",
+      "productsExpected": 11,
+      "productsChecked": 11,
+      "pages": 1,
+      "productsPublished": 11,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056219",
+        "10056415",
+        "10056417",
+        "10056418",
+        "10056419",
+        "10056420",
+        "10056421",
+        "10056422",
+        "10056424",
+        "10056427",
+        "10056442"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/chilled-food/h10071020"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/chilled-pasta-dough/h10096152",
+      "name": "Chilled Pasta & Dough",
+      "parent": "https://www.lidl.co.uk/h/chilled-food/h10071020",
+      "id": "10096152",
+      "productsExpected": 2,
+      "productsChecked": 2,
+      "pages": 1,
+      "productsPublished": 2,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056219",
+        "10056442"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/chilled-pasta-dough/h10096152"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/chilled-ready-meals/h10097147",
+      "name": "Chilled Ready Meals",
+      "parent": "https://www.lidl.co.uk/h/chilled-food/h10071020",
+      "id": "10097147",
+      "productsExpected": 9,
+      "productsChecked": 9,
+      "pages": 1,
+      "productsPublished": 9,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056415",
+        "10056417",
+        "10056418",
+        "10056419",
+        "10056420",
+        "10056421",
+        "10056422",
+        "10056424",
+        "10056427"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/chilled-ready-meals/h10097147"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/chocolate-chocolate-bars/h10096206",
+      "name": "Chocolate & Chocolate Bars",
+      "parent": "https://www.lidl.co.uk/h/confectionery-snacks/h10096205",
+      "id": "10096206",
+      "productsExpected": 41,
+      "productsChecked": 41,
+      "pages": 1,
+      "productsPublished": 41,
+      "unpublishedIds": [],
+      "productIds": [
+        "10052237",
+        "10052239",
+        "10054846",
+        "10054847",
+        "10054848",
+        "10054849",
+        "10054850",
+        "10054851",
+        "10054852",
+        "10054853",
+        "10054855",
+        "10054856",
+        "10054857",
+        "10054858",
+        "10054859",
+        "10054862",
+        "10054863",
+        "10054864",
+        "10054865",
+        "10054866",
+        "10054867",
+        "10054868",
+        "10055330",
+        "10055331",
+        "10055356",
+        "10055357",
+        "10055358",
+        "10055360",
+        "10055361",
+        "10055371",
+        "10055373",
+        "10055391",
+        "10055397",
+        "10055405",
+        "10055407",
+        "10055429",
+        "10055431",
+        "10055826",
+        "10055831",
+        "10055839",
+        "10056224"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/chocolate-chocolate-bars/h10096206"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/cleaning/h10096289",
+      "name": "Cleaning",
+      "parent": "https://www.lidl.co.uk/h/household/h10096287",
+      "id": "10096289",
+      "productsExpected": 2,
+      "productsChecked": 2,
+      "pages": 1,
+      "productsPublished": 2,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056191",
+        "10056192"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/cleaning/h10096289"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/coffee-tea-hot-chocolate/h10071683",
+      "name": "Coffee, Tea & Cocoa",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "id": "10071683",
+      "productsExpected": 2,
+      "productsChecked": 2,
+      "pages": 1,
+      "productsPublished": 2,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055451",
+        "10055825"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/coffee-tea-hot-chocolate/h10071683"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/confectionery-snacks/h10096205",
+      "name": "Confectionery & Snacks",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "id": "10096205",
+      "productsExpected": 104,
+      "productsChecked": 104,
+      "pages": 3,
+      "productsPublished": 104,
+      "unpublishedIds": [],
+      "productIds": [
+        "10052237",
+        "10052239",
+        "10054825",
+        "10054826",
+        "10054840",
+        "10054845",
+        "10054846",
+        "10054847",
+        "10054848",
+        "10054849",
+        "10054850",
+        "10054851",
+        "10054852",
+        "10054853",
+        "10054855",
+        "10054856",
+        "10054857",
+        "10054858",
+        "10054859",
+        "10054860",
+        "10054861",
+        "10054862",
+        "10054863",
+        "10054864",
+        "10054865",
+        "10054866",
+        "10054867",
+        "10054868",
+        "10054869",
+        "10055304",
+        "10055305",
+        "10055306",
+        "10055319",
+        "10055320",
+        "10055322",
+        "10055323",
+        "10055329",
+        "10055330",
+        "10055331",
+        "10055337",
+        "10055341",
+        "10055342",
+        "10055356",
+        "10055357",
+        "10055358",
+        "10055359",
+        "10055360",
+        "10055361",
+        "10055365",
+        "10055371",
+        "10055373",
+        "10055375",
+        "10055377",
+        "10055379",
+        "10055381",
+        "10055383",
+        "10055385",
+        "10055387",
+        "10055389",
+        "10055391",
+        "10055393",
+        "10055397",
+        "10055401",
+        "10055403",
+        "10055405",
+        "10055407",
+        "10055409",
+        "10055411",
+        "10055413",
+        "10055415",
+        "10055417",
+        "10055419",
+        "10055427",
+        "10055429",
+        "10055431",
+        "10055459",
+        "10055826",
+        "10055831",
+        "10055834",
+        "10055835",
+        "10055836",
+        "10055837",
+        "10055838",
+        "10055839",
+        "10055876",
+        "10055878",
+        "10056017",
+        "10056021",
+        "10056027",
+        "10056218",
+        "10056221",
+        "10056224",
+        "10056436",
+        "10056437",
+        "10056438",
+        "10056439",
+        "10056440",
+        "10056443",
+        "10056445",
+        "10056446",
+        "10056447",
+        "10056448",
+        "10056450",
+        "10056455"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/confectionery-snacks/h10096205",
+        "https://www.lidl.co.uk/q/api/category/h/confectionery-snacks/h10096205?assortment=GB&locale=en_GB&version=v2.0.0&sort=relevancy&pageId=10068374%2F10096205&fetchsize=48&offset=48",
+        "https://www.lidl.co.uk/q/api/category/h/confectionery-snacks/h10096205?assortment=GB&locale=en_GB&version=v2.0.0&sort=relevancy&pageId=10068374%2F10096205&fetchsize=48&offset=96"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/cooked-meats-sausages/h10095758",
+      "name": "Cooked Meats & Sausages",
+      "parent": "https://www.lidl.co.uk/h/fresh-meat-poultry/h10095752",
+      "id": "10095758",
+      "productsExpected": 16,
+      "productsChecked": 16,
+      "pages": 1,
+      "productsPublished": 16,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055860",
+        "10055874",
+        "10055898",
+        "10055900",
+        "10055902",
+        "10055904",
+        "10055922",
+        "10055924",
+        "10055934",
+        "10055946",
+        "10055950",
+        "10055956",
+        "10056226",
+        "10056430",
+        "10056432",
+        "10056493"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/cooked-meats-sausages/h10095758"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/desserts/h10096080",
+      "name": "Desserts",
+      "parent": "https://www.lidl.co.uk/h/cheese-dairy-eggs/h10095761",
+      "id": "10096080",
+      "productsExpected": 2,
+      "productsChecked": 2,
+      "pages": 1,
+      "productsPublished": 2,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056441",
+        "10056468"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/desserts/h10096080"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/dried-fruit-nuts/h10096210",
+      "name": "Dried Fruit & Nuts",
+      "parent": "https://www.lidl.co.uk/h/confectionery-snacks/h10096205",
+      "id": "10096210",
+      "productsExpected": 9,
+      "productsChecked": 9,
+      "pages": 1,
+      "productsPublished": 9,
+      "unpublishedIds": [],
+      "productIds": [
+        "10054825",
+        "10054826",
+        "10054840",
+        "10055359",
+        "10055459",
+        "10055876",
+        "10056027",
+        "10056448",
+        "10056450"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/dried-fruit-nuts/h10096210"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/drinks/h10071022",
+      "name": "Drinks",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "id": "10071022",
+      "productsExpected": 2,
+      "productsChecked": 2,
+      "pages": 1,
+      "productsPublished": 2,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056228",
+        "10056231"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/drinks/h10071022"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/food-cupboard/h10096095",
+      "name": "Food Cupboard",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "id": "10096095",
+      "productsExpected": 36,
+      "productsChecked": 36,
+      "pages": 1,
+      "productsPublished": 36,
+      "unpublishedIds": [],
+      "productIds": [
+        "10030963",
+        "10052648",
+        "10052660",
+        "10054828",
+        "10054829",
+        "10054830",
+        "10054841",
+        "10054842",
+        "10055440",
+        "10055441",
+        "10055442",
+        "10055443",
+        "10055444",
+        "10055445",
+        "10055447",
+        "10055448",
+        "10055449",
+        "10055450",
+        "10055452",
+        "10055453",
+        "10055454",
+        "10055456",
+        "10055457",
+        "10055458",
+        "10055832",
+        "10055882",
+        "10055908",
+        "10056031",
+        "10056037",
+        "10056223",
+        "10056431",
+        "10056453",
+        "10056457",
+        "10056458",
+        "10056460",
+        "10056462"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/food-cupboard/h10096095"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/fresh-beef/h10095754",
+      "name": "Beef",
+      "parent": "https://www.lidl.co.uk/h/fresh-meat-poultry/h10095752",
+      "id": "10095754",
+      "productsExpected": 2,
+      "productsChecked": 2,
+      "pages": 1,
+      "productsPublished": 2,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056242",
+        "10056492"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/fresh-beef/h10095754"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/fresh-fruit/h10095592",
+      "name": "Fruit",
+      "parent": "https://www.lidl.co.uk/h/fruit-vegetables/h10071012",
+      "id": "10095592",
+      "productsExpected": 7,
+      "productsChecked": 7,
+      "pages": 1,
+      "productsPublished": 7,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056232",
+        "10056233",
+        "10056235",
+        "10056236",
+        "10056239",
+        "11150819",
+        "11150868"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/fresh-fruit/h10095592"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/fresh-meat-poultry/h10095752",
+      "name": "Meat & Poultry",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "id": "10095752",
+      "productsExpected": 24,
+      "productsChecked": 24,
+      "pages": 1,
+      "productsPublished": 24,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055860",
+        "10055874",
+        "10055886",
+        "10055898",
+        "10055900",
+        "10055902",
+        "10055904",
+        "10055922",
+        "10055924",
+        "10055934",
+        "10055946",
+        "10055950",
+        "10055956",
+        "10056226",
+        "10056242",
+        "10056243",
+        "10056244",
+        "10056430",
+        "10056432",
+        "10056488",
+        "10056489",
+        "10056491",
+        "10056492",
+        "10056493"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/fresh-meat-poultry/h10095752"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/fresh-pork/h10095755",
+      "name": "Pork",
+      "parent": "https://www.lidl.co.uk/h/fresh-meat-poultry/h10095752",
+      "id": "10095755",
+      "productsExpected": 4,
+      "productsChecked": 4,
+      "pages": 1,
+      "productsPublished": 4,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055886",
+        "10056243",
+        "10056488",
+        "10056489"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/fresh-pork/h10095755"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/fresh-poultry/h10095753",
+      "name": "Poultry",
+      "parent": "https://www.lidl.co.uk/h/fresh-meat-poultry/h10095752",
+      "id": "10095753",
+      "productsExpected": 1,
+      "productsChecked": 1,
+      "pages": 1,
+      "productsPublished": 1,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056491"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/fresh-poultry/h10095753"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/fresh-vegetables/h10095593",
+      "name": "Vegetables",
+      "parent": "https://www.lidl.co.uk/h/fruit-vegetables/h10071012",
+      "id": "10095593",
+      "productsExpected": 8,
+      "productsChecked": 8,
+      "pages": 1,
+      "productsPublished": 8,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056234",
+        "10056237",
+        "10056238",
+        "11029936",
+        "11151063",
+        "11151073",
+        "11151261",
+        "11493500"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/fresh-vegetables/h10095593"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/freshly-baked/h10096088",
+      "name": "Freshly Baked",
+      "parent": "https://www.lidl.co.uk/h/bakery/h10096086",
+      "id": "10096088",
+      "productsExpected": 3,
+      "productsChecked": 3,
+      "pages": 1,
+      "productsPublished": 3,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055964",
+        "10056208",
+        "10056209"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/freshly-baked/h10096088"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/frozen-fish-seafood/h10096202",
+      "name": "Frozen Fish & Seafood",
+      "parent": "https://www.lidl.co.uk/h/frozen-food/h10071049",
+      "id": "10096202",
+      "productsExpected": 3,
+      "productsChecked": 3,
+      "pages": 1,
+      "productsPublished": 3,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056241",
+        "10056245",
+        "10056426"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/frozen-fish-seafood/h10096202"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/frozen-food/h10071049",
+      "name": "Frozen",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "id": "10071049",
+      "productsExpected": 20,
+      "productsChecked": 20,
+      "pages": 1,
+      "productsPublished": 19,
+      "unpublishedIds": [
+        "10048408"
+      ],
+      "productIds": [
+        "10048408",
+        "10055809",
+        "10055823",
+        "10055824",
+        "10055910",
+        "10055912",
+        "10055948",
+        "10056240",
+        "10056241",
+        "10056245",
+        "10056416",
+        "10056425",
+        "10056426",
+        "10056428",
+        "10056429",
+        "10056472",
+        "10056473",
+        "10056475",
+        "10056476",
+        "10056490"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/frozen-food/h10071049",
+        "https://www.lidl.co.uk/q/api/category/h/frozen-food/h10071049?assortment=GB&locale=en_GB&version=v2.0.0&sort=relevancy&pageId=10068374%2F10071049&fetchsize=48&offset=0",
+        "https://www.lidl.co.uk/q/api/category/h/frozen-food/h10071049?assortment=GB&locale=en_GB&version=v2.0.0&sort=relevancy&pageId=10068374%2F10071049&fetchsize=48&offset=0&idsOnly=true",
+        "https://www.lidl.co.uk/q/api/gridboxes/GB/en?ids=10048408",
+        "https://www.lidl.co.uk/q/api/gridboxes/GB/en?ids=10048408"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/frozen-fruit-veg/h10096203",
+      "name": "Frozen Fruit & Vegetables",
+      "parent": "https://www.lidl.co.uk/h/frozen-food/h10071049",
+      "id": "10096203",
+      "productsExpected": 1,
+      "productsChecked": 1,
+      "pages": 1,
+      "productsPublished": 1,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056472"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/frozen-fruit-veg/h10096203"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/frozen-meals/h10096201",
+      "name": "Frozen Meals",
+      "parent": "https://www.lidl.co.uk/h/frozen-food/h10071049",
+      "id": "10096201",
+      "productsExpected": 2,
+      "productsChecked": 2,
+      "pages": 1,
+      "productsPublished": 2,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055910",
+        "10055912"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/frozen-meals/h10096201"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/frozen-meat-poultry/h10096204",
+      "name": "Frozen Meat & Poultry",
+      "parent": "https://www.lidl.co.uk/h/frozen-food/h10071049",
+      "id": "10096204",
+      "productsExpected": 4,
+      "productsChecked": 4,
+      "pages": 1,
+      "productsPublished": 4,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055948",
+        "10056240",
+        "10056473",
+        "10056490"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/frozen-meat-poultry/h10096204"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/frozen-pizza-snacks/h10096197",
+      "name": "Frozen Pizza & Snacks",
+      "parent": "https://www.lidl.co.uk/h/frozen-food/h10071049",
+      "id": "10096197",
+      "productsExpected": 9,
+      "productsChecked": 9,
+      "pages": 1,
+      "productsPublished": 9,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055809",
+        "10055823",
+        "10055824",
+        "10056416",
+        "10056425",
+        "10056428",
+        "10056429",
+        "10056475",
+        "10056476"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/frozen-pizza-snacks/h10096197"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/fruit-vegetables/h10071012",
+      "name": "Fruit & veg",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "id": "10071012",
+      "productsExpected": 15,
+      "productsChecked": 15,
+      "pages": 1,
+      "productsPublished": 15,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056232",
+        "10056233",
+        "10056234",
+        "10056235",
+        "10056236",
+        "10056237",
+        "10056238",
+        "10056239",
+        "11029936",
+        "11150819",
+        "11150868",
+        "11151063",
+        "11151073",
+        "11151261",
+        "11493500"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/fruit-vegetables/h10071012"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/household/h10096287",
+      "name": "Household",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "id": "10096287",
+      "productsExpected": 6,
+      "productsChecked": 6,
+      "pages": 1,
+      "productsPublished": 6,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055805",
+        "10055806",
+        "10056191",
+        "10056192",
+        "10056471",
+        "10056478"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/household/h10096287"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/jam-honey/h10096156",
+      "name": "Jam, Spreads & Honey",
+      "parent": "https://www.lidl.co.uk/h/cereals-spreads/h10096153",
+      "id": "10096156",
+      "productsExpected": 2,
+      "productsChecked": 2,
+      "pages": 1,
+      "productsPublished": 2,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056470",
+        "10056477"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/jam-honey/h10096156"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/laundry/h10096291",
+      "name": "Laundry",
+      "parent": "https://www.lidl.co.uk/h/household/h10096287",
+      "id": "10096291",
+      "productsExpected": 4,
+      "productsChecked": 4,
+      "pages": 1,
+      "productsPublished": 4,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055805",
+        "10055806",
+        "10056471",
+        "10056478"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/laundry/h10096291"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/milk-cream/h10096075",
+      "name": "Milk & Cream",
+      "parent": "https://www.lidl.co.uk/h/cheese-dairy-eggs/h10095761",
+      "id": "10096075",
+      "productsExpected": 1,
+      "productsChecked": 1,
+      "pages": 1,
+      "productsPublished": 1,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056035"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/milk-cream/h10096075"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/oil-fats/h10096111",
+      "name": "Oil & Fats",
+      "parent": "https://www.lidl.co.uk/h/oils-condiments-sauces/h10096110",
+      "id": "10096111",
+      "productsExpected": 1,
+      "productsChecked": 1,
+      "pages": 1,
+      "productsPublished": 1,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056039"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/oil-fats/h10096111"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/oils-condiments-sauces/h10096110",
+      "name": "Oils, Condiments & Sauces",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "id": "10096110",
+      "productsExpected": 7,
+      "productsChecked": 7,
+      "pages": 1,
+      "productsPublished": 7,
+      "unpublishedIds": [],
+      "productIds": [
+        "10052698",
+        "10056039",
+        "10056222",
+        "10056433",
+        "10056434",
+        "10056461",
+        "10056474"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/oils-condiments-sauces/h10096110"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/other-meat/h10095757",
+      "name": "Other meat",
+      "parent": "https://www.lidl.co.uk/h/fresh-meat-poultry/h10095752",
+      "id": "10095757",
+      "productsExpected": 1,
+      "productsChecked": 1,
+      "pages": 1,
+      "productsPublished": 1,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056244"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/other-meat/h10095757"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/pickles-chutney/h10096103",
+      "name": "Pickles & Chutney",
+      "parent": "https://www.lidl.co.uk/h/food-cupboard/h10096095",
+      "id": "10096103",
+      "productsExpected": 4,
+      "productsChecked": 4,
+      "pages": 1,
+      "productsPublished": 4,
+      "unpublishedIds": [],
+      "productIds": [
+        "10052648",
+        "10052660",
+        "10054841",
+        "10056453"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/pickles-chutney/h10096103"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/plants-flowers/h10071024",
+      "name": "Plants & Flowers",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "id": "10071024",
+      "productsExpected": 9,
+      "productsChecked": 9,
+      "pages": 1,
+      "productsPublished": 9,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056050",
+        "10056051",
+        "10056052",
+        "10056054",
+        "10056380",
+        "10056381",
+        "10056382",
+        "10056384",
+        "10056385"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/plants-flowers/h10071024"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/plants-flowers/h10096743",
+      "name": "Plants & Flowers",
+      "parent": "https://www.lidl.co.uk/h/plants-flowers/h10071024",
+      "id": "10096743",
+      "productsExpected": 9,
+      "productsChecked": 9,
+      "pages": 1,
+      "productsPublished": 9,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056050",
+        "10056051",
+        "10056052",
+        "10056054",
+        "10056380",
+        "10056381",
+        "10056382",
+        "10056384",
+        "10056385"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/plants-flowers/h10096743"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/red-wine/h10071452",
+      "name": "Red wine",
+      "parent": "https://www.lidl.co.uk/h/wine-beer-spirits/h10096268",
+      "id": "10071452",
+      "productsExpected": 11,
+      "productsChecked": 11,
+      "pages": 1,
+      "productsPublished": 11,
+      "unpublishedIds": [],
+      "productIds": [
+        "10028186",
+        "10028187",
+        "10051831",
+        "10051836",
+        "10051838",
+        "10051839",
+        "10051841",
+        "10051842",
+        "10051843",
+        "10056212",
+        "10056213"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/red-wine/h10071452"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/rice-pasta-pulses/h10096096",
+      "name": "Rice, Pasta & Pulses",
+      "parent": "https://www.lidl.co.uk/h/food-cupboard/h10096095",
+      "id": "10096096",
+      "productsExpected": 9,
+      "productsChecked": 9,
+      "pages": 1,
+      "productsPublished": 9,
+      "unpublishedIds": [],
+      "productIds": [
+        "10030963",
+        "10055832",
+        "10055882",
+        "10055908",
+        "10056223",
+        "10056431",
+        "10056457",
+        "10056458",
+        "10056460"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/rice-pasta-pulses/h10096096"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/rolls-small-baked-goods/h10096090",
+      "name": "Buns & Rolls",
+      "parent": "https://www.lidl.co.uk/h/bakery/h10096086",
+      "id": "10096090",
+      "productsExpected": 1,
+      "productsChecked": 1,
+      "pages": 1,
+      "productsPublished": 1,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056444"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/rolls-small-baked-goods/h10096090"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/rose-wine/h10071459",
+      "name": "Rosé Wine",
+      "parent": "https://www.lidl.co.uk/h/wine-beer-spirits/h10096268",
+      "id": "10071459",
+      "productsExpected": 7,
+      "productsChecked": 7,
+      "pages": 1,
+      "productsPublished": 7,
+      "unpublishedIds": [],
+      "productIds": [
+        "10028189",
+        "10042344",
+        "10049229",
+        "10049230",
+        "10049233",
+        "10051829",
+        "10051889"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/rose-wine/h10071459"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/sauces-condiments/h10096113",
+      "name": "Sauces & Condiments",
+      "parent": "https://www.lidl.co.uk/h/oils-condiments-sauces/h10096110",
+      "id": "10096113",
+      "productsExpected": 6,
+      "productsChecked": 6,
+      "pages": 1,
+      "productsPublished": 6,
+      "unpublishedIds": [],
+      "productIds": [
+        "10052698",
+        "10056222",
+        "10056433",
+        "10056434",
+        "10056461",
+        "10056474"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/sauces-condiments/h10096113"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/savouries/h10096093",
+      "name": "Savouries",
+      "parent": "https://www.lidl.co.uk/h/bakery/h10096086",
+      "id": "10096093",
+      "productsExpected": 2,
+      "productsChecked": 2,
+      "pages": 1,
+      "productsPublished": 2,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055866",
+        "10055868"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/savouries/h10096093"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/savoury-snacks/h10096207",
+      "name": "Savoury Snacks",
+      "parent": "https://www.lidl.co.uk/h/confectionery-snacks/h10096205",
+      "id": "10096207",
+      "productsExpected": 9,
+      "productsChecked": 9,
+      "pages": 1,
+      "productsPublished": 9,
+      "unpublishedIds": [],
+      "productIds": [
+        "10054845",
+        "10055834",
+        "10056017",
+        "10056218",
+        "10056221",
+        "10056436",
+        "10056439",
+        "10056445",
+        "10056446"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/savoury-snacks/h10096207"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/soft-drinks-iced-tea/h10096234",
+      "name": "Soft Drinks",
+      "parent": "https://www.lidl.co.uk/h/drinks/h10071022",
+      "id": "10096234",
+      "productsExpected": 2,
+      "productsChecked": 2,
+      "pages": 1,
+      "productsPublished": 2,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056228",
+        "10056231"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/soft-drinks-iced-tea/h10096234"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/soups-sauces/h10096098",
+      "name": "Soups & Sauces",
+      "parent": "https://www.lidl.co.uk/h/food-cupboard/h10096095",
+      "id": "10096098",
+      "productsExpected": 1,
+      "productsChecked": 1,
+      "pages": 1,
+      "productsPublished": 1,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056462"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/soups-sauces/h10096098"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/sparkling-wine/h10096272",
+      "name": "Sparkling Wine",
+      "parent": "https://www.lidl.co.uk/h/wine-beer-spirits/h10096268",
+      "id": "10096272",
+      "productsExpected": 4,
+      "productsChecked": 4,
+      "pages": 1,
+      "productsPublished": 4,
+      "unpublishedIds": [],
+      "productIds": [
+        "10040810",
+        "10042839",
+        "10044438",
+        "10052748"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/sparkling-wine/h10096272"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/spirits/h10096274",
+      "name": "Spirits",
+      "parent": "https://www.lidl.co.uk/h/wine-beer-spirits/h10096268",
+      "id": "10096274",
+      "productsExpected": 2,
+      "productsChecked": 2,
+      "pages": 1,
+      "productsPublished": 2,
+      "unpublishedIds": [],
+      "productIds": [
+        "10045593",
+        "10045595"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/spirits/h10096274"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/sweet-pastries/h10096092",
+      "name": "Sweet Pastries",
+      "parent": "https://www.lidl.co.uk/h/bakery/h10096086",
+      "id": "10096092",
+      "productsExpected": 18,
+      "productsChecked": 18,
+      "pages": 1,
+      "productsPublished": 18,
+      "unpublishedIds": [],
+      "productIds": [
+        "10054827",
+        "10055318",
+        "10055340",
+        "10055344",
+        "10055345",
+        "10055346",
+        "10055350",
+        "10055351",
+        "10055352",
+        "10055353",
+        "10055354",
+        "10055355",
+        "10055942",
+        "10056019",
+        "10056023",
+        "10056210",
+        "10056454",
+        "10056456"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/sweet-pastries/h10096092"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/sweets/h10096208",
+      "name": "Sweets & Gummies",
+      "parent": "https://www.lidl.co.uk/h/confectionery-snacks/h10096205",
+      "id": "10096208",
+      "productsExpected": 26,
+      "productsChecked": 26,
+      "pages": 1,
+      "productsPublished": 26,
+      "unpublishedIds": [],
+      "productIds": [
+        "10054860",
+        "10054861",
+        "10054869",
+        "10055365",
+        "10055375",
+        "10055377",
+        "10055379",
+        "10055381",
+        "10055383",
+        "10055385",
+        "10055387",
+        "10055389",
+        "10055393",
+        "10055401",
+        "10055403",
+        "10055409",
+        "10055411",
+        "10055413",
+        "10055415",
+        "10055417",
+        "10055419",
+        "10055427",
+        "10056437",
+        "10056440",
+        "10056443",
+        "10056447"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/sweets/h10096208"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/tinned-fruit-veg/h10096100",
+      "name": "Tinned Fruit & Veg",
+      "parent": "https://www.lidl.co.uk/h/food-cupboard/h10096095",
+      "id": "10096100",
+      "productsExpected": 1,
+      "productsChecked": 1,
+      "pages": 1,
+      "productsPublished": 1,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056031"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/tinned-fruit-veg/h10096100"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/tinned-ready-meals/h10096104",
+      "name": "Tinned Ready Meals",
+      "parent": "https://www.lidl.co.uk/h/food-cupboard/h10096095",
+      "id": "10096104",
+      "productsExpected": 1,
+      "productsChecked": 1,
+      "pages": 1,
+      "productsPublished": 1,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056037"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/tinned-ready-meals/h10096104"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/toast-long-life-bakery/h10096094",
+      "name": "Toast & Long-life Bakery",
+      "parent": "https://www.lidl.co.uk/h/bakery/h10096086",
+      "id": "10096094",
+      "productsExpected": 1,
+      "productsChecked": 1,
+      "pages": 1,
+      "productsPublished": 1,
+      "unpublishedIds": [],
+      "productIds": [
+        "10055343"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/toast-long-life-bakery/h10096094"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/white-wine/h10071451",
+      "name": "White wine",
+      "parent": "https://www.lidl.co.uk/h/wine-beer-spirits/h10096268",
+      "id": "10071451",
+      "productsExpected": 15,
+      "productsChecked": 15,
+      "pages": 1,
+      "productsPublished": 15,
+      "unpublishedIds": [],
+      "productIds": [
+        "10028188",
+        "10028190",
+        "10028192",
+        "10049231",
+        "10049234",
+        "10049235",
+        "10049236",
+        "10051828",
+        "10051830",
+        "10051833",
+        "10051834",
+        "10051835",
+        "10051837",
+        "10051840",
+        "10055808"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/white-wine/h10071451"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/wine-beer-spirits/h10096268",
+      "name": "Wine, Beer & Spirits",
+      "parent": "https://www.lidl.co.uk/c/food-drink/s10068374",
+      "id": "10096268",
+      "productsExpected": 51,
+      "productsChecked": 51,
+      "pages": 2,
+      "productsPublished": 51,
+      "unpublishedIds": [],
+      "productIds": [
+        "10028186",
+        "10028187",
+        "10028188",
+        "10028189",
+        "10028190",
+        "10028192",
+        "10040810",
+        "10042344",
+        "10042839",
+        "10044438",
+        "10045593",
+        "10045595",
+        "10049229",
+        "10049230",
+        "10049231",
+        "10049233",
+        "10049234",
+        "10049235",
+        "10049236",
+        "10051828",
+        "10051829",
+        "10051830",
+        "10051831",
+        "10051833",
+        "10051834",
+        "10051835",
+        "10051836",
+        "10051837",
+        "10051838",
+        "10051839",
+        "10051840",
+        "10051841",
+        "10051842",
+        "10051843",
+        "10051889",
+        "10052748",
+        "10055808",
+        "10055828",
+        "10055829",
+        "10055830",
+        "10055888",
+        "10055892",
+        "10055992",
+        "10056012",
+        "10056013",
+        "10056014",
+        "10056090",
+        "10056212",
+        "10056213",
+        "10056214",
+        "10056215"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/wine-beer-spirits/h10096268",
+        "https://www.lidl.co.uk/q/api/category/h/wine-beer-spirits/h10096268?assortment=GB&locale=en_GB&version=v2.0.0&sort=relevancy&pageId=10068374%2F10096268&fetchsize=48&offset=48"
+      ]
+    },
+    {
+      "url": "https://www.lidl.co.uk/h/yoghurts/h10096076",
+      "name": "Yogurts",
+      "parent": "https://www.lidl.co.uk/h/cheese-dairy-eggs/h10095761",
+      "id": "10096076",
+      "productsExpected": 1,
+      "productsChecked": 1,
+      "pages": 1,
+      "productsPublished": 1,
+      "unpublishedIds": [],
+      "productIds": [
+        "10056220"
+      ],
+      "sourceUrls": [
+        "https://www.lidl.co.uk/h/yoghurts/h10096076"
+      ]
+    }
+  ],
+  "menu_categories_checked": 64,
+  "menu_pages_checked": 98,
+  "menu_products_identified": 326,
+  "menu_products_published": 325,
+  "menu_unpublished_ids": [
+    "10048408"
+  ],
+  "menu_with_public_price": 320,
+  "menu_with_member_price": 86,
+  "menu_source_urls": [
+    "https://www.lidl.co.uk/c/food-drink/s10068374",
+    "https://www.lidl.co.uk/h/bakery/h10096086",
+    "https://www.lidl.co.uk/h/baking/h10096099",
+    "https://www.lidl.co.uk/h/beer/h10067586",
+    "https://www.lidl.co.uk/h/biscuits-cookies/h10096209",
+    "https://www.lidl.co.uk/h/cereals-muesli/h10096160",
+    "https://www.lidl.co.uk/h/cereals-spreads/h10096153",
+    "https://www.lidl.co.uk/h/cheese-dairy-eggs/h10095761",
+    "https://www.lidl.co.uk/h/cheese/h10096077",
+    "https://www.lidl.co.uk/h/chilled-food/h10071020",
+    "https://www.lidl.co.uk/h/chilled-pasta-dough/h10096152",
+    "https://www.lidl.co.uk/h/chilled-ready-meals/h10097147",
+    "https://www.lidl.co.uk/h/chocolate-chocolate-bars/h10096206",
+    "https://www.lidl.co.uk/h/cleaning/h10096289",
+    "https://www.lidl.co.uk/h/coffee-tea-hot-chocolate/h10071683",
+    "https://www.lidl.co.uk/h/confectionery-snacks/h10096205",
+    "https://www.lidl.co.uk/h/cooked-meats-sausages/h10095758",
+    "https://www.lidl.co.uk/h/desserts/h10096080",
+    "https://www.lidl.co.uk/h/dried-fruit-nuts/h10096210",
+    "https://www.lidl.co.uk/h/drinks/h10071022",
+    "https://www.lidl.co.uk/h/food-cupboard/h10096095",
+    "https://www.lidl.co.uk/h/fresh-beef/h10095754",
+    "https://www.lidl.co.uk/h/fresh-fruit/h10095592",
+    "https://www.lidl.co.uk/h/fresh-meat-poultry/h10095752",
+    "https://www.lidl.co.uk/h/fresh-pork/h10095755",
+    "https://www.lidl.co.uk/h/fresh-poultry/h10095753",
+    "https://www.lidl.co.uk/h/fresh-vegetables/h10095593",
+    "https://www.lidl.co.uk/h/freshly-baked/h10096088",
+    "https://www.lidl.co.uk/h/frozen-fish-seafood/h10096202",
+    "https://www.lidl.co.uk/h/frozen-food/h10071049",
+    "https://www.lidl.co.uk/h/frozen-fruit-veg/h10096203",
+    "https://www.lidl.co.uk/h/frozen-meals/h10096201",
+    "https://www.lidl.co.uk/h/frozen-meat-poultry/h10096204",
+    "https://www.lidl.co.uk/h/frozen-pizza-snacks/h10096197",
+    "https://www.lidl.co.uk/h/fruit-vegetables/h10071012",
+    "https://www.lidl.co.uk/h/household/h10096287",
+    "https://www.lidl.co.uk/h/jam-honey/h10096156",
+    "https://www.lidl.co.uk/h/laundry/h10096291",
+    "https://www.lidl.co.uk/h/milk-cream/h10096075",
+    "https://www.lidl.co.uk/h/oil-fats/h10096111",
+    "https://www.lidl.co.uk/h/oils-condiments-sauces/h10096110",
+    "https://www.lidl.co.uk/h/other-meat/h10095757",
+    "https://www.lidl.co.uk/h/pickles-chutney/h10096103",
+    "https://www.lidl.co.uk/h/plants-flowers/h10071024",
+    "https://www.lidl.co.uk/h/plants-flowers/h10096743",
+    "https://www.lidl.co.uk/h/red-wine/h10071452",
+    "https://www.lidl.co.uk/h/rice-pasta-pulses/h10096096",
+    "https://www.lidl.co.uk/h/rolls-small-baked-goods/h10096090",
+    "https://www.lidl.co.uk/h/rose-wine/h10071459",
+    "https://www.lidl.co.uk/h/sauces-condiments/h10096113",
+    "https://www.lidl.co.uk/h/savouries/h10096093",
+    "https://www.lidl.co.uk/h/savoury-snacks/h10096207",
+    "https://www.lidl.co.uk/h/soft-drinks-iced-tea/h10096234",
+    "https://www.lidl.co.uk/h/soups-sauces/h10096098",
+    "https://www.lidl.co.uk/h/sparkling-wine/h10096272",
+    "https://www.lidl.co.uk/h/spirits/h10096274",
+    "https://www.lidl.co.uk/h/sweet-pastries/h10096092",
+    "https://www.lidl.co.uk/h/sweets/h10096208",
+    "https://www.lidl.co.uk/h/tinned-fruit-veg/h10096100",
+    "https://www.lidl.co.uk/h/tinned-ready-meals/h10096104",
+    "https://www.lidl.co.uk/h/toast-long-life-bakery/h10096094",
+    "https://www.lidl.co.uk/h/white-wine/h10071451",
+    "https://www.lidl.co.uk/h/wine-beer-spirits/h10096268",
+    "https://www.lidl.co.uk/h/yoghurts/h10096076",
+    "https://www.lidl.co.uk/q/api/category/h/confectionery-snacks/h10096205?assortment=GB&locale=en_GB&version=v2.0.0&sort=relevancy&pageId=10068374%2F10096205&fetchsize=48&offset=48",
+    "https://www.lidl.co.uk/q/api/category/h/confectionery-snacks/h10096205?assortment=GB&locale=en_GB&version=v2.0.0&sort=relevancy&pageId=10068374%2F10096205&fetchsize=48&offset=96",
+    "https://www.lidl.co.uk/q/api/category/h/frozen-food/h10071049?assortment=GB&locale=en_GB&version=v2.0.0&sort=relevancy&pageId=10068374%2F10071049&fetchsize=48&offset=0",
+    "https://www.lidl.co.uk/q/api/category/h/frozen-food/h10071049?assortment=GB&locale=en_GB&version=v2.0.0&sort=relevancy&pageId=10068374%2F10071049&fetchsize=48&offset=0&idsOnly=true",
+    "https://www.lidl.co.uk/q/api/category/h/wine-beer-spirits/h10096268?assortment=GB&locale=en_GB&version=v2.0.0&sort=relevancy&pageId=10068374%2F10096268&fetchsize=48&offset=48",
+    "https://www.lidl.co.uk/q/api/gridboxes/GB/en?ids=10048408",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=108",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=12",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=120",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=132",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=144",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=156",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=168",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=180",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=192",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=204",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=216",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=228",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=24",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=240",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=252",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=264",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=276",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=288",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=288&idsOnly=true",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=300",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=312",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=324",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=36",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=48",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=60",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=72",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=84",
+    "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=96"
+  ],
+  "menu_ids_sha256": "dc6174440508df4847517587e49e1f7013fe5d82416a10507d8bb0a63e740eae",
+  "menu_content_sha256": "34f48f71220204fe3a18d71b7fc2b6a5e967cd4dadda35fc87568b6a014c44c7",
+  "with_price": 755,
   "with_pack_size": 1240,
   "with_sku": 2090,
   "with_gtin": 6,
@@ -2321,12 +4577,12 @@
   "with_category": 2090,
   "with_image": 2090,
   "with_nutrition": 0,
-  "price_coverage": 0.362200956937799,
+  "price_coverage": 0.361244019138756,
   "grocery_products": 1405,
-  "grocery_with_price": 399,
-  "with_regular_price_labels": 82,
-  "with_priced_pack_size": 341,
-  "with_usable_price_at_refresh": 277,
-  "products_sha256": "1ab73f4a1cef930390159d4bb8e85c9000d6188d2a034284a78e640dc019b6fa",
-  "products_file_sha256": "f3fb6d0fd88c4f0c1bc2d74da72e6fc168bb3e3cabadf0d569ec661db240a8f3"
+  "grocery_with_price": 400,
+  "with_regular_price_labels": 83,
+  "with_priced_pack_size": 342,
+  "with_usable_price_at_refresh": 278,
+  "products_sha256": "3214a10d690f7d34fc6482a06d732e82f280f6de0c1fe1795d4ded057a2981b0",
+  "products_file_sha256": "424c7e8ab61b04ce32ac589ec7cf7b51a548b84518e1b284324fef1e7962d49a"
 }

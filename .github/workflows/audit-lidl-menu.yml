@@ -1,0 +1,27 @@
+name: Audit Lidl food menu coverage
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['backend/audit_lidl_categories.py', 'backend/lidl_categories.py', 'backend/tests/test_lidl_categories.py', '.github/workflows/audit-lidl-menu.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    name: Read the official Lidl category sources
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r backend/requirements.txt
+      - run: python backend/audit_lidl_categories.py
+      - name: Retain category evidence for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lidl-category-audit
+          path: work/lidl-category-audit
+          if-no-files-found: error
+          retention-days: 7
