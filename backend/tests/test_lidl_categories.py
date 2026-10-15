@@ -39,6 +39,10 @@ class Fixture:
         self.children={ROOT:[],FRUIT:[(APPLES,'Apples')],PANTRY:[(BEANS,'Beans')],APPLES:[],BEANS:[]}
     def get(self,url):
         split=urlsplit(url);base=split.scheme+'://'+split.netloc+split.path;offset=int(parse_qs(split.query).get('offset',['0'])[0]);self.calls[url]+=1
+        if split.path=='/q/api/search':
+            q=parse_qs(split.query);assert q['wonCategory']==['10068374'];self.calls[ROOT+'?offset='+str(offset)]+=1
+            rows=[product(code) for code in self.rows[ROOT][offset:offset+2]]
+            return json.dumps({'assortment':'GB','locale':'en_GB','numFound':len(self.rows[ROOT]),'fetchsize':2,'offset':offset,'items':[{'code':p['code'],'gridbox':{'country':p['gridBox']['country'],'data':p['gridBox']['gridBoxData']}} for p in rows]})
         ids=self.rows[base];identity=split.path.rsplit('/',1)[-1][1:];size=2
         globals_={'wonCategory':'10068374'} if base==ROOT else {'categoryId':identity,'breadcrumbPageId':'10068374/'+identity}
         children=[{'label':name,'link':{'categoryPath':urlsplit(child).path,'pageId':'10068374/'+identity+'/'+child.rsplit('/',1)[-1][1:]},'children':[]} for child,name in self.children[base]]
@@ -70,7 +74,7 @@ class CategoryTests(unittest.TestCase):
                 elif field=='short':p['useProductStore']['products'][str(offset//2)].pop()
                 elif field=='offset':p['useRouteStore']['routeQuery']['offset']='99'
                 elif field=='duplicate':p['useProductStore']['products'][str(offset//2)]=[product(1),product(1)]
-                elif field=='count' and offset:p['useProductStore']['numFound']+=1
+                elif field=='count' and base==FRUIT and call==2:p['useProductStore']['numFound']+=1
                 elif field=='price' and call==2:p['useProductStore']['products'][str(offset//2)][0]['gridBox']['gridBoxData']['price']['price']=99
                 elif field=='foreign':p['useProductStore']['products'][str(offset//2)][0]['gridBox']['gridBoxData']['canonicalPath']='https://evil.test/p/product-1/p1'
             return change

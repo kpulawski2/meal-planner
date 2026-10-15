@@ -12,7 +12,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from html.parser import HTMLParser
-from urllib.parse import urljoin, urlsplit, parse_qs
+from urllib.parse import urljoin, urlsplit, urlencode
 
 ORIGIN = 'https://www.lidl.co.uk'
 MENU_ROOT = ORIGIN + '/c/food-drink/s10068374'
@@ -148,6 +148,25 @@ def parse_category(url, source, offset=0, expected=None, expected_size=None):
     return {'url': url, 'id': identity, 'total': total, 'pageSize': size, 'products': products, 'children': list(children.values())}
 
 
+def root_batch(get, offset, total, size):
+    # The landing page embeds this exact wonCategory search. Its HTML hydration
+    # stops at 21 batches; use the published load-more API for subsequent data.
+    url = ORIGIN + '/q/api/search?' + urlencode({'assortment':'GB','locale':'en_GB','version':'v2.0.0',
+        'wonCategory':'10068374','wonCategoryName':'Food & Drink','sort':'storeStartDate-desc','fetchsize':size,'offset':offset})
+    try: data = json.loads(get(url))
+    except ValueError as exc: raise CategoryError('Lidl menu load-more response is not JSON.') from exc
+    if not isinstance(data, dict) or data.get('assortment')!='GB' or data.get('locale')!='en_GB' or data.get('numFound')!=total or data.get('offset')!=offset or data.get('fetchsize')!=size:
+        raise CategoryError(f'Lidl menu load-more context or count differs: {url}; response keys {list(data) if isinstance(data,dict) else type(data)}, count {data.get("numFound") if isinstance(data,dict) else None}.')
+    items = data.get('items')
+    if not isinstance(items,list) or len(items)!=min(size,total-offset): raise CategoryError('Incomplete Lidl menu load-more batch.')
+    products=[]
+    for item in items:
+        box=item.get('gridbox') or {}
+        products.append(card_product({'code':item.get('code'),'gridBox':{'country':box.get('country'),'gridBoxData':box.get('data')}},url))
+    if len({row['id'] for row in products})!=len(products): raise CategoryError('Repeated Lidl menu load-more identities.')
+    return products,url
+
+
 def discover_categories(get):
     """Return verified canonical product URLs plus a complete menu audit.
 
@@ -162,8 +181,12 @@ def discover_categories(get):
         url = entry['url']; source = root_source if url == MENU_ROOT else get(url)
         first = parse_category(url, source); products = list(first['products']); sources = [url]
         for offset in range(first['pageSize'], first['total'], first['pageSize']):
-            source_url = url + f'?offset={offset}'; sources.append(source_url)
-            page = parse_category(url, get(source_url), offset, first['total'], first['pageSize']); products.extend(page['products'])
+            if url == MENU_ROOT:
+                rows,source_url=root_batch(get,offset,first['total'],first['pageSize']);products.extend(rows)
+            else:
+                source_url = url + f'?offset={offset}'
+                page = parse_category(url, get(source_url), offset, first['total'], first['pageSize']); products.extend(page['products'])
+            sources.append(source_url)
         if len(products) != first['total'] or len({p['id'] for p in products}) != first['total']:
             raise CategoryError('Lidl category identities are duplicated or incomplete across pages.')
         again_source = get(url); again = parse_category(url, again_source, expected=first['total'], expected_size=first['pageSize'])
