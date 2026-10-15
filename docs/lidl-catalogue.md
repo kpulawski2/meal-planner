@@ -149,3 +149,49 @@ Matching recognises Skyr yoghurt and named pasta shapes such as fusilli.
 Prepared tuna salad and sweetened oat bites cannot stand in for plain tuna
 and oats. Explicit reference pricing does not relax ingredient compatibility.
 An unpublished product without a suitable exact reference stays unpriced.
+
+## Food & Drink sidebar audit: 15 October 2026
+
+The refresh now follows the actual Food & Drink sidebar, every published child
+category and every declared product batch, in addition to the sitemap and general
+search. The live audit covered **15 departments**, **64 category pages** and
+**98 distinct source URLs** with additional repeated identity/head checks.
+It accounted for **326 identities**: **325 published products** and one explicit
+unpublished ID (`10048408`). The frozen category's count includes this identity;
+it is confirmed twice through Lidl's explicit GB gridbox endpoint and does not
+acquire an invented product page or price.
+
+The landing page's HTML hydration stops after 21 batches even though its count
+is larger. The importer follows the website's actual `category.id=10068374`
+load-more search API, then checks its count, country, offsets, unique identities
+and explicit missing-ID evidence. Hub pages expose their child paths in public
+Nuxt data. A second full menu traversal must agree before publication. Invalid,
+changing or incomplete source data preserves the healthy product snapshot.
+
+The detailed audit found **320 explicit public prices** and **86 products with
+member prices**. The new single-pack regular-price label support adds Pepsi Max's
+explicit **£4.15 per pack** while retaining its **2 for £7** Lidl Plus promotion
+separately. Other standard prices already existed in the validated catalogue.
+Member totals, unit-price labels and promotion conditions are preserved for
+display; they do not replace public prices in automatic budgets.
+
+- [Complete published-product price list](price-exports/lidl-food-menu-prices-2026-10-15.csv)
+- [Every audited category and its counts](price-exports/lidl-food-menu-categories-2026-10-15.csv)
+
+Exports include original pack text, dates, regional restrictions, product and
+source URLs, membership conditions and the actual check timestamp. They are a
+dated source audit; upcoming offers are not current checkout prices. The app's
+Lidl catalogue category selector also includes the audited website hierarchy,
+and a Lidl Plus filter displays member offers separately.
+
+The supplied branch is confirmed by Lidl's [Alison Crescent store page](https://www.lidl.co.uk/s/en-GB/store-finder/sheffield/alison-crescent/):
+Alison Crescent, Sheffield S2 1AS. This validates the address, not every shelf
+price or local stock quantity. The exported prices are the published GB website
+figures. The isolated browser selector probe did not establish a branch-specific
+price feed, so these are not presented as verified Sheffield shelf prices.
+
+`audit-lidl-menu.yml` retains the full read-only category report, CSV files and
+source captures for seven days on relevant pull requests or a manual run. The
+regular daily publisher incorporates the same traversal, validates every new
+canonical product page and preserves menu membership in the snapshot. No missing
+price or pack is filled using another brand, a member discount or a generic guess.

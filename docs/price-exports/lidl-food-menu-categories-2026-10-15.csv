@@ -1,0 +1,65 @@
+﻿Category,URL,Parent,Products expected,Products checked,Published cards,Confirmed unpublished IDs,Pages checked,Public prices,Member prices,Checked at (UK time)
+Food & Drink offers,https://www.lidl.co.uk/c/food-drink/s10068374,,326,326,325,10048408,28,320,86,2026-10-15T17:51:33+01:00
+Bakery,https://www.lidl.co.uk/h/bakery/h10096086,https://www.lidl.co.uk/c/food-drink/s10068374,25,25,25,,1,25,6,2026-10-15T17:51:33+01:00
+Food Cupboard > Baking,https://www.lidl.co.uk/h/baking/h10096099,https://www.lidl.co.uk/h/food-cupboard/h10096095,20,20,20,,1,20,3,2026-10-15T17:51:33+01:00
+"Wine, Beer & Spirits > Beer",https://www.lidl.co.uk/h/beer/h10067586,https://www.lidl.co.uk/h/wine-beer-spirits/h10096268,12,12,12,,1,12,6,2026-10-15T17:51:33+01:00
+Confectionery & Snacks > Biscuits & Cookies,https://www.lidl.co.uk/h/biscuits-cookies/h10096209,https://www.lidl.co.uk/h/confectionery-snacks/h10096205,19,19,19,,1,19,6,2026-10-15T17:51:33+01:00
+Cereals & Spreads > Cereals & Muesli,https://www.lidl.co.uk/h/cereals-muesli/h10096160,https://www.lidl.co.uk/h/cereals-spreads/h10096153,2,2,2,,1,2,2,2026-10-15T17:51:33+01:00
+Cereals & Spreads,https://www.lidl.co.uk/h/cereals-spreads/h10096153,https://www.lidl.co.uk/c/food-drink/s10068374,4,4,4,,1,4,4,2026-10-15T17:51:33+01:00
+"Cheese, Dairy & Eggs",https://www.lidl.co.uk/h/cheese-dairy-eggs/h10095761,https://www.lidl.co.uk/c/food-drink/s10068374,10,10,10,,1,10,2,2026-10-15T17:51:33+01:00
+"Cheese, Dairy & Eggs > Cheese",https://www.lidl.co.uk/h/cheese/h10096077,https://www.lidl.co.uk/h/cheese-dairy-eggs/h10095761,6,6,6,,1,6,0,2026-10-15T17:51:33+01:00
+Ready meals,https://www.lidl.co.uk/h/chilled-food/h10071020,https://www.lidl.co.uk/c/food-drink/s10068374,11,11,11,,1,11,1,2026-10-15T17:51:33+01:00
+Ready meals > Chilled Pasta & Dough,https://www.lidl.co.uk/h/chilled-pasta-dough/h10096152,https://www.lidl.co.uk/h/chilled-food/h10071020,2,2,2,,1,2,1,2026-10-15T17:51:33+01:00
+Ready meals > Chilled Ready Meals,https://www.lidl.co.uk/h/chilled-ready-meals/h10097147,https://www.lidl.co.uk/h/chilled-food/h10071020,9,9,9,,1,9,0,2026-10-15T17:51:33+01:00
+Confectionery & Snacks > Chocolate & Chocolate Bars,https://www.lidl.co.uk/h/chocolate-chocolate-bars/h10096206,https://www.lidl.co.uk/h/confectionery-snacks/h10096205,41,41,41,,1,41,4,2026-10-15T17:51:33+01:00
+Household > Cleaning,https://www.lidl.co.uk/h/cleaning/h10096289,https://www.lidl.co.uk/h/household/h10096287,2,2,2,,1,2,0,2026-10-15T17:51:33+01:00
+"Coffee, Tea & Cocoa",https://www.lidl.co.uk/h/coffee-tea-hot-chocolate/h10071683,https://www.lidl.co.uk/c/food-drink/s10068374,2,2,2,,1,2,1,2026-10-15T17:51:33+01:00
+Confectionery & Snacks,https://www.lidl.co.uk/h/confectionery-snacks/h10096205,https://www.lidl.co.uk/c/food-drink/s10068374,104,104,104,,3,103,24,2026-10-15T17:51:33+01:00
+Meat & Poultry > Cooked Meats & Sausages,https://www.lidl.co.uk/h/cooked-meats-sausages/h10095758,https://www.lidl.co.uk/h/fresh-meat-poultry/h10095752,16,16,16,,1,16,1,2026-10-15T17:51:33+01:00
+"Cheese, Dairy & Eggs > Desserts",https://www.lidl.co.uk/h/desserts/h10096080,https://www.lidl.co.uk/h/cheese-dairy-eggs/h10095761,2,2,2,,1,2,1,2026-10-15T17:51:33+01:00
+Confectionery & Snacks > Dried Fruit & Nuts,https://www.lidl.co.uk/h/dried-fruit-nuts/h10096210,https://www.lidl.co.uk/h/confectionery-snacks/h10096205,9,9,9,,1,9,3,2026-10-15T17:51:33+01:00
+Drinks,https://www.lidl.co.uk/h/drinks/h10071022,https://www.lidl.co.uk/c/food-drink/s10068374,2,2,2,,1,2,2,2026-10-15T17:51:33+01:00
+Food Cupboard,https://www.lidl.co.uk/h/food-cupboard/h10096095,https://www.lidl.co.uk/c/food-drink/s10068374,36,36,36,,1,36,12,2026-10-15T17:51:33+01:00
+Meat & Poultry > Beef,https://www.lidl.co.uk/h/fresh-beef/h10095754,https://www.lidl.co.uk/h/fresh-meat-poultry/h10095752,2,2,2,,1,2,0,2026-10-15T17:51:33+01:00
+Fruit & veg > Fruit,https://www.lidl.co.uk/h/fresh-fruit/h10095592,https://www.lidl.co.uk/h/fruit-vegetables/h10071012,7,7,7,,1,6,4,2026-10-15T17:51:33+01:00
+Meat & Poultry,https://www.lidl.co.uk/h/fresh-meat-poultry/h10095752,https://www.lidl.co.uk/c/food-drink/s10068374,24,24,24,,1,24,1,2026-10-15T17:51:33+01:00
+Meat & Poultry > Pork,https://www.lidl.co.uk/h/fresh-pork/h10095755,https://www.lidl.co.uk/h/fresh-meat-poultry/h10095752,4,4,4,,1,4,0,2026-10-15T17:51:33+01:00
+Meat & Poultry > Poultry,https://www.lidl.co.uk/h/fresh-poultry/h10095753,https://www.lidl.co.uk/h/fresh-meat-poultry/h10095752,1,1,1,,1,1,0,2026-10-15T17:51:33+01:00
+Fruit & veg > Vegetables,https://www.lidl.co.uk/h/fresh-vegetables/h10095593,https://www.lidl.co.uk/h/fruit-vegetables/h10071012,8,8,8,,1,5,4,2026-10-15T17:51:33+01:00
+Bakery > Freshly Baked,https://www.lidl.co.uk/h/freshly-baked/h10096088,https://www.lidl.co.uk/h/bakery/h10096086,3,3,3,,1,3,2,2026-10-15T17:51:33+01:00
+Frozen > Frozen Fish & Seafood,https://www.lidl.co.uk/h/frozen-fish-seafood/h10096202,https://www.lidl.co.uk/h/frozen-food/h10071049,3,3,3,,1,3,0,2026-10-15T17:51:33+01:00
+Frozen,https://www.lidl.co.uk/h/frozen-food/h10071049,https://www.lidl.co.uk/c/food-drink/s10068374,20,20,19,10048408,1,19,7,2026-10-15T17:51:33+01:00
+Frozen > Frozen Fruit & Vegetables,https://www.lidl.co.uk/h/frozen-fruit-veg/h10096203,https://www.lidl.co.uk/h/frozen-food/h10071049,1,1,1,,1,1,1,2026-10-15T17:51:33+01:00
+Frozen > Frozen Meals,https://www.lidl.co.uk/h/frozen-meals/h10096201,https://www.lidl.co.uk/h/frozen-food/h10071049,2,2,2,,1,2,0,2026-10-15T17:51:33+01:00
+Frozen > Frozen Meat & Poultry,https://www.lidl.co.uk/h/frozen-meat-poultry/h10096204,https://www.lidl.co.uk/h/frozen-food/h10071049,4,4,4,,1,4,1,2026-10-15T17:51:33+01:00
+Frozen > Frozen Pizza & Snacks,https://www.lidl.co.uk/h/frozen-pizza-snacks/h10096197,https://www.lidl.co.uk/h/frozen-food/h10071049,9,9,9,,1,9,5,2026-10-15T17:51:33+01:00
+Fruit & veg,https://www.lidl.co.uk/h/fruit-vegetables/h10071012,https://www.lidl.co.uk/c/food-drink/s10068374,15,15,15,,1,11,8,2026-10-15T17:51:33+01:00
+Household,https://www.lidl.co.uk/h/household/h10096287,https://www.lidl.co.uk/c/food-drink/s10068374,6,6,6,,1,6,4,2026-10-15T17:51:33+01:00
+"Cereals & Spreads > Jam, Spreads & Honey",https://www.lidl.co.uk/h/jam-honey/h10096156,https://www.lidl.co.uk/h/cereals-spreads/h10096153,2,2,2,,1,2,2,2026-10-15T17:51:33+01:00
+Household > Laundry,https://www.lidl.co.uk/h/laundry/h10096291,https://www.lidl.co.uk/h/household/h10096287,4,4,4,,1,4,4,2026-10-15T17:51:33+01:00
+"Cheese, Dairy & Eggs > Milk & Cream",https://www.lidl.co.uk/h/milk-cream/h10096075,https://www.lidl.co.uk/h/cheese-dairy-eggs/h10095761,1,1,1,,1,1,0,2026-10-15T17:51:33+01:00
+"Oils, Condiments & Sauces > Oil & Fats",https://www.lidl.co.uk/h/oil-fats/h10096111,https://www.lidl.co.uk/h/oils-condiments-sauces/h10096110,1,1,1,,1,1,0,2026-10-15T17:51:33+01:00
+"Oils, Condiments & Sauces",https://www.lidl.co.uk/h/oils-condiments-sauces/h10096110,https://www.lidl.co.uk/c/food-drink/s10068374,7,7,7,,1,7,5,2026-10-15T17:51:33+01:00
+Meat & Poultry > Other meat,https://www.lidl.co.uk/h/other-meat/h10095757,https://www.lidl.co.uk/h/fresh-meat-poultry/h10095752,1,1,1,,1,1,0,2026-10-15T17:51:33+01:00
+Food Cupboard > Pickles & Chutney,https://www.lidl.co.uk/h/pickles-chutney/h10096103,https://www.lidl.co.uk/h/food-cupboard/h10096095,4,4,4,,1,4,2,2026-10-15T17:51:33+01:00
+Plants & Flowers,https://www.lidl.co.uk/h/plants-flowers/h10071024,https://www.lidl.co.uk/c/food-drink/s10068374,9,9,9,,1,9,0,2026-10-15T17:51:33+01:00
+Plants & Flowers > Plants & Flowers,https://www.lidl.co.uk/h/plants-flowers/h10096743,https://www.lidl.co.uk/h/plants-flowers/h10071024,9,9,9,,1,9,0,2026-10-15T17:51:33+01:00
+"Wine, Beer & Spirits > Red wine",https://www.lidl.co.uk/h/red-wine/h10071452,https://www.lidl.co.uk/h/wine-beer-spirits/h10096268,11,11,11,,1,11,2,2026-10-15T17:51:33+01:00
+"Food Cupboard > Rice, Pasta & Pulses",https://www.lidl.co.uk/h/rice-pasta-pulses/h10096096,https://www.lidl.co.uk/h/food-cupboard/h10096095,9,9,9,,1,9,6,2026-10-15T17:51:33+01:00
+Bakery > Buns & Rolls,https://www.lidl.co.uk/h/rolls-small-baked-goods/h10096090,https://www.lidl.co.uk/h/bakery/h10096086,1,1,1,,1,1,1,2026-10-15T17:51:33+01:00
+"Wine, Beer & Spirits > Rosé Wine",https://www.lidl.co.uk/h/rose-wine/h10071459,https://www.lidl.co.uk/h/wine-beer-spirits/h10096268,7,7,7,,1,7,0,2026-10-15T17:51:33+01:00
+"Oils, Condiments & Sauces > Sauces & Condiments",https://www.lidl.co.uk/h/sauces-condiments/h10096113,https://www.lidl.co.uk/h/oils-condiments-sauces/h10096110,6,6,6,,1,6,5,2026-10-15T17:51:33+01:00
+Bakery > Savouries,https://www.lidl.co.uk/h/savouries/h10096093,https://www.lidl.co.uk/h/bakery/h10096086,2,2,2,,1,2,0,2026-10-15T17:51:33+01:00
+Confectionery & Snacks > Savoury Snacks,https://www.lidl.co.uk/h/savoury-snacks/h10096207,https://www.lidl.co.uk/h/confectionery-snacks/h10096205,9,9,9,,1,8,8,2026-10-15T17:51:33+01:00
+Drinks > Soft Drinks,https://www.lidl.co.uk/h/soft-drinks-iced-tea/h10096234,https://www.lidl.co.uk/h/drinks/h10071022,2,2,2,,1,2,2,2026-10-15T17:51:33+01:00
+Food Cupboard > Soups & Sauces,https://www.lidl.co.uk/h/soups-sauces/h10096098,https://www.lidl.co.uk/h/food-cupboard/h10096095,1,1,1,,1,1,1,2026-10-15T17:51:33+01:00
+"Wine, Beer & Spirits > Sparkling Wine",https://www.lidl.co.uk/h/sparkling-wine/h10096272,https://www.lidl.co.uk/h/wine-beer-spirits/h10096268,4,4,4,,1,4,0,2026-10-15T17:51:33+01:00
+"Wine, Beer & Spirits > Spirits",https://www.lidl.co.uk/h/spirits/h10096274,https://www.lidl.co.uk/h/wine-beer-spirits/h10096268,2,2,2,,1,2,0,2026-10-15T17:51:33+01:00
+Bakery > Sweet Pastries,https://www.lidl.co.uk/h/sweet-pastries/h10096092,https://www.lidl.co.uk/h/bakery/h10096086,18,18,18,,1,18,3,2026-10-15T17:51:33+01:00
+Confectionery & Snacks > Sweets & Gummies,https://www.lidl.co.uk/h/sweets/h10096208,https://www.lidl.co.uk/h/confectionery-snacks/h10096205,26,26,26,,1,26,3,2026-10-15T17:51:33+01:00
+Food Cupboard > Tinned Fruit & Veg,https://www.lidl.co.uk/h/tinned-fruit-veg/h10096100,https://www.lidl.co.uk/h/food-cupboard/h10096095,1,1,1,,1,1,0,2026-10-15T17:51:33+01:00
+Food Cupboard > Tinned Ready Meals,https://www.lidl.co.uk/h/tinned-ready-meals/h10096104,https://www.lidl.co.uk/h/food-cupboard/h10096095,1,1,1,,1,1,0,2026-10-15T17:51:33+01:00
+Bakery > Toast & Long-life Bakery,https://www.lidl.co.uk/h/toast-long-life-bakery/h10096094,https://www.lidl.co.uk/h/bakery/h10096086,1,1,1,,1,1,0,2026-10-15T17:51:33+01:00
+"Wine, Beer & Spirits > White wine",https://www.lidl.co.uk/h/white-wine/h10071451,https://www.lidl.co.uk/h/wine-beer-spirits/h10096268,15,15,15,,1,15,1,2026-10-15T17:51:33+01:00
+"Wine, Beer & Spirits",https://www.lidl.co.uk/h/wine-beer-spirits/h10096268,https://www.lidl.co.uk/c/food-drink/s10068374,51,51,51,,2,51,9,2026-10-15T17:51:33+01:00
+"Cheese, Dairy & Eggs > Yogurts",https://www.lidl.co.uk/h/yoghurts/h10096076,https://www.lidl.co.uk/h/cheese-dairy-eggs/h10095761,1,1,1,,1,1,1,2026-10-15T17:51:33+01:00

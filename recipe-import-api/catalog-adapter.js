@@ -1059,7 +1059,7 @@ export async function browseCatalog(storeName, { query = '', category = '', menu
   const start = Number.isFinite(Number(offset)) ? Math.max(0, Math.trunc(Number(offset))) : 0;
   const count = Number.isFinite(Number(limit)) ? Math.max(1, Math.min(100, Math.trunc(Number(limit) || 40))) : 40;
   return { store: storeName, scope, total: rows.length, matched: filtered.length, priced: rows.filter(row => row.priceGBP !== null).length,
-    websiteMenu: index.metadata.menu_categories || [], menuCheckedAt: index.metadata.menu_status === 'complete' ? index.metadata.refreshed_at : null,
+    websiteMenu: (index.metadata.menu_categories || []).map(({id,name,url,parent,productsChecked,productsPublished})=>({id,name,url,parent,productsChecked,productsPublished})), menuCheckedAt: index.metadata.menu_status === 'complete' ? index.metadata.refreshed_at : null,
     referencePrices: rows.filter(row => row.estimatedPrice).length, websitePrices: rows.filter(row => row.priceGBP !== null && !row.estimatedPrice).length,
     verifiedProducts: rows.filter(row => row.kind === 'product').length, rangeReferences: rows.filter(row => row.kind !== 'product').length, categories, refreshedAt: index.metadata.refreshed_at, offset: start,
     nextOffset: start + count < filtered.length ? start + count : null, results: filtered.slice(start, start + count) };

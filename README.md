@@ -12,7 +12,8 @@ The **Favourites** tab keeps saved recipes searchable independently of the main
 recipe filters. Lidl shoppers can browse the saved food catalogue from Shopping,
 including unpriced products and additional source-linked range references.
 Lidl Settings can enable clearly labelled historical reference price estimates.
-The catalogue also has an All products department; see
+The catalogue also has an All products department, the audited Lidl website
+submenu hierarchy and separately labelled Lidl Plus offers; see
 [Lidl ingredient coverage](docs/lidl-catalogue.md#browse-the-food-range).
 
 ## ASDA catalogue
