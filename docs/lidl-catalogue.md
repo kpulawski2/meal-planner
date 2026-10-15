@@ -129,6 +129,16 @@ added as current product records; the product snapshot is preserved. Scheduled
 refreshes continue to add newly published and validated official product pages.
 This does not establish complete branch inventory or parity with ASDA.
 
+The **15 October 2026** refresh adds **172** verified product identities,
+including **51** food listings. All 2,090 discovered identities were accounted
+for: **1,828** published product pages and **262** confirmed removed pages.
+Removed identities remain only as unavailable history. The ingredient browser
+contains **1,261** current verified food listings, including **297** with usable
+website prices at this check. Gift cards are excluded even if Lidl categorises
+one as a ready meal. Newly discovered listings include upcoming offers; offer
+dates, local stock, missing prices and uncertain pack sizes can still prevent
+budgeting a recipe. A published price does not establish local availability.
+
 Matching recognises Skyr yoghurt when the official name says Skyr, and named
 pasta shapes such as fusilli for generic Pasta requests. Prepared tuna salad
 and sweetened oat bites cannot stand in for plain tuna and oats. Existing
