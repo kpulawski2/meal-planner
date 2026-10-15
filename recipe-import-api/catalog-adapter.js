@@ -422,6 +422,7 @@ function scoreCandidate(query, url) {
 }
 
 function scoreProduct(query, product, dimension = '', preparedQuery = null) {
+  if (product?.discoveryStatus === 'not_listed') return 0;
   const queryTokens = preparedQuery || ingredientWords(query);
   const nameTokens = productTokens(product?.name);
   if (!queryTokens.length || !nameTokens.length) return 0;
@@ -651,6 +652,7 @@ function productSummary(product, score) {
 }
 
 export function productPriceUsable(product, now = new Date()) {
+  if (product?.discoveryStatus === 'not_listed') return false;
   if (product?.price == null || !Number.isFinite(Number(product.price)) || Number(product.price) <= 0) return false;
   if (product.priceMemberOnly === true || product.offer?.validForMemberTier) return false;
   const day = now.toISOString().slice(0, 10);
@@ -983,6 +985,7 @@ export async function browseCatalog(storeName, { query = '', category = '', pric
     return /^fruit & veg$/i.test(group) ? 'Fruit & Veg' : group;
   };
   const rows = index.products.flatMap(product => {
+    if (product.discoveryStatus === 'not_listed') return [];
     const group = categoryOf(product); if (!group) return [];
     return [{ id: String(product.id || product.sku || product.url), productName: product.name, category: group, url: product.url, packSize: product.packSize || null,
       priceGBP: productPriceUsable(product, now) ? Number(product.price) : null, kind: 'product', availability: product.available === false ? 'unavailable' : 'check_in_store',

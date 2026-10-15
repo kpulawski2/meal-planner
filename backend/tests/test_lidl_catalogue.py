@@ -135,4 +135,105 @@ class LidlTests(unittest.TestCase):
             with self.assertRaisesRegex(lidl.LidlRefreshError,'integrity'): lidl.refresh(product,meta,pages.__getitem__)
             self.assertEqual((product.read_bytes(),meta.read_bytes()),before)
 
+    def test_only_official_product_404_and_410_are_removal_evidence(self):
+        url,_=page(0)
+        for status in (404,410,403,429,500):
+            response=lidl.requests.Response();response.status_code=status;response.url=url;response._content=b''
+            with patch.object(lidl,'session') as session:
+                session.return_value.get.return_value=response
+                with self.assertRaises(lidl.ProductUnavailable if status in (404,410) else lidl.requests.HTTPError): lidl.fetch(url)
+        response=lidl.requests.Response();response.status_code=404;response.url=lidl.SITEMAP
+        with patch.object(lidl,'session') as session:
+            session.return_value.get.return_value=response
+            with self.assertRaises(lidl.requests.HTTPError): lidl.fetch(lidl.SITEMAP)
+        response.url='https://other.example/p/item/p10000000'
+        with patch.object(lidl,'session') as session:
+            session.return_value.get.return_value=response
+            with self.assertRaisesRegex(lidl.LidlRefreshError,'redirected'): lidl.fetch(url)
+
+    def test_confirmed_removed_pages_allow_verified_additions_without_old_prices(self):
+        from collections import Counter
+        pages=dict(page(i) for i in range(121));urls=sorted(pages);calls=Counter();removed=set(urls[:10])
+        with tempfile.TemporaryDirectory() as directory, patch.object(lidl,'discover',return_value=(urls[:-1],[lidl.SITEMAP])), patch.object(lidl,'discover_supplement',return_value=(set(),{})) as supplement:
+            product=Path(directory)/'products.json';meta=Path(directory)/'meta.json'
+            lidl.refresh(product,meta,pages.__getitem__)
+            supplement.return_value=({urls[-1]}, {'search_ids_sha256':'stable'})
+            def get(url):
+                calls[url]+=1
+                if url in removed: raise lidl.ProductUnavailable(url,404)
+                return pages[url]
+            status=lidl.refresh(product,meta,get);records=json.loads(product.read_text())
+            self.assertEqual(status['new_products_added'],1);self.assertEqual(status['products_saved'],121)
+            self.assertEqual(status['confirmed_unpublished_count'],10);self.assertEqual(status['current_products_published'],111)
+            self.assertEqual(status['discovery_products_expected'],status['discovery_products_accounted_for'])
+            self.assertEqual(status['failed_pages'],0);self.assertTrue(all(calls[url]==2 for url in removed))
+            for row in records:
+                if row['url'] in removed:
+                    self.assertIsNone(row['price']);self.assertFalse(row['available']);self.assertEqual(row['priceMissingReason'],'product_page_removed');self.assertEqual(row['lastPublishedPrice']['price'],1.25)
+            self.assertEqual(status['products_file_sha256'],hashlib.sha256(product.read_bytes()).hexdigest())
+
+    def test_recovered_missing_page_is_published_and_uncertain_recheck_keeps_snapshot(self):
+        from collections import Counter
+        pages=dict(page(i) for i in range(120));urls=sorted(pages)
+        with tempfile.TemporaryDirectory() as directory, patch.object(lidl,'discover',return_value=(urls,[lidl.SITEMAP])), patch.object(lidl,'discover_supplement',return_value=(set(),{})):
+            product=Path(directory)/'products.json';meta=Path(directory)/'meta.json';lidl.refresh(product,meta,pages.__getitem__)
+            calls=Counter()
+            def recovered(url):
+                calls[url]+=1
+                if url==urls[0] and calls[url]==1: raise lidl.ProductUnavailable(url,410)
+                return pages[url]
+            status=lidl.refresh(product,meta,recovered);self.assertEqual(status['confirmed_unpublished_count'],0);self.assertEqual(status['current_products_published'],120)
+            before=product.read_bytes(),meta.read_bytes();calls.clear()
+            def uncertain(url):
+                calls[url]+=1
+                if url==urls[0]:
+                    if calls[url]==1: raise lidl.ProductUnavailable(url,404)
+                    raise OSError('connection lost during confirmation')
+                return pages[url]
+            with self.assertRaisesRegex(lidl.LidlRefreshError,'confirm'): lidl.refresh(product,meta,uncertain)
+            self.assertEqual((product.read_bytes(),meta.read_bytes()),before)
+
+    def test_widespread_missing_pages_cannot_replace_the_healthy_snapshot(self):
+        pages=dict(page(i) for i in range(160));urls=sorted(pages)
+        with tempfile.TemporaryDirectory() as directory, patch.object(lidl,'discover',return_value=(urls,[lidl.SITEMAP])), patch.object(lidl,'discover_supplement',return_value=(set(),{})):
+            product=Path(directory)/'products.json';meta=Path(directory)/'meta.json';lidl.refresh(product,meta,pages.__getitem__);before=product.read_bytes(),meta.read_bytes()
+            def missing(url):
+                if url in urls[:40]: raise lidl.ProductUnavailable(url,404)
+                return pages[url]
+            with self.assertRaisesRegex(lidl.LidlRefreshError,'20%'): lidl.refresh(product,meta,missing)
+            self.assertEqual((product.read_bytes(),meta.read_bytes()),before)
+
+    def test_search_canonical_rename_fetches_one_identity_and_rejects_other_ids(self):
+        pages=dict(page(i) for i in range(120));urls=sorted(pages);old=urls[0];renamed=old.replace('/p/product-','/p/renamed-')
+        with tempfile.TemporaryDirectory() as directory, patch.object(lidl,'discover',return_value=(urls,[lidl.SITEMAP])), patch.object(lidl,'discover_supplement',return_value=(set(),{})) as supplement:
+            product=Path(directory)/'products.json';meta=Path(directory)/'meta.json';lidl.refresh(product,meta,pages.__getitem__)
+            pages[renamed]=pages.pop(old).replace(old,renamed)
+            supplement.return_value=({renamed},{'search_ids_sha256':'same-id'})
+            status=lidl.refresh(product,meta,pages.__getitem__)
+            self.assertEqual(status['products_saved'],120);self.assertEqual(status['new_products_added'],0)
+            row=next(row for row in json.loads(product.read_text()) if row['id']==lidl.product_id(old));self.assertEqual(row['url'],renamed)
+            self.assertEqual(row['discoverySources'],['official_sitemap','official_search'])
+        self.assertEqual(lidl.parse_product(old,pages[renamed],'2026-10-15T12:00:00Z')['url'],renamed)
+        with self.assertRaises(lidl.LidlRefreshError): lidl.parse_product(old,pages[renamed].replace(renamed,'https://other.example/p/renamed/p10000000'),'2026-10-15T12:00:00Z')
+
+    def test_empty_product_page_requires_independent_twice_unpublished_evidence(self):
+        pages=dict(page(i) for i in range(120));urls=sorted(pages);calls=[]
+        with tempfile.TemporaryDirectory() as directory, patch.object(lidl,'discover',return_value=(urls,[lidl.SITEMAP])), patch.object(lidl,'discover_supplement',return_value=(set(),{})):
+            product=Path(directory)/'products.json';meta=Path(directory)/'meta.json';lidl.refresh(product,meta,pages.__getitem__)
+            def get(url):
+                calls.append(url)
+                if '/q/api/gridboxes/' in url: return '[null]'
+                return '<html>Page unavailable</html>' if url==urls[0] else pages[url]
+            status=lidl.refresh(product,meta,get)
+            self.assertEqual(status['confirmed_unpublished_count'],1);self.assertEqual(status['current_products_published'],119)
+            self.assertEqual(sum('/q/api/gridboxes/' in url for url in calls),2);self.assertEqual(calls.count(urls[0]),2)
+            proof=status['confirmed_unpublished_products'][0];self.assertEqual(proof['httpStatus'],200);self.assertIn('gridboxes',proof['confirmationSourceUrl'])
+
+    def test_product_data_schema_errors_do_not_become_removed_products(self):
+        url,source=page(0)
+        with self.assertRaises(lidl.LidlRefreshError) as error: lidl.parse_product(url,source.split('<script id=')[0],'2026-10-15T12:00:00Z')
+        self.assertNotIsInstance(error.exception,lidl.ProductDataUnavailable)
+        with self.assertRaises(lidl.LidlRefreshError) as error: lidl.parse_product(url,source.replace('"sku": "10000000"','"sku": "99999999"'),'2026-10-15T12:00:00Z')
+        self.assertNotIsInstance(error.exception,lidl.ProductDataUnavailable)
+
 if __name__=='__main__': unittest.main()

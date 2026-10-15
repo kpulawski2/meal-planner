@@ -133,6 +133,18 @@ def _gridboxes(get, codes):
         products.update(_canonical_products({'items': [{'code': code, 'gridbox': row}]}))
     return products, unpublished, source_url
 
+def confirm_unpublished(get, codes):
+    """Require two explicit null responses for already known product IDs."""
+    codes=tuple(codes)
+    if not codes or len(codes)>PAGE_SIZE or len(set(codes))!=len(codes) or any(not isinstance(code,str) or not re.fullmatch(r'\d+',code) for code in codes):
+        raise DiscoveryError('Invalid product identities for publication confirmation.')
+    source_url=None
+    for _ in range(2):
+        products,unpublished,source_url=_gridboxes(get,codes)
+        if products or unpublished!=set(codes):
+            raise DiscoveryError('A page without validated data still has published official product data; files kept.')
+    return source_url
+
 
 def discover_supplement(get, known_urls):
     """Discover a complete, stable search URL supplement or raise DiscoveryError.
