@@ -265,6 +265,54 @@ test('invalid sub-penny product prices cannot create a zero-cost optimisation st
   assert.equal(plan, null);
 });
 
+test('official Lidl baking and oils shelves match their ingredient families without accepting prepared foods', () => {
+  const base = { store: 'Lidl', category: 'Food & Drink > Food Cupboard > Baking', packQuantity: 1000, packUnit: 'g', price: .89 };
+  const sugar = { ...base, name: 'BELBAKE Caster Sugar' };
+  const flour = { ...base, name: 'BELBAKE Plain Flour', packQuantity: 1500, price: .70 };
+  assert.equal(rankCatalogCandidates('Caster sugar', [sugar]).length, 1);
+  assert.equal(calculatePackPurchase(rankCatalogCandidates('Caster sugar', [sugar]), 250, 'mass').totalCostGBP, .89);
+  assert.equal(rankCatalogCandidates('All-purpose flour', [flour]).length, 1);
+  assert.equal(calculatePackPurchase(rankCatalogCandidates('All-purpose flour', [flour]), 1501, 'mass').totalCostGBP, 1.40);
+  for (const name of ['BELBAKE Self-Raising Flour', 'BELBAKE Cornflour', 'BELBAKE Almond Flour', 'Flour Tortilla Wraps']) {
+    assert.equal(rankCatalogCandidates('All-purpose flour', [{ ...flour, name }]).length, 0, name);
+  }
+  const oil = { ...base, name: 'Vita D\u2019or Sunflower Oil', category: 'Food & Drink > Oils, Condiments & Sauces > Oil & Fats', packQuantity: 1000, packUnit: 'ml' };
+  assert.equal(rankCatalogCandidates('Cooking oil', [oil]).length, 1);
+  for (const name of ['Tuna Chunks in Sunflower Oil', 'Sunflower Oil Spray', 'Garlic Infused Sunflower Oil']) {
+    assert.equal(rankCatalogCandidates('Cooking oil', [{ ...oil, name }]).length, 0, name);
+  }
+});
+
+test('frozen Lidl fruit and vegetables keep their frozen category and generic berries preserve specific requests', () => {
+  const broccoli = { store: 'Lidl', name: 'Freshona Broccoli Florets', category: 'Food & Drink > Frozen > Frozen Fruit & Vegetables',
+    categoryPath: ['Food & Drink', 'Frozen', 'Frozen Fruit & Vegetables'], packQuantity: 1, packUnit: 'kg', price: 1.50 };
+  assert.equal(rankCatalogCandidates('Broccoli', [broccoli]).length, 0, 'the words Fruit & veg inside Frozen Fruit & Vegetables cannot relabel it as fresh');
+  assert.equal(rankCatalogCandidates('Frozen broccoli', [broccoli]).length, 1);
+  const berries = { ...broccoli, name: 'Freshona Raspberries/Strawberries', packQuantity: 350, packUnit: 'g' };
+  assert.equal(rankCatalogCandidates('Frozen berries', [berries]).length, 1);
+  assert.equal(rankCatalogCandidates('Frozen blueberries', [berries]).length, 0);
+  const smoothie = { ...berries, name: 'Frozen Blueberry & Mango Smoothie Mix' };
+  assert.equal(rankCatalogCandidates('Frozen blueberries', [smoothie]).length, 0);
+});
+
+test('retailer mayonnaise, salt and pepper packs support explicitly labelled cooking conversions', () => {
+  const mayonnaise = { store: 'Lidl', name: 'Batts Light Mayonnaise', category: 'Food & Drink > Oils, Condiments & Sauces',
+    packSize: '500 ml', packQuantity: 500, packUnit: 'ml', price: .89 };
+  const mayo = calculatePackPurchase(rankCatalogCandidates('Light mayo', [mayonnaise]), 15, 'mass');
+  assert.equal(mayo.products[0].packs, 1); assert.equal(mayo.totalCostGBP, .89);
+  assert.equal(mayo.estimatedQuantity, true); assert.match(mayo.estimateNotes.join(' '), /density 1 g\/ml/);
+  assert.equal(rankCatalogCandidates('Mayonnaise', [mayonnaise]).length, 0, 'regular mayonnaise nutrition cannot silently use the light variant');
+  const salt = { ...mayonnaise, name: 'DELUXE Persian Blue Salt', category: 'Food & Drink > Oils, Condiments & Sauces > Herbs & Spices',
+    packSize: '70g', packQuantity: 70, packUnit: 'g', price: 3.99 };
+  const pepper = { ...salt, name: 'Kania Black Pepper', packQuantity: 50, packSize: '50g' };
+  for (const [name, product, grams] of [['Salt to taste', salt, 6], ['Black pepper, as needed', pepper, 2.3]]) {
+    const plan = calculatePackPurchase(rankCatalogCandidates(name, [product]), 1, 'tsp');
+    assert.ok(plan); assert.equal(plan.estimatedQuantity, true);
+    assert.equal(plan.totalQuantity, Number((product.packQuantity / grams).toFixed(6)));
+    assert.match(plan.estimateNotes.join(' '), /spoon weights vary/);
+  }
+});
+
 test.after(async () => {
   await rm(directory, { recursive: true, force: true });
 });

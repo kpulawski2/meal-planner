@@ -115,6 +115,10 @@ def text(value):
 
 def pack(value):
     value = text(value)
+    # Lidl GB occasionally uses a decimal comma ("1,5kg"). Only one or
+    # two fractional digits directly before a unit are unambiguous here;
+    # "1,500g" could be a thousands separator and must remain unknown.
+    value = re.sub(r'(?<![\d.,])(\d+),(\d{1,2})(?=\s*(?:kg|g|ml|cl|l)\b)',r'\1.\2',value,flags=re.I)
     # A range or choice of sizes is not a fixed purchasable pack. Do not choose
     # one number from "70/85g", "175g, 125g", or "1.2kg - 1.6kg".
     if re.search(r'\d\s*(?:kg|g|ml|cl|l)?\s*[/,–-]\s*\d', value, re.I): return None,None

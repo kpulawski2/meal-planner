@@ -1,5 +1,65 @@
 # Lidl GB website catalogue
 
+## Recipe pricing and personal pack prices
+
+The October source review adds 39 exact official references (141 records across
+eight sources), including the live five-family-meals price matrix checked on
+12 October 2026. The original dates remain visible: these are estimates, not
+verified current Sheffield shelf prices. For the exact same named pack and
+region, the newest dated observation takes precedence over an older reference.
+Different brands, variants and weights remain distinct. The source list keeps
+the historical evidence even when a newer observation is preferred.
+
+The matrix's sweetcorn tin is labelled 340g with 285g drained contents; recipe
+purchases use the explicit 285g edible yield. Its 145g sunflower-oil tuna amount
+does not establish a drained yield and cannot cost recipe grams. It also cannot
+stand in for brine or spring-water tuna. Regional cheese and egg references
+remain restricted. Upcoming XXL chicken offers do not become today's prices.
+
+The recipe matcher recognises Lidl's Baking and Oil & Fats shelves, preserves
+frozen produce categories, and safely handles plain/all-purpose flour wording.
+The publisher accepts unambiguous decimal-comma pack quantities such as 1,5kg
+while rejecting size choices, weight ranges and ambiguous thousands separators.
+Mayonnaise and salt/pepper spoon conversions carry explicit quantity estimates.
+
+For unpublished staples, **Settings → Your checked pack prices** lets the shopper
+save an observed receipt or shelf-label price with the product name, usable
+quantity, date and optional store. Planning inclusion is a separate opt-in.
+The same price is used by planning, shopping and swaps for the exact assigned
+ingredient; no private price enters the official catalogue or another user's
+request. Checked packs are saved locally and included in device backups.
+Prices older than 30 days are labelled; after 90 days they are excluded until
+rechecked. Editing or disabling prices cancels stale requests and saved quotes.
+Supported cooking conversions are shared by server and client and labelled.
+An estimated future shopping cost never records a new actual pantry purchase.
+
+The [complete website/reference directory export](price-exports/lidl-all-website-prices-2026-10-15.csv)
+includes published listings and separately labelled source references, missing
+prices, offer windows and member conditions. An amount does not establish a
+usable recipe pack, local stock or the full range of a physical store.
+
+The manually run `audit-lidl-price-sources.yml` audits every recursive sitemap URL and non-product
+public content page, plus linked official leaflet viewers. Stores/legal/assets
+have explicit dispositions; canonical product URLs belong to the separate full
+product refresh. Source hashes, compressed captures, price contexts and PDF
+links are retained for review. All workers share a one-request-per-second gate
+and honour `Retry-After`; denied or unfinished pages make the report incomplete.
+Extracted text is only evidence to review, never an automatically imported price.
+PDF links, unlisted pages and inaccessible viewer content do not imply complete
+in-store price coverage.
+The full crawl runs on demand to avoid re-reading hundreds of unrelated content
+pages for every app edit. The regular full product refresh and its pull-request
+verification continue independently.
+
+`audit-lidl-leaflets.yml` separately captures the official GB leaflet hub and
+provider overview, then the identified weekly flyer metadata, including regional
+variants. It retains response hashes, offer dates, locale declarations, product
+metadata and OCR text for review. The reader has exact source allowlists,
+request pacing, and strict response/time/flyer bounds. Images and PDFs are not
+downloaded by this audit. Member prices, future offers and regional variants
+cannot establish today's universal standard price, and metadata capture never
+publishes a price automatically.
+
 The free refresh follows the official `robots.txt` sitemap declaration and every
 child sitemap, including gzip files. Every discovered `/p/.../p<number>` page is
 read with four workers and bounded retries. Identity, canonical URL, counts,
@@ -85,12 +145,17 @@ establish local stock or a complete branch inventory.
 
 ## Reference price estimates
 
-The app includes **102 explicit Lidl pack-price reference records** in
+The app includes **141 explicit Lidl pack-price reference records** in
 `data/lidl-price-references.json`. Their sources are:
 
 - [Lidl's price comparison PDF](https://www.lidl.co.uk/static/assets/Morrisons_Price_Conparison-Online-MainList-2134661.pdf): only the Lidl retail-price column, not competitors or printed unit prices. No usable date is printed; the app shows **Undated**.
 - [May 2026 shopping list](https://www.lidl.co.uk/static/assets/Lidl5-for-20-May2026-2204485.pdf): keeps **May 2026**, including explicit regional alternatives. A newer webpage linking this PDF does not make its prices current.
 - [Royal Menu shopping list](https://corporate.lidl.co.uk/media-centre/pressreleases/2025/royal-warrant): retains the stated **14–15 January 2025** price-check period. Variable-weight lamb and chicken packs are browsable but cannot supply a fixed purchasing capacity.
+- [Five family meals price matrix](https://www.lidl.co.uk/static/assets/5-for-20-October-2026-Pricing-Matrix-2510860-2518185.pdf): **12 October 2026**, as dated by the linking official meal page. Declared drained yields take precedence over tin net weights.
+- [Own-brand award winners](https://corporate.lidl.co.uk/media-centre/pressreleases/2023/the-better-than-nutella-chocolate-spread-and-seven-other-lidl-award-winning-swaps-that-could-save-brits-almost-500-a-year): **6 February 2023**, historical Lidl amounts with explicit packs.
+- [High-protein product list](https://corporate.lidl.co.uk/media-centre/pressreleases/2025/tiktok-shop-protein): **18 February 2025**, individual in-store products rather than the separate promotional bundle.
+- [Way To Go tea](https://corporate.lidl.co.uk/media-centre/pressreleases/2026/waytogo!-tea): **15 September 2026**, the published launch amount and 80-bag pack.
+- [BBQ basket](https://corporate.lidl.co.uk/media-centre/pressreleases/2023/more-bangers-for-your-buck-lidl-wins-which-cheapest-bbq-basket): **19 July 2023**, historical products with exact pack sizes.
 
 **Use reference prices for estimates** is enabled by default in Lidl Settings.
 Turning it off restores current website prices only. Direct API callers remain

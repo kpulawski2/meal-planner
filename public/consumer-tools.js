@@ -3,12 +3,18 @@
   'use strict';
   const copy = value => JSON.parse(JSON.stringify(value));
   const amount = value => value !== null && value !== '' && Number.isFinite(Number(value)) && Number(value) >= 0;
-  function validPlan(plan) {
+  function validPlan(plan, context = {}) {
     return Boolean(plan && Array.isArray(plan.products) && plan.products.length && amount(plan.totalCostGBP)
       && Number.isFinite(Number(plan.requestedQuantity)) && Number(plan.requestedQuantity) > 0
       && Number(plan.totalQuantity) + 1e-6 >= Number(plan.requestedQuantity)
+      && (!plan.products.some(product => product.priceBasis === 'personal') || plan.estimatedPrice === true
+        && plan.products.every(product => Number.isFinite(Number(product.totalQuantity)) && Number(product.totalQuantity) > 0)
+        && Math.abs(plan.products.reduce((total, product) => total + Number(product.totalQuantity), 0) - Number(plan.totalQuantity)) <= 1e-5)
       && plan.products.every(product => Number.isInteger(Number(product.packs)) && Number(product.packs) > 0
-        && amount(product.costGBP) && /^https:\/\//.test(product.url || ''))
+        && amount(product.costGBP) && (product.priceBasis === 'personal' || String(product.url || '').startsWith('personal:')
+          ? Boolean(context.dimension) && root.PersonalPricesCore?.productMatches?.(product, context) === true
+            && Math.abs(Number(product.costGBP) - Number(product.packs) * Number(product.priceGBP)) < .011
+          : /^https:\/\//.test(product.url || '')))
       && Math.abs(plan.products.reduce((total, product) => total + Number(product.costGBP), 0) - Number(plan.totalCostGBP)) < .011);
   }
   function snapshot(catalogue) {
@@ -19,7 +25,8 @@
     for (const item of catalogue.items) {
       const result = catalogue.results?.[item.key];
       if (!item.key || !result || result.key !== item.key) return null;
-      if (result.plan && !validPlan(result.plan)) return null;
+      if (result.match && (result.match.priceBasis === 'personal' || String(result.match.url || '').startsWith('personal:')) && root.PersonalPricesCore?.productMatches?.(result.match, { store: catalogue.store, dimension: item.dimension, ingredient: item.name }) !== true) return null;
+      if (result.plan && !validPlan(result.plan, { store: catalogue.store, dimension: item.dimension, ingredient: item.name })) return null;
       results[item.key] = copy(result);
     }
     return { version: 1, store: catalogue.store, fingerprint: catalogue.fingerprint,

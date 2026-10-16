@@ -20,8 +20,49 @@
       "id": "royal2025",
       "label": "Lidl GB Royal Menu shopping list",
       "url": "https://corporate.lidl.co.uk/media-centre/pressreleases/2025/royal-warrant",
-      "period": "14\u201315 January 2025",
+      "period": "14–15 January 2025",
       "date": "2025-01-15"
+    },
+    {
+      "id": "oct2026",
+      "label": "Lidl GB five family meals price matrix",
+      "url": "https://www.lidl.co.uk/static/assets/5-for-20-October-2026-Pricing-Matrix-2510860-2518185.pdf",
+      "period": "12 October 2026",
+      "date": "2026-10-12",
+      "verificationUrl": "https://www.lidl.co.uk/c/5-family-meals-for-20/s10062861",
+      "notes": "Landing page says total shop cost checked12.10.26; PDF visually checked. No membership condition shown. Not confirmed Sheffield shelf prices."
+    },
+    {
+      "id": "award2023",
+      "label": "Lidl GB award-winning own-brand swaps press release",
+      "url": "https://corporate.lidl.co.uk/media-centre/pressreleases/2023/the-better-than-nutella-chocolate-spread-and-seven-other-lidl-award-winning-swaps-that-could-save-brits-almost-500-a-year",
+      "period": "6 February 2023",
+      "date": "2023-02-06",
+      "notes": "Historical reference only. Exact Lidl product amounts and packs stated in article; competitor amounts excluded."
+    },
+    {
+      "id": "protein2025",
+      "label": "Lidl GB high-protein product price list",
+      "url": "https://corporate.lidl.co.uk/media-centre/pressreleases/2025/tiktok-shop-protein",
+      "period": "18 February 2025",
+      "date": "2025-02-18",
+      "notes": "Historical individual in-store product prices from table, not the separate limited TikTok charity bundle price."
+    },
+    {
+      "id": "tea2026",
+      "label": "Lidl GB Way To Go tea launch price",
+      "url": "https://corporate.lidl.co.uk/media-centre/pressreleases/2026/waytogo!-tea",
+      "period": "15 September 2026",
+      "date": "2026-09-15",
+      "notes": "Launch price for80bags; article says landed nationwide at endSeptember."
+    },
+    {
+      "id": "bbq2023",
+      "label": "Lidl GB BBQ basket price release",
+      "url": "https://corporate.lidl.co.uk/media-centre/pressreleases/2023/more-bangers-for-your-buck-lidl-wins-which-cheapest-bbq-basket",
+      "period": "19 July 2023",
+      "date": "2023-07-19",
+      "notes": "Historical references; only products with exact pack sizes retained."
     }
   ],
   "references": [
@@ -190,7 +231,7 @@
       "packUnit": "g",
       "packSize": "454 g",
       "priceGBP": 0.99,
-      "category": "Food Cupboard",
+      "category": "Cereals & Spreads > Jam, Spreads & Honey",
       "regions": []
     },
     {
@@ -370,7 +411,7 @@
       "packUnit": "g",
       "packSize": "1000 g",
       "priceGBP": 1.19,
-      "category": "Frozen",
+      "category": "Frozen > Frozen Fruit & Vegetables",
       "regions": []
     },
     {
@@ -889,7 +930,7 @@
       "packUnit": "g",
       "packSize": "200 g",
       "priceGBP": 3.49,
-      "category": "Dairy & Eggs",
+      "category": "Cheese, Dairy & Eggs > Cheese",
       "regions": []
     },
     {
@@ -1045,7 +1086,7 @@
       "packUnit": "g",
       "packSize": "250 g",
       "priceGBP": 4.89,
-      "category": "Food Cupboard",
+      "category": "Cereals & Spreads > Jam, Spreads & Honey",
       "regions": []
     },
     {
@@ -1177,7 +1218,7 @@
       "packUnit": "g",
       "packSize": "300 g",
       "priceGBP": 2.99,
-      "category": "Dairy & Eggs",
+      "category": "Cheese, Dairy & Eggs > Cheese",
       "regions": []
     },
     {
@@ -1247,7 +1288,7 @@
       "name": "Birchwood Lamb Half Leg Joint",
       "packQuantity": null,
       "packUnit": null,
-      "packSize": "825g\u20131.25kg",
+      "packSize": "825g–1.25kg",
       "priceGBP": 11.99,
       "category": "Meat & Poultry",
       "regions": []
@@ -1259,9 +1300,490 @@
       "name": "Deluxe CornFed Free Range Whole Chicken",
       "packQuantity": null,
       "packUnit": null,
-      "packSize": "1.2\u20132.2kg",
+      "packSize": "1.2–2.2kg",
       "priceGBP": 4.99,
       "category": "Meat & Poultry",
+      "regions": []
+    },
+    {
+      "id": "oct2026-01",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Freshona Frozen Mixed Vegetables",
+      "packQuantity": 1000,
+      "packUnit": "g",
+      "packSize": "1000 g",
+      "priceGBP": 0.99,
+      "category": "Frozen > Frozen Fruit & Vegetables",
+      "regions": []
+    },
+    {
+      "id": "oct2026-02",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Freshona Frozen Sliced Peppers",
+      "packQuantity": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "priceGBP": 0.89,
+      "category": "Frozen > Frozen Fruit & Vegetables",
+      "regions": []
+    },
+    {
+      "id": "oct2026-03",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Deluxe Frozen Petit Pois",
+      "packQuantity": 700,
+      "packUnit": "g",
+      "packSize": "700 g",
+      "priceGBP": 1.09,
+      "category": "Frozen > Frozen Fruit & Vegetables",
+      "regions": []
+    },
+    {
+      "id": "oct2026-04",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Brown Onions",
+      "packQuantity": 1000,
+      "packUnit": "g",
+      "packSize": "1000 g",
+      "priceGBP": 0.95,
+      "category": "Fruit & Veg",
+      "regions": []
+    },
+    {
+      "id": "oct2026-05",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Bakery Large French Baguette",
+      "packQuantity": 400,
+      "packUnit": "g",
+      "packSize": "400 g",
+      "priceGBP": 0.99,
+      "category": "Bakery",
+      "regions": []
+    },
+    {
+      "id": "oct2026-06",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Rowan Hill 6 Wholemeal Pitta Bread",
+      "packQuantity": 6,
+      "packUnit": "pieces",
+      "packSize": "6 pieces",
+      "priceGBP": 0.5,
+      "category": "Bakery",
+      "regions": []
+    },
+    {
+      "id": "oct2026-07",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Nixe Tuna Chunks in Sunflower Oil",
+      "packQuantity": null,
+      "packUnit": null,
+      "packSize": "145 g",
+      "priceGBP": 0.65,
+      "category": "Fish",
+      "regions": [],
+      "quantityBasis": "145 g is the printed net tin weight. Drained edible yield is not published, so this reference cannot cost a recipe quantity."
+    },
+    {
+      "id": "oct2026-08",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Simply Chopped Tomatoes",
+      "packQuantity": 400,
+      "packUnit": "g",
+      "packSize": "400 g",
+      "priceGBP": 0.43,
+      "category": "Food Cupboard",
+      "regions": []
+    },
+    {
+      "id": "oct2026-09",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Simply Long Grain Rice",
+      "packQuantity": 1000,
+      "packUnit": "g",
+      "packSize": "1000 g",
+      "priceGBP": 0.52,
+      "category": "Food Cupboard",
+      "regions": []
+    },
+    {
+      "id": "oct2026-10",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Batts Medium Curry Powder",
+      "packQuantity": 90,
+      "packUnit": "g",
+      "packSize": "90 g",
+      "priceGBP": 0.89,
+      "category": "Herbs & Spices",
+      "regions": []
+    },
+    {
+      "id": "oct2026-11",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Baresa Green Pesto",
+      "packQuantity": 190,
+      "packUnit": "g",
+      "packSize": "190 g",
+      "priceGBP": 0.89,
+      "category": "Oils, Condiments & Sauces",
+      "regions": []
+    },
+    {
+      "id": "oct2026-12",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Batts Light Mayonnaise",
+      "packQuantity": 500,
+      "packUnit": "ml",
+      "packSize": "500 ml",
+      "priceGBP": 0.89,
+      "category": "Oils, Condiments & Sauces",
+      "regions": []
+    },
+    {
+      "id": "oct2026-13",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Milbona Big Pot Full Fat Natural Yogurt",
+      "packQuantity": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "priceGBP": 0.89,
+      "category": "Dairy & Eggs",
+      "regions": []
+    },
+    {
+      "id": "oct2026-14",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Unsmoked Bacon",
+      "packQuantity": 300,
+      "packUnit": "g",
+      "packSize": "300 g",
+      "priceGBP": 1.49,
+      "category": "Meat & Poultry",
+      "regions": []
+    },
+    {
+      "id": "oct2026-15",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Freshona Super Sweet Sweetcorn",
+      "packQuantity": 285,
+      "packUnit": "g",
+      "packSize": "340g (285g drained weight)",
+      "priceGBP": 0.55,
+      "category": "Food Cupboard",
+      "regions": [],
+      "quantityBasis": "Explicit 285 g drained edible contents; tin net weight 340 g."
+    },
+    {
+      "id": "oct2026-16",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Freshona Chickpeas in Water",
+      "packQuantity": 240,
+      "packUnit": "g",
+      "packSize": "400ml / 240g",
+      "priceGBP": 0.37,
+      "category": "Food Cupboard",
+      "regions": []
+    },
+    {
+      "id": "oct2026-17",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Valley Spire Mature White Grated Cheddar",
+      "packQuantity": 250,
+      "packUnit": "g",
+      "packSize": "250 g",
+      "priceGBP": 1.89,
+      "category": "Cheese, Dairy & Eggs > Cheese",
+      "regions": [
+        "England"
+      ]
+    },
+    {
+      "id": "oct2026-18",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Valley Spire Welsh Mature Grated Cheddar",
+      "packQuantity": 250,
+      "packUnit": "g",
+      "packSize": "250 g",
+      "priceGBP": 1.89,
+      "category": "Cheese, Dairy & Eggs > Cheese",
+      "regions": [
+        "Wales"
+      ]
+    },
+    {
+      "id": "oct2026-19",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Aberdoyle Dairies Scottish Mature Grated Cheddar",
+      "packQuantity": 250,
+      "packUnit": "g",
+      "packSize": "250 g",
+      "priceGBP": 1.89,
+      "category": "Cheese, Dairy & Eggs > Cheese",
+      "regions": [
+        "Scotland"
+      ]
+    },
+    {
+      "id": "oct2026-20",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Woodcote 12 Medium Free Range Eggs",
+      "packQuantity": 12,
+      "packUnit": "pieces",
+      "packSize": "12 pieces",
+      "priceGBP": 2.49,
+      "category": "Dairy & Eggs",
+      "regions": [
+        "England",
+        "Scotland"
+      ]
+    },
+    {
+      "id": "oct2026-21",
+      "sourceId": "oct2026",
+      "storeSku": null,
+      "name": "Woodcote 12 Welsh Medium Free Range Eggs",
+      "packQuantity": 12,
+      "packUnit": "pieces",
+      "packSize": "12 pieces",
+      "priceGBP": 2.49,
+      "category": "Dairy & Eggs",
+      "regions": [
+        "Wales"
+      ]
+    },
+    {
+      "id": "award2023-01",
+      "sourceId": "award2023",
+      "storeSku": null,
+      "name": "Bellarom Italian Ground Coffee",
+      "packQuantity": 227,
+      "packUnit": "g",
+      "packSize": "227 g",
+      "priceGBP": 1.79,
+      "category": "Drinks",
+      "regions": []
+    },
+    {
+      "id": "award2023-02",
+      "sourceId": "award2023",
+      "storeSku": null,
+      "name": "Choco Nussa Spread",
+      "packQuantity": 400,
+      "packUnit": "g",
+      "packSize": "400 g",
+      "priceGBP": 1.45,
+      "category": "Food Cupboard",
+      "regions": []
+    },
+    {
+      "id": "award2023-03",
+      "sourceId": "award2023",
+      "storeSku": null,
+      "name": "Mister Choc Crunchy Peanut Butter",
+      "packQuantity": 340,
+      "packUnit": "g",
+      "packSize": "340 g",
+      "priceGBP": 1.25,
+      "category": "Cereals & Spreads > Jam, Spreads & Honey",
+      "regions": []
+    },
+    {
+      "id": "award2023-04",
+      "sourceId": "award2023",
+      "storeSku": null,
+      "name": "Deluxe Puglian Extra Virgin Olive Oil",
+      "packQuantity": 500,
+      "packUnit": "ml",
+      "packSize": "500 ml",
+      "priceGBP": 4.19,
+      "category": "Oils, Condiments & Sauces > Oil & Fats",
+      "regions": []
+    },
+    {
+      "id": "award2023-05",
+      "sourceId": "award2023",
+      "storeSku": null,
+      "name": "Bon Gelati Premium Ice Cream Strawberry and Vanilla Cones",
+      "packQuantity": 720,
+      "packUnit": "ml",
+      "packSize": "720 ml",
+      "priceGBP": 1.79,
+      "category": "Frozen",
+      "regions": []
+    },
+    {
+      "id": "award2023-06",
+      "sourceId": "award2023",
+      "storeSku": null,
+      "name": "Vemondo Vegan Sausages",
+      "packQuantity": 6,
+      "packUnit": "pieces",
+      "packSize": "6 pieces",
+      "priceGBP": 1.59,
+      "category": "Meat-Free",
+      "regions": []
+    },
+    {
+      "id": "award2023-07",
+      "sourceId": "award2023",
+      "storeSku": null,
+      "name": "Vemondo Vegan Burgers",
+      "packQuantity": 2,
+      "packUnit": "pieces",
+      "packSize": "2 pieces",
+      "priceGBP": 1.59,
+      "category": "Meat-Free",
+      "regions": []
+    },
+    {
+      "id": "award2023-08",
+      "sourceId": "award2023",
+      "storeSku": null,
+      "name": "Mature Cheddar Slices",
+      "packQuantity": 250,
+      "packUnit": "g",
+      "packSize": "250 g",
+      "priceGBP": 1.99,
+      "category": "Cheese, Dairy & Eggs > Cheese",
+      "regions": []
+    },
+    {
+      "id": "protein2025-01",
+      "sourceId": "protein2025",
+      "storeSku": null,
+      "name": "Maribel High Protein Peanut Butter",
+      "packQuantity": 350,
+      "packUnit": "g",
+      "packSize": "350 g",
+      "priceGBP": 2.49,
+      "category": "Cereals & Spreads > Jam, Spreads & Honey",
+      "regions": []
+    },
+    {
+      "id": "protein2025-02",
+      "sourceId": "protein2025",
+      "storeSku": null,
+      "name": "Belbake Protein Pancake Mix",
+      "packQuantity": 150,
+      "packUnit": "g",
+      "packSize": "150 g",
+      "priceGBP": 1.99,
+      "category": "Food Cupboard",
+      "regions": []
+    },
+    {
+      "id": "protein2025-03",
+      "sourceId": "protein2025",
+      "storeSku": null,
+      "name": "Snaktastic Protein Pop Chips",
+      "packQuantity": 45,
+      "packUnit": "g",
+      "packSize": "45 g",
+      "priceGBP": 0.99,
+      "category": "Snacks",
+      "regions": []
+    },
+    {
+      "id": "protein2025-04",
+      "sourceId": "protein2025",
+      "storeSku": null,
+      "name": "IronMaxx Whey Protein Powder",
+      "packQuantity": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "priceGBP": 9.99,
+      "category": "Sports Nutrition",
+      "regions": []
+    },
+    {
+      "id": "protein2025-05",
+      "sourceId": "protein2025",
+      "storeSku": null,
+      "name": "IronMaxx Vegan Protein Powder",
+      "packQuantity": 500,
+      "packUnit": "g",
+      "packSize": "500 g",
+      "priceGBP": 9.99,
+      "category": "Sports Nutrition",
+      "regions": []
+    },
+    {
+      "id": "protein2025-06",
+      "sourceId": "protein2025",
+      "storeSku": null,
+      "name": "Protein Bars",
+      "packQuantity": 135,
+      "packUnit": "g",
+      "packSize": "135 g",
+      "priceGBP": 2.99,
+      "category": "Snacks",
+      "regions": []
+    },
+    {
+      "id": "protein2025-07",
+      "sourceId": "protein2025",
+      "storeSku": null,
+      "name": "Crownfield High Protein Flapjacks",
+      "packQuantity": 150,
+      "packUnit": "g",
+      "packSize": "150 g",
+      "priceGBP": 2.19,
+      "category": "Snacks",
+      "regions": []
+    },
+    {
+      "id": "tea2026-01",
+      "sourceId": "tea2026",
+      "storeSku": null,
+      "name": "Way To Go! Single Origin Kenyan Tea",
+      "packQuantity": 80,
+      "packUnit": "pieces",
+      "packSize": "80 tea bags",
+      "priceGBP": 1.99,
+      "category": "Drinks",
+      "regions": []
+    },
+    {
+      "id": "bbq2023-01",
+      "sourceId": "bbq2023",
+      "storeSku": null,
+      "name": "Deluxe Brioche Burger Buns",
+      "packQuantity": 4,
+      "packUnit": "pieces",
+      "packSize": "4 pieces",
+      "priceGBP": 1.1,
+      "category": "Bakery",
+      "regions": []
+    },
+    {
+      "id": "bbq2023-02",
+      "sourceId": "bbq2023",
+      "storeSku": null,
+      "name": "Batts Real Mayonnaise",
+      "packQuantity": 500,
+      "packUnit": "ml",
+      "packSize": "500 ml",
+      "priceGBP": 0.95,
+      "category": "Oils, Condiments & Sauces",
       "regions": []
     }
   ]

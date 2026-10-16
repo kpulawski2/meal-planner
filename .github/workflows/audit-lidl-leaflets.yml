@@ -1,0 +1,27 @@
+name: Audit official Lidl GB leaflet metadata
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['backend/audit_lidl_leaflets.py', 'backend/tests/test_lidl_leaflets.py', '.github/workflows/audit-lidl-leaflets.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    name: Capture identified official GB leaflet sources
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r backend/requirements.txt
+      - run: python backend/audit_lidl_leaflets.py
+      - name: Retain exact source responses for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lidl-leaflet-source-audit
+          path: work/lidl-leaflet-audit
+          if-no-files-found: error
+          retention-days: 7

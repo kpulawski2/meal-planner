@@ -3,6 +3,7 @@
 import '../public/equipment-core.js';
 import '../public/macro-goals-core.js';
 import '../public/meal-intent-core.js';
+import { normalizePersonalPriceOptions } from './personal-prices.js';
 const text = (value, length = 120) => typeof value === 'string' ? value.trim().slice(0, length) : '';
 const fail = message => { throw new TypeError(message); };
 function number(value, fallback, min, max, label, integer = false) {
@@ -103,5 +104,6 @@ export function normalizePlannerRequest(body) {
     leftoverIds.add(id);
     return { id, recipeId, servings: number(row?.servings, 0, .000001, 1000, 'Leftover portions') };
   });
-  return { profile, recipes, pantry, week, mealServings, locked, favorites, excludedRecipeIds, cookedMeals, leftovers };
+  return { profile, recipes, pantry, week, mealServings, locked, favorites, excludedRecipeIds, cookedMeals, leftovers,
+    ...normalizePersonalPriceOptions(body, profile.supermarket) };
 }

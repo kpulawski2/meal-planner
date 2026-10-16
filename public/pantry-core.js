@@ -101,7 +101,7 @@
         requests.push({ key: requested.key, name: item.name, dimension, quantity: num(requested.quantity) });
         let lineQuantity = 0, lineCost = 0;
         for (const product of plan.products) {
-          if (product.estimatedPrice) return { ok: false, error: item.name + ' uses a reference price estimate. Check your receipt and add the actual purchase to the pantry before recording spending.' };
+          if (product.estimatedPrice) return { ok: false, error: item.name + ' uses a price estimate. Check your receipt and add the actual purchase to the pantry before recording spending.' };
           const packs = num(product.packs), size = num(product.packQuantity), cost = num(product.costGBP), price = num(product.priceGBP), checkedAt = product.checkedAt || result.match.checkedAt;
           if (!Number.isInteger(packs) || packs <= 0 || !(size > 0) || !(cost > 0) || !(price > 0) || Math.abs(packs * price - cost) > .011 || !officialProductUrl(product.url, store) || !checkedAt || !productCurrent(product, checkedAt, now)) return { ok: false, error: item.name + ' has incomplete or outdated pack or price information.' };
           const native = core().unitMeta(product.packUnit, item.name), total = num(product.totalQuantity), nativeTotal = packs * size * native.factor;

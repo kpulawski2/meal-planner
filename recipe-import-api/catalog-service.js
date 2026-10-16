@@ -100,8 +100,8 @@ export function browseCatalog(storeName, filters = {}) {
   return callWorker('browseCatalog', [storeName, filters]);
 }
 
-export function recommendCatalogItems(storeName, items, { signal, allowReferencePrices = false } = {}) {
-  return callWorker('recommendCatalogItems', [storeName, items, { allowReferencePrices }], { signal });
+export function recommendCatalogItems(storeName, items, { signal, allowReferencePrices = false, allowPersonalPrices = false, personalPrices = [] } = {}) {
+  return callWorker('recommendCatalogItems', [storeName, items, { allowReferencePrices, allowPersonalPrices, personalPrices }], { signal });
 }
 
 export function optimizeMealPlan(request, { signal } = {}) {

@@ -2463,5 +2463,46 @@
   "with_priced_pack_size": 375,
   "with_usable_price_at_refresh": 278,
   "products_sha256": "8744fdfc6679e6412bcb48b0bce4c85769b58cd39beb73ad9079b51b2234c3e8",
-  "products_file_sha256": "7ecce76845014760b89fe1a60e084bf7195ef888546d7be63f63b3e3432d573d"
+  "products_file_sha256": "765a867c3cd2ecb89a3eda527bb4df20af63c5d30b199c02626f1becfddf88fa",
+  "pack_parser_corrections": {
+    "note": "Existing published pack labels re-parsed without changing prices or original source timestamps.",
+    "products": [
+      {
+        "id": "10055445",
+        "pack": "1,5kg",
+        "quantity": 1.5,
+        "unit": "kg"
+      },
+      {
+        "id": "10052239",
+        "pack": "300g (24 x 12,5g)",
+        "quantity": 300.0,
+        "unit": "g"
+      },
+      {
+        "id": "10003289",
+        "pack": "2,25L",
+        "quantity": 2.25,
+        "unit": "l"
+      },
+      {
+        "id": "10021148",
+        "pack": "1,1kg",
+        "quantity": 1.1,
+        "unit": "kg"
+      },
+      {
+        "id": "10055822",
+        "pack": "0,5l",
+        "quantity": 0.5,
+        "unit": "l"
+      },
+      {
+        "id": "10006182",
+        "pack": "50 x 17,25g",
+        "quantity": 862.5,
+        "unit": "g"
+      }
+    ]
+  }
 }
