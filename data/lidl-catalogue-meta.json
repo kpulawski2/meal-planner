@@ -27,11 +27,11 @@
   "confirmed_unpublished_count": 0,
   "confirmed_unpublished_products": [],
   "retained_not_listed": 265,
-  "new_products_added": 48,
+  "new_products_added": 0,
   "new_prices_added": 0,
-  "refreshed_at": "2026-10-16T10:24:42Z",
-  "last_successful_at": "2026-10-16T10:24:42Z",
-  "duration_seconds": 366.09,
+  "refreshed_at": "2026-10-16T19:13:59Z",
+  "last_successful_at": "2026-10-16T19:13:59Z",
+  "duration_seconds": 296.5,
   "category_count": 108,
   "category_counts": {
     "Home > Decoration": 47,
@@ -2447,7 +2447,7 @@
     "https://www.lidl.co.uk/q/api/search?assortment=GB&locale=en_GB&version=v2.0.0&category.id=10068374&sort=storeStartDate-desc&fetchsize=12&offset=96"
   ],
   "menu_ids_sha256": "dc6174440508df4847517587e49e1f7013fe5d82416a10507d8bb0a63e740eae",
-  "menu_content_sha256": "34f48f71220204fe3a18d71b7fc2b6a5e967cd4dadda35fc87568b6a014c44c7",
+  "menu_content_sha256": "9c21c80864a457ffbdd5caf68287359be97b93f4d7574a1cc05f8ec9420ae030",
   "with_price": 802,
   "with_pack_size": 1287,
   "with_sku": 2138,
@@ -2460,49 +2460,8 @@
   "grocery_products": 1452,
   "grocery_with_price": 446,
   "with_regular_price_labels": 83,
-  "with_priced_pack_size": 375,
-  "with_usable_price_at_refresh": 278,
-  "products_sha256": "8744fdfc6679e6412bcb48b0bce4c85769b58cd39beb73ad9079b51b2234c3e8",
-  "products_file_sha256": "765a867c3cd2ecb89a3eda527bb4df20af63c5d30b199c02626f1becfddf88fa",
-  "pack_parser_corrections": {
-    "note": "Existing published pack labels re-parsed without changing prices or original source timestamps.",
-    "products": [
-      {
-        "id": "10055445",
-        "pack": "1,5kg",
-        "quantity": 1.5,
-        "unit": "kg"
-      },
-      {
-        "id": "10052239",
-        "pack": "300g (24 x 12,5g)",
-        "quantity": 300.0,
-        "unit": "g"
-      },
-      {
-        "id": "10003289",
-        "pack": "2,25L",
-        "quantity": 2.25,
-        "unit": "l"
-      },
-      {
-        "id": "10021148",
-        "pack": "1,1kg",
-        "quantity": 1.1,
-        "unit": "kg"
-      },
-      {
-        "id": "10055822",
-        "pack": "0,5l",
-        "quantity": 0.5,
-        "unit": "l"
-      },
-      {
-        "id": "10006182",
-        "pack": "50 x 17,25g",
-        "quantity": 862.5,
-        "unit": "g"
-      }
-    ]
-  }
+  "with_priced_pack_size": 378,
+  "with_usable_price_at_refresh": 281,
+  "products_sha256": "c944e322299dcf9f6062864d9f16690fc6fb8417a3e069385e1d5c6f23cbb0c8",
+  "products_file_sha256": "cd5fabc7d48dfee52abccafbde4fbaa4c29acfce1126af0b197373a42ff1442d"
 }
