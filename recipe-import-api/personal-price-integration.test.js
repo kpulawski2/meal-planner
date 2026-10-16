@@ -79,3 +79,50 @@ test('labelled personal liquid conversions survive offline and swap checks witho
  assert.equal(c.ConsumerTools.validPlan(plan,{store:'Lidl',ingredient:'Mayonnaise',dimension:'mass'}),true);assert.equal(c.MealSwapCore.planValid(plan,600,'Lidl',{name:'Mayonnaise',dimension:'mass'}),true);
  for(const edit of [{totalQuantity:100000},{quantityBasis:'No calculation needed'},{estimatedQuantity:false}]){const changed=structuredClone(plan);Object.assign(changed.products[0],edit);assert.equal(c.ConsumerTools.validPlan(changed,{store:'Lidl',ingredient:'Mayonnaise',dimension:'mass'}),false);assert.equal(c.MealSwapCore.planValid(changed,600,'Lidl',{name:'Mayonnaise',dimension:'mass'}),false);}
 });
+
+test('personal plan totals cannot claim more coverage than the sum of their validated packs',()=>{
+ const app=harness(),c=app.context;c.PersonalPricesCore.write(app.snapshot);
+ vm.runInContext(html.slice(html.indexOf('function personalProductValid('),html.indexOf('function personalPriceNote('))+'\n'+html.slice(html.indexOf('function automaticCatalogPlanValid('),html.indexOf('function automaticCatalogSummary(')),c);
+ const context={store:'Lidl',name:'Oats',ingredient:'Oats',dimension:'mass'};
+ assert.equal(c.automaticCatalogPlanValid(app.plan,context),true);assert.equal(c.ConsumerTools.validPlan(app.plan,context),true);
+ const forged={...app.plan,requestedQuantity:1500,totalQuantity:1500,totalCostGBP:1.25,products:[{...app.product,packs:1,costGBP:1.25,totalQuantity:1000}]};
+ assert.equal(c.PersonalPricesCore.productMatches(forged.products[0],context),true,'the individual one-kilogram pack is legitimate');
+ assert.equal(c.automaticCatalogPlanValid(forged,context),false);assert.equal(c.ConsumerTools.validPlan(forged,context),false);
+ const key='oats::mass',catalogue={store:'Lidl',status:'ready',fingerprint:'aggregate-regression',loadedAt:Date.now(),items:[{key,name:'Oats',dimension:'mass',quantity:1500}],results:{[key]:{key,dimension:'mass',match:app.product,plan:forged}}};
+ assert.equal(c.ConsumerTools.snapshot(catalogue),null);
+ for(const totalQuantity of [null,undefined,NaN,Infinity,0,-1]){const invalid={...app.plan,products:[...app.plan.products,{url:'https://www.lidl.co.uk/p/oats/p10000001',packs:1,costGBP:0,totalQuantity}]};assert.equal(c.automaticCatalogPlanValid(invalid,context),false);assert.equal(c.ConsumerTools.validPlan(invalid,context),false);}
+});
+
+test('the real budget-plan acceptance check rejects personal packs that cannot cover the recipes',async()=>{
+ const app=harness(),c=app.context;
+ c.PersonalPricesCore.write(app.snapshot);
+ vm.runInContext(await readFile(new URL('../public/macro-goals-core.js',import.meta.url),'utf8'),c);
+ c.state.profile={supermarket:'Lidl',days:1,meals:3,people:1,budget:35,calories:1200,protein:90,varietyMode:'Repeat favourites'};
+ c.recipes=['Breakfast','Lunch','Dinner'].map((cat,index)=>({id:'aggregate-fixture-'+index,name:cat,cat,servings:1,ings:[['Oats',400,'g']],nutrition:{kcal:400,p:30,complete:true}}));
+ c.selectedShoppingStore=()=>c.state.profile.supermarket;
+ c.recipeAllowed=()=>true;
+ c.recipeCategory=recipe=>recipe.cat;
+ c.recipeNutrition=recipe=>recipe.nutrition;
+ c.mealKey=(day,index)=>day+'::'+index;
+ c.getMealServings=()=>1;
+ delete c.MealIntentCore;
+ // Load the production acceptance path and its actual quantity validators.
+ // In particular, do not substitute the permissive budget-ui test helper.
+ for(const [start,end] of [
+  ['function planCashKnown(','function budgetPlannerPayload('],
+  ['function planBudget(','function dailyProteinTarget('],
+  ['function budgetPlanValidation(','async function fetchBudgetPlan('],
+  ['function automaticCatalogKey(','function personalPricePayload('],
+  ['function personalProductValid(','function personalPriceNote('],
+  ['function automaticCatalogPlanValid(','function automaticCatalogSummary('],
+ ])vm.runInContext(html.slice(html.indexOf(start),html.indexOf(end)),c);
+ const plan={...app.plan,requestedQuantity:1200};
+ const result={store:'Lidl',status:'feasible',week:[{day:'Monday',meals:c.recipes.map(recipe=>recipe.id)}],mealServings:{},basket:{complete:true,totalCostGBP:2.5,recommendations:[{key:'oats::mass',match:app.product,plan}]}};
+ assert.equal(c.budgetPlanValidation(result),true,'two real one-kilogram packs cover the 1.2-kilogram recipe requirement');
+ const forged=structuredClone(result),recommendation=forged.basket.recommendations[0];
+ recommendation.plan={...plan,totalQuantity:1200,totalCostGBP:1.25,products:[{...app.product,packs:1,costGBP:1.25,totalQuantity:1000}]};
+ forged.basket.totalCostGBP=1.25;
+ assert.equal(c.PersonalPricesCore.productMatches(recommendation.plan.products[0],{store:'Lidl',ingredient:'Oats',dimension:'mass'}),true,'the single saved pack is itself valid');
+ assert.equal(c.budgetPlanValidation(forged),false,'a claimed basket total cannot make a single kilogram cover 1.2 kilograms of recipes');
+ assert.deepEqual(c.state.week,[],'rejected quotes leave the saved meals untouched');
+});

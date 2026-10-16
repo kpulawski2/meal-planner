@@ -52,6 +52,6 @@
   }
   root.PersonalPricesUI = Object.freeze({ configure(value) { api = value; }, open, close() { api?.close(); }, save, edit, reset,
     remove(id) { if (notify(core().remove(id), 'Personal pack price removed')) { if (editing === id) reset(); drawRows(); status('Pack removed.'); } },
-    include(value) { if (notify(core().setIncluded(value), value ? 'Personal Lidl prices enabled' : 'Personal Lidl prices excluded')) drawRows(); else { const current = core().read(); element('personalPriceIncluded').checked = current.ok && current.snapshot.includeInPlanning; } }
+    include(value) { if (notify(core().setIncluded(value), value ? 'Personal Lidl prices enabled' : 'Personal Lidl prices excluded')) { drawRows(); status(value ? 'Eligible saved pack prices will be used for your next Lidl plan and shopping check.' : 'Your saved pack prices are excluded from planning and shopping checks.'); } else { const current = core().read(); element('personalPriceIncluded').checked = current.ok && current.snapshot.includeInPlanning; } }
   });
 })(typeof window !== 'undefined' ? window : globalThis);

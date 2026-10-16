@@ -7,7 +7,9 @@
     return Boolean(plan && Array.isArray(plan.products) && plan.products.length && amount(plan.totalCostGBP)
       && Number.isFinite(Number(plan.requestedQuantity)) && Number(plan.requestedQuantity) > 0
       && Number(plan.totalQuantity) + 1e-6 >= Number(plan.requestedQuantity)
-      && (!plan.products.some(product => product.priceBasis === 'personal') || plan.estimatedPrice === true)
+      && (!plan.products.some(product => product.priceBasis === 'personal') || plan.estimatedPrice === true
+        && plan.products.every(product => Number.isFinite(Number(product.totalQuantity)) && Number(product.totalQuantity) > 0)
+        && Math.abs(plan.products.reduce((total, product) => total + Number(product.totalQuantity), 0) - Number(plan.totalQuantity)) <= 1e-5)
       && plan.products.every(product => Number.isInteger(Number(product.packs)) && Number(product.packs) > 0
         && amount(product.costGBP) && (product.priceBasis === 'personal' || String(product.url || '').startsWith('personal:')
           ? Boolean(context.dimension) && root.PersonalPricesCore?.productMatches?.(product, context) === true

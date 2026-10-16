@@ -80,6 +80,10 @@ test('piece packs and unsupported unit requests cannot be confused or counted as
   const result = await catalog.recommendCatalogItems('Lidl', [item('Eggs', 7, 'each')], { allowPersonalPrices: true, personalPrices: [eggs] });
   assert.ok(result.recommendations[0].plan, 'the browser uses the each dimension for egg counts');
   assert.equal(result.recommendations[0].plan.totalCostGBP, 2.4); assert.equal(result.recommendations[0].plan.products[0].packs, 2);
+  const incompatible = observed('Eggs', 300, 1.2);
+  const fallback = await catalog.recommendCatalogItems('Lidl', [item('Eggs', 7, 'each')], { allowPersonalPrices: true, personalPrices: [incompatible] });
+  assert.equal(fallback.recommendations[0].plan.totalCostGBP, 4, 'an incompatible saved gram pack must not hide a usable official piece pack');
+  assert.equal(fallback.recommendations[0].plan.products[0].priceBasis, 'website');
   const unsupported = await catalog.recommendCatalogItems('Lidl', [item('Rolled oats', 100, 'volume')], options);
   assert.equal(unsupported.recommendations[0].plan, null, 'an unproven gram-to-millilitre conversion cannot create a zero-cost plan');
   const mayo = observed('Mayonnaise', 500, 1, { packUnit: 'ml' });

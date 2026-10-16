@@ -794,7 +794,10 @@ function indexedCandidates(index, query, dimension) {
   // Prefer their observed pack over historical website estimates for that exact
   // ingredient. A different unit still needs the normal safe conversion rules.
   const personal = index.personalByIngredient?.get(personalIngredientKey(query));
-  if (personal?.length) return personal.map(product => ({ product, score: 100 })).filter(row => purchasePackMeta(row.product, canonicalDimension(dimension)));
+  if (personal?.length) {
+    const compatible = personal.map(product => ({ product, score: 100 })).filter(row => purchasePackMeta(row.product, canonicalDimension(dimension)));
+    if (compatible.length) return compatible;
+  }
   const cacheKey = JSON.stringify([productTokens(query), canonicalDimension(dimension)]);
   if (index.candidateCache.has(cacheKey)) return index.candidateCache.get(cacheKey);
   // The scorer requires a name-token hit. Full-name matches have priority, so only

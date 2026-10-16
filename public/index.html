@@ -763,7 +763,7 @@ function automaticCatalogPlanValid(plan,context={}) {
   const validAmount=value=>value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))&&Number(value)>=0;
   if(!validAmount(plan.totalCostGBP)||!Number.isFinite(Number(plan.totalQuantity))||Number(plan.totalQuantity)<=0||!validAmount(plan.requestedQuantity)||Number(plan.totalQuantity)<Number(plan.requestedQuantity)-1e-6)return false;
   if(!plan.products.every(product=>Number.isInteger(Number(product.packs))&&Number(product.packs)>0&&validAmount(product.costGBP)))return false;
-  if(plan.products.some(product=>product.priceBasis==='personal')&&plan.estimatedPrice!==true)return false;
+  if(plan.products.some(product=>product.priceBasis==='personal')&&(plan.estimatedPrice!==true||!plan.products.every(product=>Number.isFinite(Number(product.totalQuantity))&&Number(product.totalQuantity)>0)||Math.abs(plan.products.reduce((sum,product)=>sum+Number(product.totalQuantity),0)-Number(plan.totalQuantity))>1e-5))return false;
   if(!plan.products.every(product=>product.priceBasis!=='personal'&&!String(product.url||'').startsWith('personal:')||Boolean(context.dimension)&&personalProductValid(product,context)&&Math.abs(Number(product.costGBP)-Number(product.packs)*Number(product.priceGBP))<.011))return false;
   return Math.abs(plan.products.reduce((sum,product)=>sum+Number(product.costGBP),0)-Number(plan.totalCostGBP))<0.011;
 }
