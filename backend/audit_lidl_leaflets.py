@@ -27,7 +27,7 @@ HOSTS = {'www.lidl.co.uk', 'endpoints.leaflets.schwarz', 'lidl.leaflets.schwarz'
 SLUG = r'\d{2}-\d{2}-\d{2}-\d{2}-lidl-weekly(?:-[a-f0-9]{6})?'
 VIEWER = re.compile(r'^https://www\.lidl\.co\.uk/l/en/online-leaflets/('+SLUG+r')/ar/\d+$')
 MAX_BYTES = 4000000
-MAX_FLYERS = 8
+MAX_FLYERS = 16
 MAX_NODES = 100000
 
 
@@ -74,6 +74,49 @@ def viewer_links(source):
     source = html.unescape(source).replace(r'\/', '/')
     candidates = re.findall(r'(?<![\w/:.])(?:https://www\.lidl\.co\.uk)?/l/en/online-leaflets/[^\s<>"\'?#]+/ar/\d+', source)
     return sorted({urljoin(HUB, value) for value in candidates if VIEWER.fullmatch(urljoin(HUB, value))})
+
+
+def overview_viewers(value):
+    """Read the observed provider schema, retaining national/regional identity.
+
+    This endpoint is fixed to Lidl GB. Every child still needs an official GB
+    viewer URL, matching exact metadata route, and declared region identity.
+    Unknown schemas or unsafe links stop discovery, rather than shrinking it.
+    """
+    if not isinstance(value, dict) or value.get('success') is not True or not isinstance(value.get('categories'), list):
+        raise LeafletAuditError('Unrecognised or unsuccessful official GB overview schema.')
+    found = {}
+    for category in value['categories']:
+        if not isinstance(category, dict) or not isinstance(category.get('subcategories'), list):
+            raise LeafletAuditError('Unrecognised overview category schema.')
+        for subcategory in category['subcategories']:
+            if not isinstance(subcategory, dict) or not isinstance(subcategory.get('flyers'), list):
+                raise LeafletAuditError('Unrecognised overview subcategory schema.')
+            for flyer in subcategory['flyers']:
+                if not isinstance(flyer, dict):
+                    raise LeafletAuditError('Invalid overview flyer record.')
+                viewer = flyer.get('regionAliasAbsoluteUrl')
+                match = VIEWER.fullmatch(viewer) if isinstance(viewer, str) else None
+                if not match or not safe_host(viewer):
+                    raise LeafletAuditError('Overview contains a non-weekly or non-GB viewer; source scope requires review.')
+                slug = match[1]
+                endpoint = flyer.get('flyerJson')
+                if not isinstance(endpoint, str) or urlsplit(endpoint).path != '/v4/flyer' or not metadata_url(endpoint, [slug]):
+                    raise LeafletAuditError('Overview flyer metadata route does not match its GB identity.')
+                regions = flyer.get('regions')
+                if not isinstance(regions, list) or not regions or any(not isinstance(region, dict) or region.get('type') not in ('national', 'offer_region', 'store') or not re.fullmatch(r'\d+', str(region.get('code', ''))) for region in regions):
+                    raise LeafletAuditError('Overview flyer has invalid region identities.')
+                if viewer.rsplit('/', 1)[-1] not in {str(region['code']) for region in regions}:
+                    raise LeafletAuditError('Overview viewer region does not match its declared regions.')
+                if viewer in found:
+                    raise LeafletAuditError('Duplicate overview viewer identity.')
+                found[viewer] = {'viewerUrl': viewer, 'slug': slug, 'metadataUrl': endpoint,
+                                 'regions': regions, 'offerStartDate': flyer.get('offerStartDate'), 'offerEndDate': flyer.get('offerEndDate')}
+                if len(found) > MAX_FLYERS:
+                    raise LeafletAuditError('Overview flyer count exceeds bound; not truncated.')
+    if not found:
+        raise LeafletAuditError('Official GB overview contains no weekly flyer identities.')
+    return found
 
 
 def inspect_metadata(value):
@@ -156,9 +199,9 @@ def audit(directory=Path('work/lidl-leaflet-audit'), get=None, *, seconds=180):
     manifest, failures, rows = [], [], []
     allowed = {HUB, OVERVIEW, MODULE}
     report = {'schemaVersion': 1, 'checkedAt': datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'),
-              'status': 'incomplete', 'pricesPublished': False, 'scope': 'Metadata for weekly leaflet identities actually linked from the official Lidl GB hub; at most eight flyers.',
+              'status': 'incomplete', 'pricesPublished': False, 'scope': 'Weekly leaflet identities from the official Lidl GB hub and fixed GB provider overview, including national and regional editions; at most sixteen flyers.',
               'notVerified': 'Images, PDF contents, exact pack prices, Sheffield applicability, store stock and unlisted leaflets are not verified. Metadata dates and OCR require review before use.',
-              'sourceRequests': rows, 'failures': failures, 'viewerUrls': []}
+              'sourceRequests': rows, 'failures': failures, 'viewerUrls': [], 'overviewFlyers': []}
 
     def read(url, kind):
         row = {'url': url, 'kind': kind, 'status': 'unverified'}
@@ -188,14 +231,38 @@ def audit(directory=Path('work/lidl-leaflet-audit'), get=None, *, seconds=180):
             failures.append({'url': url, 'error': str(error)})
             return None, row
 
+    def read_metadata(url, kind):
+        source, row = read(url, kind)
+        if source is None:
+            return None
+        try:
+            value = json.loads(source)
+            if not isinstance(value, (dict, list)) or not value:
+                raise LeafletAuditError('Metadata response is empty or not an object/list.')
+            if isinstance(value, dict) and (value.get('success') is False or value.get('error') or value.get('errors') or isinstance(value.get('statusCode'), int) and value['statusCode'] >= 400):
+                raise LeafletAuditError('Provider returned an error document; retained without verified metadata.')
+            row['inspection'] = inspect_metadata(value)
+            row['status'] = 'metadata_captured_for_review'
+            return value
+        except Exception as error:
+            row.update({'status': 'unverified', 'error': str(error)})
+            failures.append({'url': url, 'error': str(error)})
+            return None
+
     try:
         hub, _ = read(HUB, 'official_GB_leaflet_hub')
         if hub is None:
             raise LeafletAuditError('Cannot establish official GB weekly flyer identities.')
-        viewers = viewer_links(hub)
+        hub_viewers = viewer_links(hub)
+        overview = read_metadata(OVERVIEW, 'GB_overview')
+        if overview is None:
+            raise LeafletAuditError('Cannot establish the complete official GB overview identities.')
+        overview_entries = overview_viewers(overview)
+        report['overviewFlyers'] = [overview_entries[url] for url in sorted(overview_entries)]
+        viewers = sorted(set(hub_viewers) | overview_entries.keys())
         report['viewerUrls'] = viewers
         slugs = sorted({VIEWER.fullmatch(url)[1] for url in viewers})
-        if not slugs or len(slugs) > MAX_FLYERS:
+        if not slugs or len(slugs) > MAX_FLYERS or len(viewers) > MAX_FLYERS:
             raise LeafletAuditError('No identified weekly flyers or flyer count exceeds bound; not truncated.')
         allowed.update(viewers)
         allowed.update(flyer_url(slug) for slug in slugs)
@@ -204,23 +271,10 @@ def audit(directory=Path('work/lidl-leaflet-audit'), get=None, *, seconds=180):
         read(MODULE, 'official_public_leaflet_module')
         for viewer in viewers:
             read(viewer, 'official_GB_weekly_viewer')
-        for url in [OVERVIEW]+[flyer_url(slug) for slug in slugs]:
+        for url in [flyer_url(slug) for slug in slugs]:
             if not metadata_url(url, slugs):
                 raise LeafletAuditError('Unexpected metadata request.')
-            source, row = read(url, 'GB_overview' if url == OVERVIEW else 'identified_GB_flyer_metadata')
-            if source is None:
-                continue
-            try:
-                value = json.loads(source)
-                if not isinstance(value, (dict, list)) or not value:
-                    raise LeafletAuditError('Metadata response is empty or not an object/list.')
-                if isinstance(value, dict) and (value.get('error') or value.get('errors') or isinstance(value.get('statusCode'), int) and value['statusCode'] >= 400):
-                    raise LeafletAuditError('Provider returned an error document; retained without verified metadata.')
-                row['inspection'] = inspect_metadata(value)
-                row['status'] = 'metadata_captured_for_review'
-            except Exception as error:
-                row.update({'status': 'unverified', 'error': str(error)})
-                failures.append({'url': url, 'error': str(error)})
+            read_metadata(url, 'identified_GB_flyer_metadata')
         if not failures:
             report['status'] = 'complete_metadata_capture'
     except Exception as error:

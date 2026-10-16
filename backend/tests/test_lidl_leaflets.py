@@ -18,9 +18,54 @@ class LeafletAuditTests(unittest.TestCase):
         data = {'locale': 'en-GB', 'pages': [{'altText': 'Oats 1kg £1.25 with membership', 'imageUrl': 'https://assets.leaflets.schwarz/images/page.jpg'}],
                 'pdfUrl': 'https://outside.example/leaflet.pdf'}
         docs = {audit.HUB: '<a href="'+viewer+'">Leaflet</a>', audit.MODULE: '/* public module, never evaluated */',
-                viewer: '<div id="root"></div>', audit.OVERVIEW: json.dumps({'locale': 'en-GB', 'flyers': [{'id': slug}]}),
+                viewer: '<div id="root"></div>', audit.OVERVIEW: json.dumps({'success': True, 'locale': 'en-GB', 'categories': [{'subcategories': [{'flyers': [self.overview_entry(slug, viewer)]}]}]}),
                 audit.flyer_url(slug): json.dumps(data)}
         return docs, slug, viewer
+
+    def overview_entry(self, slug, viewer):
+        code = viewer.rsplit('/', 1)[-1]
+        return {'regionAliasAbsoluteUrl': viewer, 'flyerJson': audit.flyer_url(slug),
+                'regions': [{'type': 'national' if code == '0' else 'offer_region', 'code': code}],
+                'offerStartDate': '2026-10-15', 'offerEndDate': '2026-10-21'}
+
+    def test_regional_overview_identity_is_captured_even_when_absent_from_hub(self):
+        docs, _, _ = self.fixture()
+        regional_slug = '15-10-21-10-lidl-weekly-ee8c68'
+        regional = 'https://www.lidl.co.uk/l/en/online-leaflets/'+regional_slug+'/ar/1'
+        overview = json.loads(docs[audit.OVERVIEW])
+        overview['categories'][0]['subcategories'][0]['flyers'].append(self.overview_entry(regional_slug, regional))
+        docs[audit.OVERVIEW] = json.dumps(overview)
+        docs[regional] = '<div id="root"></div>'
+        docs[audit.flyer_url(regional_slug)] = json.dumps({'locale': 'en-GB', 'pages': [{'altText': 'Regional Lidl leaflet'}]})
+        calls = []
+        def get(url):
+            calls.append(url)
+            return docs[url]
+        with tempfile.TemporaryDirectory() as directory:
+            report = audit.audit(Path(directory), get)
+            self.assertEqual(report['status'], 'complete_metadata_capture')
+            self.assertEqual(report['summary']['weeklyViewerIdentities'], 2)
+            self.assertEqual(report['summary']['metadataResponsesCaptured'], 3)
+            self.assertIn(regional, calls)
+            self.assertIn(audit.flyer_url(regional_slug), calls)
+            regional_row = next(row for row in report['overviewFlyers'] if row['viewerUrl'] == regional)
+            self.assertEqual(regional_row['regions'], [{'type': 'offer_region', 'code': '1'}])
+            self.assertEqual(regional_row['offerStartDate'], '2026-10-15')
+
+    def test_overview_route_region_and_country_identity_cannot_be_substituted(self):
+        for changed in ({'flyerJson': audit.OVERVIEW},
+                        {'regionAliasAbsoluteUrl': 'https://evil.example/l/en/online-leaflets/15-10-21-10-lidl-weekly/ar/0'},
+                        {'regions': [{'type': 'national', 'code': '11'}]}):
+            docs, _, _ = self.fixture()
+            overview = json.loads(docs[audit.OVERVIEW])
+            overview['categories'][0]['subcategories'][0]['flyers'][0].update(changed)
+            docs[audit.OVERVIEW] = json.dumps(overview)
+            with tempfile.TemporaryDirectory() as directory:
+                with self.assertRaisesRegex(audit.LeafletAuditError, 'incomplete'):
+                    audit.audit(Path(directory), docs.__getitem__)
+                report = json.loads((Path(directory)/'leaflet-audit.json').read_text())
+                self.assertEqual(report['status'], 'incomplete')
+                self.assertEqual(report['summary']['capturedSources'], 2)
 
     def test_exact_identified_sources_retained_without_fetching_asset_links_or_pricing(self):
         docs, slug, viewer = self.fixture()
