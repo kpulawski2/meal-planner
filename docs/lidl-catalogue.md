@@ -38,7 +38,7 @@ includes published listings and separately labelled source references, missing
 prices, offer windows and member conditions. An amount does not establish a
 usable recipe pack, local stock or the full range of a physical store.
 
-`audit-lidl-price-sources.yml` audits every recursive sitemap URL and non-product
+The manually run `audit-lidl-price-sources.yml` audits every recursive sitemap URL and non-product
 public content page, plus linked official leaflet viewers. Stores/legal/assets
 have explicit dispositions; canonical product URLs belong to the separate full
 product refresh. Source hashes, compressed captures, price contexts and PDF
@@ -47,6 +47,9 @@ and honour `Retry-After`; denied or unfinished pages make the report incomplete.
 Extracted text is only evidence to review, never an automatically imported price.
 PDF links, unlisted pages and inaccessible viewer content do not imply complete
 in-store price coverage.
+The full crawl runs on demand to avoid re-reading hundreds of unrelated content
+pages for every app edit. The regular full product refresh and its pull-request
+verification continue independently.
 
 The free refresh follows the official `robots.txt` sitemap declaration and every
 child sitemap, including gzip files. Every discovered `/p/.../p<number>` page is
