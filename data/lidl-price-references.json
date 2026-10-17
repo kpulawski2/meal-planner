@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "reviewedAt": "2026-10-15",
+  "reviewedAt": "2026-10-16",
   "sources": [
     {
       "id": "comparison",
@@ -63,6 +63,22 @@
       "period": "19 July 2023",
       "date": "2023-07-19",
       "notes": "Historical references; only products with exact pack sizes retained."
+    },
+    {
+      "id": "ni-undated-basket",
+      "label": "Lidl Northern Ireland published basket price list",
+      "url": "https://www.lidl-ni.co.uk/static/assets/WK39-1152742.pdf",
+      "period": "Undated",
+      "date": null,
+      "notes": "Northern Ireland GBP amounts from the printed Price column. No year or full price-check date is printed; WK39 in the filename is not treated as a date. Only an explicitly named, weighed pack is included."
+    },
+    {
+      "id": "ni-july2025-retail",
+      "label": "Lidl Northern Ireland retail prices before Lidl Plus offers",
+      "url": "https://www.lidl-ni.co.uk/static/assets/NIWk27LPSavingsweb-1644357.pdf",
+      "period": "3–9 July 2025 (pre-offer retail price)",
+      "date": "2025-07-03",
+      "notes": "Uses the printed LP Old RP retail amount for the exact pack, not the expired LP New RP membership promotion. Campaign validity dates are retained as the historical source period. Not a current in-store check."
     }
   ],
   "references": [
@@ -1785,6 +1801,34 @@
       "priceGBP": 0.95,
       "category": "Oils, Condiments & Sauces",
       "regions": []
+    },
+    {
+      "id": "ni-organic-oats-1kg",
+      "sourceId": "ni-undated-basket",
+      "storeSku": null,
+      "name": "Organic Jumbo Porridge Oats",
+      "packQuantity": 1000,
+      "packUnit": "g",
+      "packSize": "1 kg",
+      "priceGBP": 1.99,
+      "category": "Cereals & Spreads > Cereals",
+      "regions": [
+        "Northern Ireland"
+      ]
+    },
+    {
+      "id": "ni-chicken-breast-1kg",
+      "sourceId": "ni-july2025-retail",
+      "storeSku": null,
+      "name": "Birchwood Chicken Breast Fillets",
+      "packQuantity": 1000,
+      "packUnit": "g",
+      "packSize": "1 kg",
+      "priceGBP": 6.44,
+      "category": "Meat & Poultry > Poultry",
+      "regions": [
+        "Northern Ireland"
+      ]
     }
   ]
 }

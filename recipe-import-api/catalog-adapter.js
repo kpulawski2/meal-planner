@@ -1,3 +1,4 @@
+import {recipePriceExtras,trustedRecipeExtra} from './recipe-price-extras.js';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -5,9 +6,15 @@ import { setImmediate as yieldToServer } from 'node:timers/promises';
 import { createHash } from 'node:crypto';
 import { loadRangeReferences } from './lidl-range-references.js';
 import { loadPriceReferences, referenceProduct, isTrustedReferencePrice } from './lidl-price-references.js';
+import { loadAldiPrices, aldiProduct, isTrustedAldiPrice } from './aldi-prices.js';
 import { withPersonalPriceIndex, personalIngredientKey, isTrustedPersonalPrice, personalPriceEvidence, personalPurchaseMeta } from './personal-prices.js';
 
 const CATALOG_STORES = {
+  Aldi: {
+    name: 'Aldi',
+    catalogue: 'https://www.aldi.co.uk/products',
+    allowedProduct: url => globalThis.RetailerPriceSources.aldiSource(url) && new URL(url).hostname === 'www.aldi.co.uk',
+  },
   Asda: {
     name: 'Asda',
     catalogue: 'https://www.asda.com/groceries/search',
@@ -28,7 +35,7 @@ const catalogCache = new Map();
 const catalogLoads = new Map();
 let catalogGeneration = 0;
 const catalogueStatusCache = new Map();
-const referenceIndexes = new WeakMap();
+let referenceIndexes = new WeakMap();
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ASDA_CATALOGUE_PATH = process.env.ASDA_CATALOGUE_PATH || path.resolve(MODULE_DIR, '../data/products.json');
 const ASDA_METADATA_PATH = process.env.ASDA_CATALOGUE_META_PATH || path.resolve(MODULE_DIR, '../data/catalogue-meta.json');
@@ -37,6 +44,7 @@ const LIDL_METADATA_PATH = process.env.LIDL_CATALOGUE_META_PATH || path.resolve(
 const snapshotPaths = store => store === 'Lidl' ? [LIDL_CATALOGUE_PATH, LIDL_METADATA_PATH] : [ASDA_CATALOGUE_PATH, ASDA_METADATA_PATH];
 
 async function snapshotSignature(storeName = 'Asda') {
+  if (storeName === 'Aldi') { const file = await stat(new URL('../data/aldi-prices.json', import.meta.url)); return `${file.mtimeMs}:${file.size}`; }
   const [products, metadata] = await Promise.all(snapshotPaths(storeName).map(file => stat(file)));
   return `${products.mtimeMs}:${products.size}:${metadata.mtimeMs}:${metadata.size}`;
 }
@@ -99,6 +107,18 @@ function extractLocs(xml) {
 async function buildUrlIndex(storeName) {
   const config = CATALOG_STORES[storeName];
   if (!config) throw new Error(`Unsupported catalog store: ${storeName}`);
+
+  if (storeName === 'Aldi') {
+    const products = (await loadAldiPrices()).map(row => aldiProduct(row));
+    const metadata = { store: 'Aldi', status: 'complete', coverage_scope: 'curated_recipe_ingredients',
+      refreshed_at: products.reduce((latest, product) => product.referenceReviewedAt > latest ? product.referenceReviewedAt : latest, '') + 'T00:00:00Z',
+      products_saved: products.length, products_expected: products.length, coverage: 1, with_price: products.length,
+      price_coverage: 1, source: 'Dated UK Aldi pack prices; curated recipe ingredients, not the full store range' };
+    return { products, metadata, urls: products.map(product => product.url), source: metadata.source,
+      createdAt: Date.parse(metadata.refreshed_at), loadedAt: Date.now(), signature: await snapshotSignature(storeName),
+      categoryCount: new Set(products.map(product => product.category)).size, snapshotStatus: 'complete',
+      nameIndex: await buildNameIndex(products), candidateCache: new Map() };
+  }
 
   if (Object.hasOwn(CATALOG_STORES, storeName)) {
     let products;
@@ -168,6 +188,7 @@ async function getIndex(storeName) {
 // its hash and strict callers remain unchanged.
 async function pricingIndex(store, allowReferencePrices = false) {
   const base = await getIndex(store);
+  if(store==='Aldi')return {...base,candidateCache:new Map(),fallbackIndex:{products:recipePriceExtras,nameIndex:await buildNameIndex(recipePriceExtras)}};
   if (store !== 'Lidl' || allowReferencePrices !== true) return base;
   if (!referenceIndexes.has(base)) referenceIndexes.set(base, (async () => {
     const refs = await loadPriceReferences(), products = [...base.products];
@@ -206,7 +227,13 @@ async function pricingIndex(store, allowReferencePrices = false) {
         products.push(referenceProduct(ref));
       }
     }
-    return { ...base, products, nameIndex: await buildNameIndex(products), candidateCache: new Map() };
+    // Keep Aldi outside the Lidl product list and counts. It is consulted only
+    // for an ingredient with no usable, compatible Lidl offer.
+    const aldi = await getIndex('Aldi');
+    const fallbackRows = (await loadAldiPrices()).map(row => aldiProduct(row, { fallback: true }));
+    const fallbackProducts=[...fallbackRows,...recipePriceExtras];
+    const fallbackIndex = { products: fallbackProducts, nameIndex: await buildNameIndex(fallbackProducts) };
+    return { ...base, products, nameIndex: await buildNameIndex(products), candidateCache: new Map(), fallbackIndex };
   })());
   try { return await referenceIndexes.get(base); }
   catch (error) { referenceIndexes.delete(base); throw error; }
@@ -294,6 +321,12 @@ function ingredientCategory(product) {
   return parts.map(part => shelves[part.trim().toLowerCase()] || part).join(' > ');
 }
 
+function frozenProduct(product) {
+  // A department called "Fresh & Frozen Food" does not establish a product's
+  // storage type. Require a frozen shelf or an explicit frozen product name.
+  return /\bfrozen\b/i.test(product?.name || '') || ingredientCategory(product).split(/\s*>\s*/).some(shelf => /^frozen\b/i.test(shelf.trim()));
+}
+
 function ingredientCompatible(query, product, preparedWords = ingredientWords(query)) {
   if (product?.available === false || /out[ _-]*of[ _-]*stock|sold[ _-]*out|unavailable|discontinued|not[ _-]*available/i.test(String(product?.availability || ''))) return false;
   const words = new Set(preparedWords);
@@ -307,16 +340,21 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   const category = ingredientCategory(product);
   const asked = word => words.has(word);
   const unrequested = set => [...set].some(word => name.has(word) && !asked(word));
+  // A named FUEL10K product is an explicit choice. Shared chocolate/protein
+  // words cannot turn hoops, granola or another brand into the requested flakes.
+  if (asked('fuel10k') && !preparedWords.every(word => name.has(word))) return false;
   // A token hit in candles, pet food or cosmetics is never an ingredient match.
   if (/\b(?:home & entertainment|toys?|pets?|pet food|laundry|household|toiletries|beauty|garden|furniture|electrical|stationery|craft|baby|toddler)\b/i.test(category)) return false;
   const frozenRequested = fullWords.has('frozen');
+  const frozen = frozenProduct(product);
+  if (fullWords.has('fresh') && frozen) return false;
   const driedRequested = fullWords.has('dried');
   if (asked('mayonnaise')) {
     if (!name.has('mayonnaise') || !/sauce|condiment|mayonnaise|dressing/i.test(category)) return false;
     for (const word of ['light','lighter','vegan','garlic','chilli','chipotle','truffle','egg','tuna','salad','sandwich','burger'])
       if (name.has(word) && !asked(word)) return false;
   }
-  if (frozenRequested && !/frozen/i.test(category) && !/\bfrozen\b/i.test(title)) return false;
+  if (frozenRequested && !frozen) return false;
   if (driedRequested && !/dried|dry herbs|herbs & spices|spices/i.test(category) && !/\bdried\b/i.test(title)) return false;
 
   if (asked('milk')) {
@@ -363,7 +401,9 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   const preparedProduce = ['juice', 'sauce', 'paste', 'powder', 'chopped', 'tinned', 'dried', 'canned', 'stock'].some(word => fullWords.has(word));
   if (produce && !preparedProduce) {
     if (!(frozenRequested ? /frozen.*(?:vegetable|fruit|pea|bean)/i.test(category) : /fresh (?:fruit|salad|vegetable)|vegetables & flowers/i.test(category))) return false;
-    if (unrequested(COMPOSITE_FOODS)) return false;
+    const plainBerryMedley = asked('berry') && /frozen.*fruit/i.test(category) &&
+      ![...COMPOSITE_FOODS].some(word => word !== 'medley' && name.has(word) && !asked(word));
+    if (unrequested(COMPOSITE_FOODS) && !plainBerryMedley) return false;
     for (const word of ['mini', 'portion', 'pickled', 'pickle', 'mushy', 'mashed', 'smoothie', 'juice', 'dip', 'sauce', 'seasoned']) if (name.has(word) && !asked(word)) return false;
     if (!asked('mixed') && !asked('salad') && !asked('berry') && [...PRODUCE_TERMS].some(word => name.has(word) && !asked(word))) return false;
   }
@@ -371,6 +411,10 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   const meat = ['chicken', 'beef', 'pork', 'lamb', 'turkey', 'salmon', 'cod', 'fish', 'prawn', 'tuna'].find(asked);
   if (meat && !['stock', 'sauce', 'paste', 'soup'].some(asked)) {
     if (meat !== 'fish' && !name.has(meat)) return false;
+    // Generic frozen breast dinners require raw whole fillets. Some shops put
+    // cooked strips under the same frozen breast shelf without naming them cooked.
+    if (frozenRequested && meat === 'chicken' && asked('breast') && !asked('cooked') && !name.has('fillet')) return false;
+    if (frozenRequested && meat === 'chicken' && asked('breast') && name.has('mini') && !asked('mini')) return false;
     if (['breast','thigh','wing','drumstick','mince','steak','medallion','sirloin','rump'].some(cut => asked(cut) && !name.has(cut))) return false;
     if (asked('steak') && !asked('mince') && name.has('mince')) return false;
     if (!['vegan', 'plant', 'vegetarian', 'alternative'].some(asked) && /plant[ -]*based|vegan|vegetarian|meat[ -]*free|fish[ -]*free|alternative/i.test(title + ' ' + category)) return false;
@@ -380,7 +424,7 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
     if (name.has('salad') && !asked('salad')) return false;
     if (/prepared|ready meals|marinated|ready to cook/i.test(category)) return false;
     if (['chicken', 'beef', 'pork', 'lamb', 'turkey'].includes(meat) && /tinned|pies|party food|cooked meat|continental meat|charcuterie/i.test(category)) return false;
-    if (!frozenRequested && /frozen/i.test(category) && ['chicken', 'beef', 'pork', 'lamb', 'turkey'].includes(meat)) return false;
+    if (!frozenRequested && frozen && ['chicken', 'beef', 'pork', 'lamb', 'turkey'].includes(meat)) return false;
     if (fullWords.has('lean') && ['belly', 'rib'].some(word => name.has(word))) return false;
     if (fullWords.has('lean') && meat === 'pork' && !['lean', 'loin', 'fillet', 'medallion'].some(word => name.has(word))) return false;
     if (fullWords.has('lean') && meat === 'pork' && !asked('mince') && name.has('mince')) return false;
@@ -388,6 +432,8 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   }
 
   if (['pasta', 'rice', 'noodle', 'couscou', 'orzo', 'lentil', 'bean', 'chickpea'].some(asked) && !['sauce', 'paste', 'soup'].some(asked)) {
+    if (/crisps?|snacks?/i.test(category) || /\b(?:curls|crisps|puffs)\b/i.test(title)) return false;
+    if (isTrustedAldiPrice(product) && asked('lentil') && !asked('red') && !driedRequested && !fullWords.has('dry') && !/tinned|canned|cooked/i.test(title)) return false;
     // ASDA also shelves plain dry couscous under the broader cooking-sauces
     // parent. Its Middle Eastern leaf is usable; sauce/meal products stay out.
     const plainCouscousShelf = asked('couscou') && /moroccan & middle eastern food/i.test(category)
@@ -639,6 +685,7 @@ function purchasePackMeta(product, wantedDimension) {
   const drainedFood = words.has('sauerkraut') || /tinned|canned/i.test(category) &&
     ((words.has('tuna') && /brine|spring water|in water|sunflower oil|olive oil/i.test(title)) || words.has('sweetcorn') ||
       ((words.has('bean') || words.has('chickpea') || words.has('lentil')) && !/baked|sauce|salad|soup/i.test(title)));
+  if (isTrustedAldiPrice(product) && drainedFood && wantedDimension === 'mass' && product.quantityKind !== 'drained') return null;
   const unitPrice = Number(product.pricePerUnit), unitLabel = String(product.pricePerUnitLabel || '');
   const inferredDrained = /\/\s*(?:kg|kilogram)\b/i.test(unitLabel) && unitPrice > 0 ? Number(product.price) * 1000 / unitPrice : 0;
   if (meta.dimension === 'mass' && drainedFood && inferredDrained > meta.capacity * .25 && inferredDrained < meta.capacity * .98 && Math.abs(inferredDrained - Math.round(inferredDrained)) < .02) {
@@ -696,19 +743,23 @@ function priceEvidence(product) {
   const pageSource = product?.store === 'Lidl' && product?.price != null && (!product.priceSource || product.priceSource === 'Lidl GB official product page');
   return {
     estimatedPrice: product.estimatedPrice === true,
-    priceBasis: product.priceBasis === 'personal' ? 'personal' : product.estimatedPrice === true ? 'reference' : 'website',
+    priceBasis: trustedRecipeExtra(product) ? 'other_store' : isTrustedAldiPrice(product) ? product.priceBasis : product.priceBasis === 'personal' ? 'personal' : product.estimatedPrice === true ? 'reference' : 'website',
+    sourceStore: trustedRecipeExtra(product) ? 'Asda' : isTrustedAldiPrice(product) ? 'Aldi' : product.store || null,
     ...personalPriceEvidence(product),
     sourcePeriod: product.sourcePeriod || null,
     sourceDate: product.sourceDate || null,
+    referenceRegions: Array.isArray(product.referenceRegions) ? product.referenceRegions.slice() : [],
     referenceReviewedAt: product.referenceReviewedAt || null,
     priceSource: product.priceSource || (pageSource ? 'Lidl GB official product page' : null),
-    priceSourceUrl: product.priceSourceUrl || (pageSource ? product.url : null),
+    priceSourceUrl: product.priceSourceUrl || (pageSource || trustedRecipeExtra(product) ? product.url : null),
     priceCheckedAt: product.priceCheckedAt || (pageSource ? product.checkedAt || product.checked || null : null),
   };
 }
 
 function productSummary(product, score) {
   const inferredPack = packUnitMeta(product);
+  const frozen = frozenProduct(product);
+  const frozenChicken = frozen && /\bchicken\b/i.test(product.name);
   return {
     url: product.url,
     productName: product.personalProductName || product.name,
@@ -718,6 +769,8 @@ function productSummary(product, score) {
     packQuantity: product.packQuantity ?? inferredPack?.quantity ?? null,
     packUnit: product.packUnit || inferredPack?.unit || null,
     priceGBP: productPriceUsable(product) ? Number(product.price) : null,
+    storage: frozen ? 'Freezer' : null,
+    preparationNote: frozenChicken ? 'Frozen chicken: follow this pack’s cooking instructions and cook fully before combining with the other ingredients. Allow the full pack cooking time; do not put raw frozen chicken directly into a slow cooker. Follow any no-reheat instruction on the pack.' : null,
     ...priceEvidence(product),
     priceRegion: product.priceRegion || null,
     pricesByRegion: product.pricesByRegion || {},
@@ -733,10 +786,14 @@ function productSummary(product, score) {
 }
 
 export function productPriceUsable(product, now = new Date()) {
+  if (trustedRecipeExtra(product)) return true;
   if (product?.discoveryStatus === 'not_listed') return false;
   if (product?.price == null || !Number.isFinite(Number(product.price)) || Number(product.price) <= 0) return false;
   if (product.priceBasis === 'personal' || product.personalPriceId) return isTrustedPersonalPrice(product, now);
-  if (product.priceBasis === 'reference' || product.estimatedPrice === true) return isTrustedReferencePrice(product) && !product.regionRestricted;
+  if (['aldi_reference', 'aldi_estimate'].includes(product.priceBasis)) return isTrustedAldiPrice(product);
+  // Saved GBP prices from any UK Lidl region can estimate a budget. Their
+  // original region/date remain visible; current offers keep separate guards.
+  if (product.priceBasis === 'reference' || product.estimatedPrice === true) return isTrustedReferencePrice(product);
   if (product.priceMemberOnly === true || product.offer?.validForMemberTier) return false;
   const day = now.toISOString().slice(0, 10);
   const start = product.validFrom || product.offer?.validFrom;
@@ -804,6 +861,11 @@ function indexedCandidates(index, query, dimension) {
   // score their intersection; use the union when no suitable strict match exists.
   let ranked = rankCatalogCandidates(query, indexedProducts(index, query, true), dimension, Infinity);
   if (!ranked.length) ranked = rankCatalogCandidates(query, indexedProducts(index, query), dimension, Infinity);
+  if (index.fallbackIndex && !(highConfidence(ranked[0], query) && ranked.some(candidate => purchasableOffer(candidate, canonicalDimension(dimension))))) {
+    const fallback = rankCatalogCandidates(query, indexedProducts(index.fallbackIndex, query), dimension, Infinity)
+      .filter(candidate => highConfidence(candidate, query) && purchasableOffer(candidate, canonicalDimension(dimension)));
+    if (fallback.length) ranked = fallback;
+  }
   if (index.candidateCache.size >= 300) index.candidateCache.delete(index.candidateCache.keys().next().value);
   index.candidateCache.set(cacheKey, ranked);
   return ranked;
@@ -814,17 +876,20 @@ function greatestCommonDivisor(a, b) {
   return a;
 }
 
+function highConfidence(candidate, query) {
+  return candidate?.score >= 9 && ingredientWords(query).every(token => ingredientNameWords(candidate.product.name).includes(token));
+}
+function purchasableOffer(candidate, wantedDimension) {
+  const product = candidate.product || candidate, meta = purchasePackMeta(product, wantedDimension), priceCents = Math.round(Number(product.price) * 100);
+  if (!meta || !Number.isFinite(meta.capacity) || meta.capacity <= 0 || meta.dimension !== wantedDimension || !productPriceUsable(product) || !Number.isFinite(priceCents) || priceCents < 1 || product.available === false || /out[ _-]*of[ _-]*stock|sold[ _-]*out|unavailable|discontinued|not[ _-]*available/i.test(String(product.availability || ''))) return null;
+  return { product, score: Number(candidate.score) || 0, meta, priceCents };
+}
+
 export function calculatePackPurchase(candidates, requestedQuantity, dimension) {
   const requested = Number(requestedQuantity);
   const wantedDimension = canonicalDimension(dimension);
   if (!(requested > 0) || !Number.isFinite(requested) || !wantedDimension) return null;
-  const offers = (Array.isArray(candidates) ? candidates : []).map(candidate => {
-    const product = candidate.product || candidate;
-    const meta = purchasePackMeta(product, wantedDimension);
-    const price = Number(product.price);
-    if (!meta || !Number.isFinite(meta.capacity) || meta.capacity <= 0 || meta.dimension !== wantedDimension || !productPriceUsable(product) || Math.round(price * 100) < 1 || product.available === false || /out[ _-]*of[ _-]*stock|sold[ _-]*out|unavailable|discontinued|not[ _-]*available/i.test(String(product.availability || ''))) return null;
-    return { product, score: Number(candidate.score) || 0, meta, priceCents: Math.round(price * 100) };
-  }).filter(Boolean).sort((a, b) => b.score - a.score || a.priceCents - b.priceCents);
+  const offers = (Array.isArray(candidates) ? candidates : []).map(candidate => purchasableOffer(candidate, wantedDimension)).filter(Boolean).sort((a, b) => b.score - a.score || a.priceCents - b.priceCents);
   if (!offers.length) return null;
 
   // UK pint packs and kitchen conversions have fractional capacities. Optimise
@@ -947,7 +1012,7 @@ function makePurchasePlan(counts, offers, requested) {
 }
 
 export async function recommendCatalogItems(storeName, items, { signal, allowReferencePrices = false, allowPersonalPrices = false, personalPrices = [] } = {}) {
-  if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new Error('Choose Asda or Lidl for automatic recommendations.');
+  if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new Error('Choose Asda, Lidl or Aldi for automatic recommendations.');
   const index = withPersonalPriceIndex(await pricingIndex(storeName, allowReferencePrices), { allowPersonalPrices, personalPrices }, storeName);
   if (index.snapshotStatus !== 'complete' || !Array.isArray(index.products)) throw new Error(`A complete ${storeName} website catalogue snapshot is required for automatic recommendations.`);
   const rows = Array.isArray(items) ? items.slice(0, 200) : [];
@@ -1001,8 +1066,8 @@ export async function catalogPurchaseOffers(items, { signal, store = 'Asda', all
     const candidates = indexedCandidates(index, query, dimension), best = candidates[0];
     const high = best && best.score >= 9 && ingredientWords(query).every(token => ingredientNameWords(best.product.name).includes(token));
     const offers = high ? candidates.map(candidate => {
-      const meta = purchasePackMeta(candidate.product, dimension), cents = Math.round(Number(candidate.product.price) * 100);
-      return meta && meta.capacity > 0 && productPriceUsable(candidate.product) && Number.isFinite(cents) && cents >= 1 ? { capacity: meta.capacity, cents } : null;
+      const offer = purchasableOffer(candidate, dimension);
+      return offer ? { capacity: offer.meta.capacity, cents: offer.priceCents } : null;
     }).filter(Boolean) : [];
     rows.push({ ...item, offers, candidates: high ? candidates : [], confidence: high ? 'high' : candidates.length ? 'review' : 'none' });
     await yieldToServer();
@@ -1064,7 +1129,7 @@ export async function searchCatalog(storeName, query, limit = 8, dimension = '')
 
 // Full public product directory; reference pricing is an explicit view.
 export async function browseCatalog(storeName, { query = '', category = '', menu = '', price = 'all', source = 'all', scope = 'food', allowReferencePrices = false, offset = 0, limit = 40 } = {}) {
-  if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new TypeError('Store must be Asda or Lidl.');
+  if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new TypeError('Store must be Asda, Lidl or Aldi.');
   const index = await pricingIndex(storeName, allowReferencePrices), now = new Date();
   const refs = storeName === 'Lidl' ? await loadRangeReferences() : [];
   const nameKey = value => productTokens(value).sort().join(' ');
@@ -1155,8 +1220,8 @@ export async function fetchProductPage(storeName, url) {
       pricePerUnitLabel: saved.pricePerUnitLabel || null,
       offer: saved.offer || null,
       checkedAt: saved.checkedAt || saved.checked || null,
-      source: `validated ${storeName==='Asda'?'ASDA':storeName} catalogue snapshot`,
-      verified: productPriceUsable(saved) && Number(saved.packQuantity) > 0,
+      source: index.source,
+      verified: !saved.estimatedPrice && productPriceUsable(saved) && Number(saved.packQuantity) > 0,
     };
   }
   // Unknown products require the scheduled full refresh, so runtime cannot
@@ -1166,6 +1231,7 @@ export async function fetchProductPage(storeName, url) {
 
 export function clearCatalogCache(storeName = null) {
   catalogGeneration += 1;
+  if (!storeName || storeName === 'Aldi' || storeName === 'Lidl') referenceIndexes = new WeakMap();
   if (storeName) catalogCache.delete(storeName);
   else catalogCache.clear();
   if (storeName) catalogueStatusCache.delete(storeName);
@@ -1180,7 +1246,7 @@ export function catalogStoreInfo() {
 }
 
 export async function catalogueStatus(storeName = 'Asda') {
-  if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new TypeError('Store must be Asda or Lidl.');
+  if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new TypeError('Store must be Asda, Lidl or Aldi.');
   try {
     const cached = catalogCache.get(storeName);
     if (cached && cached.signature !== await snapshotSignature(storeName)) clearCatalogCache(storeName);

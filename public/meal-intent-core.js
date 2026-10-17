@@ -65,7 +65,7 @@
   while((match=ending.exec(raw))){const category=match[1]?match[1][0].toUpperCase()+match[1].slice(1).toLowerCase():match[2]==='morning'?'Breakfast':'Dinner';let query=raw.slice(start,match.index).replace(/^(?:for|over) (?:the )?next \d+ days?[,;]?\s*/i,'').replace(/^.*?(?:i want|i would like|i'd like)\s+/i,'').replace(/^\s*[,;.]?\s*(?:and\s+)?/i,'').trim();start=ending.lastIndex;
    if(query&&!result.requests[category])result.requests[category]={query:clean(query),mode:/variety|different|varied|mix|(?:a|some) chicken dish/i.test(query)?'vary':'repeat'};
   }
-  if(result.requests.Breakfast&&result.requests.Lunch&&result.requests.Dinner)result.meals=result.requests.Snack?4:3;
+  if(!count&&result.requests.Breakfast&&result.requests.Lunch&&result.requests.Dinner)result.meals=result.requests.Snack?4:3;
   for(const [category,row] of Object.entries(result.requests)){const oneOff=row.query.match(/(?:,\s*)?(?:(?:1|one)\s+day\b|once\b|(?:except|but)\b)[\s\S]*?\bsteak\b[\s\S]*$/i);if(!oneOff)continue;const explicitDay=oneOff[0].match(/\b(?:on\s+)?day\s+(\d+)\b/i),day=explicitDay?Number(explicitDay[1]):days;row.query=clean(row.query.slice(0,oneOff.index).replace(/[,;\s]+$/,''));result.scheduledMeals.push({day,category,query:'steak'});warnings.push('A one-off steak '+category.toLowerCase()+' was found. Review its day below.');}
   if(!Object.keys(result.requests).length)warnings.push('Add a request for each meal below, for example “overnight oats for breakfast”.');
   if(result.nutritionTargets.minimiseFat||result.nutritionTargets.fatMax===0)warnings.push('Oats, eggs, mayo and chicken contain some fat. Lower fat is a preference; a strict fat cap is never relaxed.');

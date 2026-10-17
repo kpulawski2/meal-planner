@@ -121,6 +121,54 @@ function harness(options = {}) {
   };
 }
 
+function oneOffForm(app, changes={}) {
+  for(const [key,value] of Object.entries({oneOffBudget:10,oneOffPeople:1,oneOffCategory:'Dinner',oneOffQuery:'Oneoff fixture',...changes}))app.node(key).value=value;
+  app.node('oneOffPantry').checked=true;
+}
+
+test('meal-count buttons refresh the settings on touch browsers that leave focus in a number input',async()=>{
+ const app=harness();await app.flush();app.context.showTab('profile');
+ const input=app.node('bud');input.matches=selector=>selector==='input,textarea';app.context.document.activeElement=input;
+ app.node('profile').contains=value=>value===input;
+ app.context.setChoice('meals','2');
+ assert.equal(app.state().profile.meals,2);assert.doesNotMatch(app.node('profile').innerHTML,/id="dailyMealBreakfast"/);
+ assert.match(app.node('profile').innerHTML,/id="dailyMealLunch"/);assert.equal(JSON.parse(app.storage.get('mealPlannerState')).profile.meals,2);
+ app.context.setChoice('meals','3');assert.match(app.node('profile').innerHTML,/id="dailyMealBreakfast"/);
+});
+const oneOffRecipe={id:'user-oneoff-fixture',name:'Oneoff fixture chicken rice',cat:'Dinner',custom:true,servings:1,cookTime:15,ings:[['Chicken breast',200,'g'],['Rice',50,'g']],method:['Cook the rice following the packet.','Cook the chicken thoroughly and serve with rice.']};
+function oneOffReply(app, body) {
+  const brief=app.context.OneOffMealCore.normalise(body),recipe=body.recipes[0],shopping=app.context.OneOffMealCore.shopping(recipe,brief,body.pantry);
+  const recommendations=shopping.items.map(item=>{const product={productName:item.name,url:'https://www.asda.com/groceries/product/fixture/123',packs:1,packSize:'1 kg',packQuantity:1000,packUnit:'g',priceGBP:1,costGBP:1,totalQuantity:1000,sourceStore:'Asda'};return {key:item.key,query:item.name,dimension:item.dimension,match:product,plan:{requestedQuantity:item.quantity,totalQuantity:1000,totalCostGBP:1,products:[product]}};});
+  return {ok:true,store:brief.store,brief,affordable:1,unpriced:0,options:[{recipeId:recipe.id,people:brief.people,totalCostGBP:recommendations.length,estimatedPrice:false,recommendations,refreshedAt:new Date().toISOString(),items:shopping.items}]};
+}
+test('one-off dinner uses its own £10 budget and full-pack quote without changing weekly meals, targets, stock or spending',async()=>{
+  const app=harness({state:{customRecipes:[copy(oneOffRecipe)],profile:{supermarket:'Asda',days:14,budget:35,people:2,calories:1600,protein:150,equipment:['Hob']}}});await app.flush();
+  assert.match(app.node('home').innerHTML,/One-off meal/);
+  const before=app.state();await app.context.OneOffMealUI.open();oneOffForm(app);
+  let sent;
+  app.context.fetch=async(url,options)=>{assert.equal(url,'/api/meals/one-off');sent=JSON.parse(options.body);return {ok:true,json:async()=>oneOffReply(app,sent)};};
+  await app.context.OneOffMealUI.find();
+  assert.equal(sent.budget,10);assert.equal(sent.people,1);assert.equal(sent.category,'Dinner');assert.equal(sent.recipes.length,1);
+  assert.equal(sent.week,undefined);assert.equal(sent.profile.calories,undefined);
+  assert.match(app.node('oneOffResults').innerHTML,/£2.00 to buy|£2\.00 to buy/);
+  assert.match(app.node('oneOffResults').innerHTML,/Copy this shopping list|View recipe/);
+  app.context.OneOffMealUI.view(oneOffRecipe.id);assert.equal(app.node('recipeTargetServings').value,'1');
+  const after=app.state();for(const key of ['week','profile','pantry','mealServings','shopping','pantryLedger','foodDiary'])assert.deepEqual(after[key],before[key],key+' must stay unchanged');
+});
+test('editing or closing one-off search cancels late quotes and the browser rejects a falsely cheap basket',async()=>{
+  const app=harness({state:{customRecipes:[copy(oneOffRecipe)]}});await app.flush();await app.context.OneOffMealUI.open();oneOffForm(app);
+  let release,body;app.context.fetch=(url,options)=>{body=JSON.parse(options.body);return new Promise(resolve=>{release=resolve;});};
+  const pending=app.context.OneOffMealUI.find();app.node('oneOffBudget').value='1';app.context.OneOffMealUI.edit();release({ok:true,json:async()=>oneOffReply(app,body)});await pending;
+  assert.equal(app.node('oneOffResults').innerHTML,'');
+  oneOffForm(app);app.context.fetch=async(url,options)=>{const reply=oneOffReply(app,JSON.parse(options.body));reply.options[0].totalCostGBP=.01;return {ok:true,json:async()=>reply};};
+  await app.context.OneOffMealUI.find();assert.equal(app.node('oneOffResults').innerHTML,'');assert.match(app.node('oneOffStatus').textContent,/could not be verified/);
+  oneOffForm(app);app.context.fetch=(url,options)=>{body=JSON.parse(options.body);return new Promise(resolve=>{release=resolve;});};
+  const closing=app.context.OneOffMealUI.find();app.context.closeModal();release({ok:true,json:async()=>oneOffReply(app,body)});await closing;
+  assert.equal(app.node('modal').style.display,'none');assert.equal(app.node('oneOffResults').innerHTML,'');
+  await app.context.OneOffMealUI.open();oneOffForm(app);app.context.fetch=async()=>{throw new TypeError('Failed to fetch');};
+  await app.context.OneOffMealUI.find();assert.match(app.node('oneOffStatus').textContent,/Go online and try again/);assert.equal(app.node('oneOffResults').innerHTML,'');
+});
+
 function tailoredForm(app,overrides={}){
   const fields={tailoredDays:7,tailoredCount:3,tailoredCalories:1800,tailoredProtein:180,tailoredCalorieMode:'max',tailoredCarbs:90,tailoredCarbMode:'target',tailoredFat:'',tailoredQueryBreakfast:'overnight oats',tailoredModeBreakfast:'vary',tailoredRecipeBreakfast:'tailored-berry-oats',tailoredQueryLunch:'tuna pickles eggs mayo wrap',tailoredModeLunch:'repeat',tailoredRecipeLunch:'tailored-tuna-wrap',tailoredQueryDinner:'chicken dish',tailoredModeDinner:'vary',tailoredRecipeDinner:'tailored-lemon-chicken',...overrides};
   for(const [id,value] of Object.entries(fields))app.node(id).value=value;
@@ -430,7 +478,7 @@ test('scheduled meal review is editable and preserves its draft on a failed fit'
  const app=harness({state:{profile:{days:14,meals:3,budget:35,people:1,calories:1600,protein:150,cookTime:45,equipment:['Hob'],supermarket:'Asda'}}});await app.flush();await app.context.TailoredPlanUI.open();app.node('tailoredText').value='For 14 days, breakfast: overnight oats variety\nlunch: tuna based dish, salad boxes or wrap\ndinner: anything chicken, 1 day where i can have a steak at the end\ncalories: 1600 or less\nprotein: 150g\ncarbs: 90g\nfats: 20g';await app.context.TailoredPlanUI.interpret();assert.match(app.node('tailoredReview').innerHTML,/Meals on specific days/);assert.match(app.node('tailoredReview').innerHTML,/scheduledDay0/);
  tailoredForm(app,{tailoredDays:14,tailoredCalories:1600,tailoredProtein:150,tailoredFat:20,tailoredQueryBreakfast:'overnight oats',tailoredQueryLunch:'tuna salad or wrap',tailoredModeLunch:'vary',tailoredQueryDinner:'anything chicken'});for(const [id,value] of Object.entries({scheduledDay0:14,scheduledCategory0:'Dinner',scheduledQuery0:'steak',scheduledRecipe0:'tailored-medallion-steak'}))app.node(id).value=value;
  const originalFetch=app.context.fetch;app.context.fetch=async(url,...args)=>url.includes('/api/planner/generate')?{ok:true,text:async()=>JSON.stringify({status:'unavailable',week:[],warnings:['No fit in fixture']})}:originalFetch(url,...args);
- const before=app.state();await app.context.TailoredPlanUI.apply();assert.deepEqual(app.state().profile,before.profile);assert.deepEqual(app.state().week,before.week);assert.equal(app.state().tailoredDraft.brief.scheduledMeals[0].day,14);assert.equal(app.state().tailoredDraft.brief.scheduledMeals[0].selected,'tailored-medallion-steak');
+ const before=app.state();await app.context.TailoredPlanUI.apply();assert.equal(app.state().profile.varietyMode,'Tailored');assert.equal(app.state().profile.scheduledMeals[0].day,14);assert.deepEqual(app.state().week,before.week);assert.equal(app.state().tailoredDraft.brief.scheduledMeals[0].day,14);assert.equal(app.state().tailoredDraft.brief.scheduledMeals[0].selected,'tailored-medallion-steak');
  await app.context.TailoredPlanUI.open();app.context.TailoredPlanUI.manual();assert.match(app.node('tailoredReview').innerHTML,/scheduledDay0/);app.context.TailoredPlanUI.clear(false);assert.deepEqual(app.state().profile.scheduledMeals,[]);
 });
 test('barcode results require label review and preserve corrected nutrition through reload and repeat scans',async()=>{
@@ -482,11 +530,12 @@ test('the actual recipe view searches separate words, sorts known nutrition and 
   const before=app.state();app.context.AppExperienceUI.surprise();assert.match(app.node('sheet').innerHTML,/Tuna, Pickle, Egg/);
   for(const key of ['week','profile','pantry','pantryLedger','foodLog'])assert.deepEqual(app.state()[key],before[key],key);
 });
-test('tailored requests roll back failed settings without changing the plan, pantry, cooked history or food diary',async()=>{
+test('failed tailored fits keep the explicit settings while preserving the plan, pantry, cooked history and food diary',async()=>{
   const app=harness();await app.flush();await app.context.TailoredPlanUI.open();app.context.TailoredPlanUI.manual();tailoredForm(app,{tailoredFat:0});
   const before=app.state();app.run('fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({status:"unavailable",warnings:["A zero-fat cap cannot fit."],basket:{complete:false}})})');
   await app.context.TailoredPlanUI.apply();const after=app.state();
-  for(const key of ['profile','week','pantry','pantryLedger','foodLog'])assert.deepEqual(after[key],before[key],key);
+  for(const key of ['week','pantry','pantryLedger','foodLog'])assert.deepEqual(after[key],before[key],key);
+  assert.equal(after.profile.nutritionTargets.fatMax,0);assert.equal(JSON.parse(app.storage.get('mealPlannerState')).profile.nutritionTargets.fatMax,0);
   assert.equal(after.tailoredDraft.brief.nutritionTargets.fatMax,0);
   assert.equal(app.run('budgetPlannerState.status'),'unavailable');
 });
@@ -513,11 +562,34 @@ test('the actual shipped external modules and whole inline app start and render 
       assert.equal(typeof button.onclick, 'function'); button.onclick();
       assert.ok(app.node(button.dataset.tab).innerHTML.length > 30, button.dataset.tab);
     }
-    assert.equal(app.run('recipes.filter(row=>row.id.startsWith("everyday-")).length'), 25);
+    assert.equal(app.run('recipes.filter(row=>row.id.startsWith("everyday-")).length'), 26);
     assert.equal(app.errors.length, 0);
     assert.match(app.node('week').innerHTML, /PantryUI.openCook/);
     assert.match(app.node('pantry').innerHTML, /Confirm purchases in Shopping/);
   }
+});
+
+test('Lidl planning and browsing use one collected price list without a separate reference switch', async () => {
+  const app = harness({ state: { shoppingStore: 'Lidl', profile: { supermarket: 'Lidl', supermarkets: ['Lidl'], lidlReferencePrices: false } } }); await app.flush();
+  assert.equal(app.run('budgetPlannerPayload().profile.lidlReferencePrices'), true);
+  assert.match(app.run('lidlPriceSettingsHtml()'), /any UK branch/);
+  assert.doesNotMatch(app.run('lidlPriceSettingsHtml()'), /type="checkbox"|setLidlReferencePrices/);
+  app.context.CatalogueBrowser.open();
+  assert.match(app.node('sheet').innerHTML, /One price list/);
+  assert.doesNotMatch(app.node('sheet').innerHTML, /lidlBrowseReferences|Include reference prices|value="reference"/);
+});
+
+test('Aldi survives reload and backup restore, offers its own catalogue, and supports measured mixed-berry recipes', async () => {
+  const app = harness({state:{shoppingStore:'Aldi',profile:{supermarket:'Aldi',supermarkets:['Aldi']}}});await app.flush();
+  assert.equal(app.state().profile.supermarket,'Aldi');assert.equal(app.state().shoppingStore,'Aldi');
+  assert.match(app.node('shop').innerHTML,/Browse Aldi ingredients/);
+  app.context.CatalogueBrowser.open();assert.match(app.node('sheet').innerHTML,/Aldi catalogue/);assert.doesNotMatch(app.node('sheet').innerHTML,/Lidl Plus offers|One price list from Lidl/);
+  assert.ok(app.requests.some(row=>String(row.url).includes('/api/catalog/browse?store=Aldi')));
+  app.context.CatalogueBrowser.close();
+  const restored=harness({state:app.state()});await restored.flush();assert.equal(restored.state().profile.supermarket,'Aldi');
+  restored.context.restoreData({target:{files:[{contents:JSON.stringify(app.state())}]}});assert.equal(restored.state().profile.supermarket,'Aldi');
+  const nutrition=app.run('recipeNutrition({ings:[["Oats",50,"g"],["Skimmed milk",150,"ml"],["Frozen mixed berries",100,"g"]]})');
+  assert.equal(nutrition.complete,true);assert.equal(nutrition.kcal,297);assert.ok(nutrition.assumptions.some(note=>/mixed-berry estimate/.test(note)));
 });
 
 test('prep centre records a partially covered batch once, keeps edited storage and can undo the stock change', async () => {

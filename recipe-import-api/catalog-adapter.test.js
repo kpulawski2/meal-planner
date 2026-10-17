@@ -108,6 +108,26 @@ Object.assign(sampleProducts[14], {
 Object.assign(sampleProducts[4], {
   packSize: '500G', packQuantity: 500, packUnit: 'g', price: 4.25,
 });
+const fuelFlakes = {
+  id: 'asda-9184193', sku: '9184193',
+  name: 'FUEL10K Chocolate Multigrain Flakes High Protein Breakfast Cereal 350g', brand: 'Fuel',
+  category: 'Food Cupboard > Cereals & Cereal Bars > Everyday & Family Cereals > Family Cereals',
+  packSize: '350G', packQuantity: 350, packUnit: 'g', price: 2.50,
+  url: 'https://www.asda.com/groceries/product/family-cereals/fuel10k-chocolate-multigrain-flakes-high-protein-breakfast-cereal-350g/9184193',
+};
+Object.assign(sampleProducts[15], fuelFlakes);
+Object.assign(sampleProducts[16], {
+  ...fuelFlakes, id: 'asda-9208642', sku: '9208642',
+  name: 'FUEL10K Chocolate Multigrain Hoops High Protein Breakfast Cereal 350g',
+  url: 'https://www.asda.com/groceries/product/family-cereals/fuel10k-chocolate-multigrain-hoops-high-protein-breakfast-cereal-350g/9208642',
+  price: .01, // Deliberately cheaper fixture: price cannot override identity.
+});
+Object.assign(sampleProducts[17], {
+  ...fuelFlakes, id: 'asda-4148948', sku: '4148948',
+  name: 'FUEL10K Chocolate Chunks Protein Granola Breakfast Cereal 400g',
+  url: 'https://www.asda.com/groceries/product/granola-crisp/fuel10k-chocolate-chunks-protein-granola-breakfast-cereal-400g/4148948',
+  packQuantity: 400, packSize: '400G', price: .01,
+});
 
 await writeFile(process.env.ASDA_CATALOGUE_PATH, JSON.stringify(sampleProducts));
 await writeFile(process.env.ASDA_CATALOGUE_META_PATH, JSON.stringify({
@@ -263,6 +283,36 @@ test('explicitly unavailable products do not claim an automatic ingredient match
 test('invalid sub-penny product prices cannot create a zero-cost optimisation step', () => {
   const plan = calculatePackPurchase([{ name: 'Invalid price', packQuantity: 568.26125, packUnit: 'ml', price: 0.001 }], 100, 'volume');
   assert.equal(plan, null);
+});
+
+test('explicit FUEL10K flakes retain their exact brand and format when cheaper partial matches exist', async () => {
+  const queries = ['FUEL10K Chocolate Multigrain Flakes', 'FUEL10K Chocolate Multigrain Flakes High Protein Breakfast Cereal'];
+  const result = await recommendCatalogItems('Asda', queries.map((name, index) => ({ key: name, name, dimension: 'mass', quantity: index ? 400 : 50 })));
+  for (const [index, row] of result.recommendations.entries()) {
+    assert.equal(row.confidence, 'high'); assert.equal(row.candidateCount, 1);
+    assert.equal(row.plan.products.length, 1); assert.equal(row.match.url, fuelFlakes.url);
+    assert.equal(row.plan.products[0].productName, fuelFlakes.name);
+    assert.equal(row.plan.products[0].packQuantity, 350); assert.equal(row.plan.products[0].packUnit, 'g');
+    assert.equal(row.plan.products[0].packs, index ? 2 : 1);
+    assert.equal(row.plan.totalQuantity, index ? 700 : 350); assert.equal(row.plan.totalCostGBP, index ? 5 : 2.50);
+  }
+  const alternatives = [sampleProducts[16], sampleProducts[17],
+    { ...fuelFlakes, name: 'FUEL10K Super Berry Protein Granola Breakfast Cereal 400g' },
+    { ...fuelFlakes, name: 'ASDA Chocolate Multigrain Flakes High Protein Breakfast Cereal', brand: 'ASDA' },
+    { ...fuelFlakes, name: 'FUEL10K Chocolate High Protein Milk Breakfast Shake Drink 330ml' }];
+  for (const query of queries) {
+    assert.equal(rankCatalogCandidates(query, alternatives, 'mass').length, 0);
+    assert.equal(rankCatalogCandidates(query, [{ ...fuelFlakes, available: false }, ...alternatives], 'mass').length, 0, 'an unavailable exact product cannot fall back to another cereal');
+  }
+});
+
+test('strict Lidl pricing excludes external cereal while reference mode labels a separate ASDA purchase', async () => {
+  for (const allowReferencePrices of [false, true]) {
+    const result = await recommendCatalogItems('Lidl', [{ key: 'fuel-flakes', name: 'FUEL10K Chocolate Multigrain Flakes', dimension: 'mass', quantity: 50 }], { allowReferencePrices });
+    assert.equal(result.store, 'Lidl');
+    if(allowReferencePrices){assert.equal(result.recommendations[0].confidence,'high');assert.equal(result.recommendations[0].plan.products[0].priceBasis,'other_store');assert.equal(result.recommendations[0].plan.products[0].sourceStore,'Asda');}
+    else {assert.equal(result.recommendations[0].confidence, 'none');assert.equal(result.recommendations[0].match, null);assert.equal(result.recommendations[0].plan, null);}
+  }
 });
 
 test('official Lidl baking and oils shelves match their ingredient families without accepting prepared foods', () => {

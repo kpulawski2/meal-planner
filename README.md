@@ -1,6 +1,16 @@
 # Meal Planner
 
-A phone-friendly meal planner with recipes, pantry tracking, shopping lists and automatic ASDA product matching and pricing.
+A phone-friendly meal planner with recipes, pantry tracking, shopping lists and automatic ASDA, Lidl and Aldi pack pricing.
+
+**Today → One-off meal** finds a single breakfast, lunch, dinner or snack inside
+a separate total shopping budget. Set the people and optional ingredient search;
+full packs and pantry deductions are checked before a recipe is shown. Weekly
+meals, targets and recorded purchases stay unchanged. See [one-off meals](docs/one-off-meals.md).
+
+Aldi is a selectable store with a curated catalogue of 114 sourced UK packs. Frozen chicken dinners use separately priced freezer packs and pack-specific cooking guidance; see [frozen chicken meals](docs/frozen-chicken.md).
+Lidl uses its own usable prices first, with labelled Aldi estimates for missing
+ingredient prices. Saved prices retain their original dates and pack sizes;
+estimates do not record actual spending. See [Aldi prices](docs/aldi-prices.md).
 
 Everyday screens focus on meals first, with grouped meal options, diary details,
 recipe filters and kitchen tools that open when needed. See
@@ -11,7 +21,7 @@ The free consumer app also includes a dated food diary (common-food estimates, r
 The **Favourites** tab keeps saved recipes searchable independently of the main
 recipe filters. Lidl shoppers can browse the saved food catalogue from Shopping,
 including unpriced products and additional source-linked range references.
-Lidl Settings can enable clearly labelled historical reference price estimates.
+The app automatically uses collected Lidl prices alongside its website prices, keeping original source dates visible.
 The catalogue also has an All products department, the audited Lidl website
 submenu hierarchy and separately labelled Lidl Plus offers; see
 [Lidl ingredient coverage](docs/lidl-catalogue.md#browse-the-food-range).
@@ -39,13 +49,21 @@ Where a recipe uses grams for produce sold by each, or kitchen measures for weig
 
 ## Plan within a budget
 
-Choose **Fit plan to budget** in Today, Plan or Shopping. The planner reads pack prices from your selected supermarket (or explicitly enabled Lidl reference estimates) and chooses recipes and portions together. It combines shared ingredients across the whole plan, converts compatible recipe units, deducts pantry stock once, and counts the full packs required. It does not use the old fixed recipe cost estimates to generate a plan.
+Choose **Fit plan to budget** in Today, Plan or Shopping. The planner reads pack prices from your selected supermarket (including collected Lidl prices with their source dates) and chooses recipes and portions together. It combines shared ingredients across the whole plan, converts compatible recipe units, deducts pantry stock once, and counts the full packs required. It does not use the old fixed recipe cost estimates to generate a plan.
 
 The weekly budget is for the whole household. A 14-day plan receives twice that amount; a 3-day plan receives three sevenths. Calories and protein are targets **per person, per day**. Accepted plans must keep every day within ±10% of the calorie target and at or above the protein target, with the requested meal count and household servings. Nutrition remains an estimate based on ingredient profiles or recipe values marked verified; it is not a guarantee of exact brand nutrition. The app does not calculate personal calorie targets from body measurements.
 
-The app includes **233 everyday recipes and fruit options**, including 12 measured lighter meals, **41 measured world recipe adaptations**, **24 original Ninja CREAMi formulations**, and a browsable freely licensed Wikibooks collection. The search compares suitable recipes, adjusts portions, and calculates shared whole-pack basket costs in integer pence. Goals influence recipe scoring: saving money favours full-pack savings and ingredient sharing; easier cooking favours shorter known cooking times and reusable batches; healthy eating favours vegetables, pulses and wholegrains; gaining muscle favours protein density. Losing weight prefers valid portions closer to 95% of the selected calorie target, within the unchanged ±10% range and protein minimum. Goals do not change the targets you set. **Keep meal** locks both a recipe and its portions; dietary exclusions remain constraints.
+The app includes **241 everyday recipes and fruit options**, including 12 measured lighter meals, **41 measured world recipe adaptations**, **24 original Ninja CREAMi formulations**, and a browsable freely licensed Wikibooks collection. The search compares suitable recipes, adjusts portions, and calculates shared whole-pack basket costs in integer pence. Goals influence recipe scoring: saving money favours full-pack savings and ingredient sharing; easier cooking favours shorter known cooking times and reusable batches; healthy eating favours vegetables, pulses and wholegrains; gaining muscle favours protein density. Losing weight prefers valid portions closer to 95% of the selected calorie target, within the unchanged ±10% range and protein minimum. Goals do not change the targets you set. **Keep meal** locks both a recipe and its portions; dietary exclusions remain constraints.
 
 ## Recipe collections and Ninja CREAMi
+
+**FUEL10K Chocolate Flakes & Milk** is a measured breakfast: 50 g of the exact
+chocolate multigrain flakes with 200 ml skimmed milk, estimated at 265 kcal,
+19.7 g protein, 40 g carbohydrate and 2.6 g fat. The cereal's 350 g box was
+£2.50 at ASDA when checked on 16 October 2026. Its label source is linked in the
+recipe; hoops and granola are separate products. The reference chart and CSVs
+include this dated ASDA pack price, while automatic planning uses the refreshed
+store catalogue. A missing Lidl listing remains unpriced there.
 
 Browse **Everyday**, **Web recipes** or **Ninja CREAMi**, search the entire library and load cards in groups of 60. `/recipe-library.json` streams the licensed collection to the phone and caches it for offline browsing. The monthly `refresh-recipes.yml` workflow downloads every modern Wikibooks entry exposed by Recipe Context Protocol, retains source, author-history and CC BY-SA credits, and rejects incomplete or unexpectedly smaller refreshes. See [recipe content licensing](docs/recipe-library-licence.md). Recipes with missing quantities, yields, cooking times or component warnings show **Needs review** and stay out of automatic planning. The original source can be consulted or imported and completed before use.
 

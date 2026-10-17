@@ -14,11 +14,11 @@
         && amount(product.costGBP) && (product.priceBasis === 'personal' || String(product.url || '').startsWith('personal:')
           ? Boolean(context.dimension) && root.PersonalPricesCore?.productMatches?.(product, context) === true
             && Math.abs(Number(product.costGBP) - Number(product.packs) * Number(product.priceGBP)) < .011
-          : /^https:\/\//.test(product.url || '')))
+          : ['aldi_estimate','aldi_reference'].includes(product.priceBasis) ? plan.estimatedPrice === true && root.RetailerPriceSources?.aldiProduct(product, context.store) === true : /^https:\/\//.test(product.url || '')))
       && Math.abs(plan.products.reduce((total, product) => total + Number(product.costGBP), 0) - Number(plan.totalCostGBP)) < .011);
   }
   function snapshot(catalogue) {
-    if (!catalogue || catalogue.status !== 'ready' || !['Asda', 'Lidl'].includes(catalogue.store)
+    if (!catalogue || catalogue.status !== 'ready' || !['Asda', 'Lidl', 'Aldi'].includes(catalogue.store)
       || !Array.isArray(catalogue.items) || catalogue.items.length > 400 || !catalogue.fingerprint
       || !Number.isFinite(catalogue.loadedAt) || catalogue.loadedAt <= 0) return null;
     const results = {};

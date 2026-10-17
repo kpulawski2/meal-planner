@@ -15,7 +15,7 @@ function number(value, fallback, min, max, label, integer = false) {
 export function normalizePlannerRequest(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) fail('Send planner settings and a recipe library.');
   const input = body.profile || {};
-  if (input.supermarket != null && !['Asda','Lidl'].includes(input.supermarket)) fail('Choose Asda or Lidl as your supermarket.');
+  if (input.supermarket != null && !['Asda','Lidl','Aldi'].includes(input.supermarket)) fail('Choose Asda, Lidl or Aldi as your supermarket.');
   if (input.lidlReferencePrices !== undefined && typeof input.lidlReferencePrices !== 'boolean') fail('Lidl reference prices must be on or off.');
   const profile = {
     supermarket: input.supermarket || 'Asda',

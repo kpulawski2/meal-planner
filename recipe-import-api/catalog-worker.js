@@ -1,5 +1,6 @@
 import { parentPort } from 'node:worker_threads';
 import { optimizeMealPlan } from './budget-planner.js';
+import { findOneOffMeals } from './one-off-meal.js';
 import {
   searchCatalog,
   browseCatalog,
@@ -12,9 +13,9 @@ import {
 
 if (!parentPort) throw new Error('Catalogue worker must run in a worker thread.');
 
-const operations = { searchCatalog, browseCatalog, recommendCatalogItems, fetchProductPage, catalogueStatus, clearCatalogCache, optimizeMealPlan };
+const operations = { searchCatalog, browseCatalog, recommendCatalogItems, fetchProductPage, catalogueStatus, clearCatalogCache, optimizeMealPlan, findOneOffMeals };
 const controllers = new Map();
-const statuses = () => Object.fromEntries(['Asda', 'Lidl'].map(store => [store, cachedCatalogueStatus(store)]));
+const statuses = () => Object.fromEntries(['Asda', 'Lidl', 'Aldi'].map(store => [store, cachedCatalogueStatus(store)]));
 
 parentPort.on('message', async message => {
   if (!message || typeof message !== 'object') return;
@@ -29,8 +30,8 @@ parentPort.on('message', async message => {
   try {
     if (!Object.hasOwn(operations, method)) throw new Error('Unknown catalogue operation.');
     const args = Array.isArray(message.args) ? message.args : [];
-    const result = method === 'optimizeMealPlan'
-      ? await optimizeMealPlan(args[0], { signal: controller.signal })
+    const result = ['optimizeMealPlan', 'findOneOffMeals'].includes(method)
+      ? await operations[method](args[0], { signal: controller.signal })
       : method === 'recommendCatalogItems'
       ? await recommendCatalogItems(args[0], args[1], { ...args[2], signal: controller.signal })
       : await operations[method](...args);

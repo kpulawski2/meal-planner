@@ -5,6 +5,7 @@ import vm from 'node:vm';
 
 const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
 const personalCore=await readFile(new URL('../public/personal-prices-core.js',import.meta.url),'utf8');
+const retailerSources=await readFile(new URL('../public/retailer-price-sources.js',import.meta.url),'utf8');
 function sourceBlock(start,end){
   const from=html.indexOf(start),to=html.indexOf(end,from+start.length);
   assert.ok(from>=0&&to>from,'Pricing source exists: '+start);
@@ -28,7 +29,7 @@ function harness(entries=[item('Milk',1500,'volume')],options={}){
   const rendered=[],views=[];
   const state={shoppingStore:'Asda',profile:{supermarkets:['Asda'],supermarket:'Asda',budget:45},week:[{day:'Monday',meals:[]}],shopping:{},packQuotes:{Asda:{milk:{volume:{price:999,size:1,unit:'ml'}}}},...options.state};
   const context={
-    hadSavedProfile:true,state,RETAILER_NAMES:['Asda','Lidl'],AbortController,DOMException,console,Blob,setTimeout:options.fastTimers?((fn,ms)=>setTimeout(fn,ms>=45000?250:0)):setTimeout,clearTimeout,
+    hadSavedProfile:true,state,SUPPORTED_STORES:['Asda','Lidl','Aldi'],RETAILER_NAMES:['Asda','Lidl','Aldi'],AbortController,DOMException,console,Blob,setTimeout:options.fastTimers?((fn,ms)=>setTimeout(fn,ms>=45000?250:0)):setTimeout,clearTimeout,
     Date:class extends Date {static now(){return now}},
     fetch:async(url,request)=>{
       requests++;
@@ -39,7 +40,7 @@ function harness(entries=[item('Milk',1500,'volume')],options={}){
     },
     window:{addEventListener(){}},
     document:{hidden:false,addEventListener(){},querySelector(){return {id:options.activeView||'shop'}},body:{appendChild(){}},createElement(){return {click(){},remove(){}}}},
-    URL:{createObjectURL(blob){exportedBlob=blob;return 'blob:export'},revokeObjectURL(){}},
+    URL:class extends URL {static createObjectURL(blob){exportedBlob=blob;return 'blob:export'}static revokeObjectURL(){}},
     buildShopping:()=>Object.fromEntries(entries),planCashSpent:()=>0,planCashKnown:()=>true,save(){},toast(){},
     fmt:value=>Math.round(Number(value)*10)/10,
     escape:value=>String(value).replace(/[&<>"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char])),
@@ -49,6 +50,7 @@ function harness(entries=[item('Milk',1500,'volume')],options={}){
     renderWeek:()=>views.push({view:'week',status:context.readState().status}),
     renderRecipes:()=>views.push({view:'recipes',status:context.readState().status}),
   };
+  vm.runInNewContext(retailerSources,context);context.RetailerPriceSources=context.window.RetailerPriceSources;
   if(options.personal){const data=new Map();context.window.localStorage={getItem:key=>data.get(key)??null,setItem:(key,value)=>data.set(key,String(value)),removeItem:key=>data.delete(key)};vm.runInNewContext(personalCore+';globalThis.PersonalPricesCore=window.PersonalPricesCore',context);context.PersonalPricesCore.write(options.personal,context.window.localStorage);}
   vm.runInNewContext(source+'\nglobalThis.requestMatches=requestAutomaticCatalogMatches;globalThis.readState=()=>automaticCatalogState;globalThis.readBasket=()=>automaticCatalogBasket(Object.entries(buildShopping()),selectedShoppingStore());globalThis.readPlanner=()=>renderPackPlanner(Object.entries(buildShopping()));globalThis.readItem=key=>automaticCatalogMarkup(key,buildShopping()[key],selectedShoppingStore());globalThis.readSummary=()=>automaticCatalogSummary(Object.entries(buildShopping()),selectedShoppingStore());globalThis.copyText=shoppingListText;globalThis.exportCsv=exportPriceReferenceCsv;globalThis.recipeCost=automaticRecipeCost;globalThis.readRecipeCostText=recipeCostText;',context);
   return {...context,rendered,views,requestBodies,get requests(){return requests},advanceTime(ms){now+=ms},async csv(){context.exportCsv();return exportedBlob.text()},async load(){await context.requestMatches(entries,context.state.shoppingStore)}};
@@ -62,6 +64,24 @@ test('legacy manual retailer choice migrates once to ASDA while preserving meal 
   assert.equal(app.state.automaticPricingVersion,2);
   const explicit=harness(undefined,{state:{shoppingStore:'Lidl',profile:{supermarket:'Lidl',supermarkets:['Lidl']},automaticPricingVersion:2}});
   assert.equal(explicit.state.shoppingStore,'Lidl');
+  const aldi=harness(undefined,{state:{shoppingStore:'Aldi',profile:{supermarket:'Aldi',supermarkets:['Aldi']},automaticPricingVersion:2}});
+  assert.equal(aldi.state.shoppingStore,'Aldi');assert.equal(aldi.state.profile.supermarket,'Aldi');
+});
+
+test('Aldi store and Lidl fallback prices retain source labels and dates in shopping, copied lists and CSV',async()=>{
+  const url='https://digitalcontent.api.tesco.com/v2/media/ghs-mktg/bb2fb14a-260a-418b-b2ac-7e7ce4f63dd5/APM%2BExpress%2Band%2BAPM%2BLarge%2BStore%2BOnline%2BVerification%2BForm%2B09052026.pdf#page=6';
+  for(const store of ['Aldi','Lidl']){
+    const app=harness([item('Wholemeal wrap',9,'each')],{state:{shoppingStore:store,profile:{supermarket:store,supermarkets:[store],budget:35}},respond:rows=>rows.map(row=>{
+      const result=recommendation(row,.99,8,'pieces');const evidence={productName:'Village Bakery Wholemeal Tortilla Wraps',sourceStore:'Aldi',estimatedPrice:true,priceBasis:store==='Lidl'?'aldi_estimate':'aldi_reference',url,priceSourceUrl:url,sourceDate:'2026-05-07',priceCheckedAt:'2026-05-07'};
+      result.plan.estimatedPrice=true;Object.assign(result.plan.products[0],evidence);Object.assign(result.match,evidence);return result;
+    })});
+    await app.load();assert.equal(app.readBasket().complete,true);assert.equal(app.readBasket().total,1.98);
+    const label=store==='Lidl'?'Aldi estimate for Lidl':'Saved Aldi price estimate';
+    assert.ok(app.readItem('wholemeal wrap').includes(label));assert.match(app.readItem('wholemeal wrap'),/View Aldi price source/);
+    assert.doesNotMatch(app.readItem('wholemeal wrap'),/Saved Lidl price/);
+    assert.ok(app.copyText().includes(label));assert.ok((await app.csv()).includes(label));assert.match(await app.csv(),/2026-05-07/);
+    assert.equal(app.requestBodies[0].store,store);
+  }
 });
 
 test('consumer shopping flow has no manual prices, sparse link tables or generic estimates',()=>{
@@ -188,16 +208,17 @@ test('CSV export carries automatic products, pack prices and totals and protects
   assert.match(csv,/Automatically priced/);
 });
 
-test('reference estimates stay labelled in shopping totals, product evidence and both exports',async()=>{
-  const app=harness([item('Cannellini beans',500)],{state:{shoppingStore:'Lidl',automaticPricingVersion:2,profile:{supermarket:'Lidl',supermarkets:['Lidl'],budget:35,lidlReferencePrices:true}},respond:rows=>rows.map(row=>{
+test('collected Lidl prices are automatic even with an old disabled setting, retaining dates in totals and exports',async()=>{
+  const app=harness([item('Cannellini beans',500)],{state:{shoppingStore:'Lidl',automaticPricingVersion:2,profile:{supermarket:'Lidl',supermarkets:['Lidl'],budget:35,lidlReferencePrices:false}},respond:rows=>rows.map(row=>{
     const result=recommendation(row,.45,240,'g');result.plan.estimatedPrice=true;
     for(const product of result.plan.products)Object.assign(product,{productName:'Freshona Cannellini Beans',estimatedPrice:true,priceBasis:'reference',sourcePeriod:'May 2026',priceSourceUrl:'https://www.lidl.co.uk/static/assets/Lidl5-for-20-May2026-2204485.pdf',url:'https://www.lidl.co.uk/static/assets/Lidl5-for-20-May2026-2204485.pdf#lidl-reference-beans'});
     result.match={...result.plan.products[0]};return result;
   })});
   await app.load();assert.equal(app.readBasket().estimatedPrice,true);assert.equal(app.readBasket().estimated,false,'price estimates do not claim produce weight assumptions');
-  assert.match(app.readSummary(),/Estimated £1.35/);assert.match(app.readPlanner(),/~£1.35/);assert.match(app.readItem('cannellini beans'),/Reference estimate · May 2026/);
-  assert.match(app.copyText(),/Reference price estimate: May 2026/);assert.match(await app.csv(),/Reference price estimate; May 2026/);
-  const first=app.requests;app.state.profile.lidlReferencePrices=false;await app.load();assert.ok(app.requests>first,'changing price mode invalidates the saved matching fingerprint');
+  assert.equal(app.requestBodies[0].allowReferencePrices,true);
+  assert.match(app.readSummary(),/Estimated £1.35/);assert.match(app.readPlanner(),/~£1.35/);assert.match(app.readItem('cannellini beans'),/Saved Lidl price · May 2026/);
+  assert.match(app.copyText(),/Saved Lidl price estimate; May 2026/);assert.match(await app.csv(),/Saved Lidl price estimate; May 2026/);
+  const first=app.requests;app.state.profile.lidlReferencePrices=true;await app.load();assert.equal(app.requests,first,'the retired price-mode flag cannot change or invalidate the unified price list');
 });
 
 

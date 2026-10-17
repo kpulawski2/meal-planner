@@ -4,7 +4,13 @@
  const normal=value=>String(value||'').normalize('NFKD').replace(/[łŁ]/g,'l').replace(/[\u0300-\u036f]/g,'').toLowerCase();
  const words=value=>normal(value).split(/[^a-z0-9@]+/).filter(Boolean);
  const aliases={mayo:['mayo','mayonnaise'],mayonnaise:['mayo','mayonnaise'],pickles:['pickle','pickles','gherkin','gherkins','cornichon'],pickle:['pickle','pickles','gherkin','gherkins','cornichon'],yogurt:['yogurt','yoghurt'],yoghurt:['yogurt','yoghurt']};
- function matches(recipe,query){const hay=normal([recipe.name,recipe.cat,recipe.creator,...(recipe.equipment||[]),...(recipe.tags||[]),...(recipe.ings||[]).map(row=>row[0])].join(' '));return words(query).every(word=>(aliases[word]||[word]).some(term=>hay.includes(term)));}
+ function matches(recipe,query){
+  const ingredients=(recipe.ings||[]).map(row=>normal(row[0]));
+  // "Frozen chicken" describes one ingredient. Fresh chicken alongside frozen
+  // peas must not appear in the frozen-chicken shortcut's results.
+  if (/\bfrozen\s+chicken\b/.test(normal(query))&&!ingredients.some(name=>/\bfrozen\b.*\bchicken\b|\bchicken\b.*\bfrozen\b/.test(name)))return false;
+  const hay=normal([recipe.name,recipe.cat,recipe.creator,...(recipe.equipment||[]),...(recipe.tags||[]),...ingredients].join(' '));return words(query).every(word=>(aliases[word]||[word]).some(term=>hay.includes(term)));
+ }
  const known=value=>value!==null&&value!==undefined&&value!==''&&Number.isFinite(Number(value))&&Number(value)>=0;
  function sort(rows,{mode='recommended',nutrition=recipe=>recipe.nutrition||{},ready=()=>false,feedback=()=>0,favorites=[]}={}){
   const saved=new Set(favorites),decorated=rows.map((recipe,index)=>{const n=nutrition(recipe),time=recipe.cookTime??recipe.time;return {recipe,index,p:n.complete&&known(n.p)?Number(n.p):null,kcal:n.complete&&known(n.kcal)?Number(n.kcal):null,time:known(time)?Number(time):null,score:(ready(recipe)?100:0)+(saved.has(recipe.id)?40:0)+feedback(recipe)*4};});

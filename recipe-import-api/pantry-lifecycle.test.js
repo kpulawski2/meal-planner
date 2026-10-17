@@ -27,6 +27,12 @@ function fixture({ name = 'Rice', quantity = 150, dimension = 'mass', packQuanti
 }
 function preview(f) { return core.purchasePreview(f); }
 
+test('a frozen shelf product without frozen in its name goes into the freezer', () => {
+  const f = fixture({ name: 'Chicken breast', productName: 'Plain Chicken Breast Fillets', storage: 'Freezer' });
+  const p = preview(f); assert.equal(p.ok, true, p.error);
+  assert.equal(p.lots[0].place, 'Freezer');
+});
+
 test('legacy stock gets stable unique identities without resetting the plan or purchase spend', () => {
   const s = state({ pantry: [null, { id: 'same', name: 'Rice', qty: 1, unit: 'kg' }, { id: 'same', name: 'Rice', qty: 100, unit: 'g' }], pantryLedger: [] });
   const id = s.pantryLedger.planId, first = copy(s.pantry); core.initialise(s, new Date(now.getTime() + 1000));

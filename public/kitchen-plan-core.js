@@ -10,9 +10,12 @@
   return {days:number(p.days,7),meals:number(p.meals,3),calories:number(p.calories,2000),protein:number(p.protein,200),nutritionTargets:{...root.MacroGoalsCore.normalise(p.nutritionTargets)},requests,
    scheduledMeals:(p.varietyMode==='Tailored'?p.scheduledMeals||[]:[]).map(row=>({day:row.day,category:row.category,query:row.query,selected:row.recipeIds?.[0]})),budget:number(p.budget,45),people:number(p.people,1),exclude:[],diet:p.diet||'No restrictions'};
  }
+ function profileSnapshot(p){return JSON.stringify([p.days,p.meals,p.budget,p.people,p.calories,p.protein,p.nutritionTargets,p.diet,p.varietyMode,p.tailoredMeals,p.scheduledMeals,p.repeatMeals]);}
+ function rebase(raw,p){const draft=normalizeDraft(raw);if(!draft)return null;const snapshot=profileSnapshot(p);if(draft.profileSnapshot===snapshot)return draft;const current=defaults(p);return {...draft,...current,requests:{...draft.requests,...current.requests},profileSnapshot:snapshot};}
  function normalizeDraft(raw){
   if(!raw||typeof raw!=='object'||Array.isArray(raw))return null;
   const result={requests:{},scheduledMeals:[],nutritionTargets:{},exclude:[]};
+  result.profileSnapshot=clean(raw.profileSnapshot,20000);
   for(const key of ['days','meals','calories','protein','budget','people']){if(!Number.isFinite(Number(raw[key]))||Math.abs(Number(raw[key]))>1000000)return null;result[key]=Number(raw[key]);}
   for(const key of ['carbs','fatMax'])result.nutritionTargets[key]=raw.nutritionTargets?.[key]==null?null:number(raw.nutritionTargets[key],null);
   result.nutritionTargets.calorieMode=raw.nutritionTargets?.calorieMode==='max'?'max':'range';result.nutritionTargets.carbMode=raw.nutritionTargets?.carbMode==='max'?'max':'target';result.nutritionTargets.minimiseFat=raw.nutritionTargets?.minimiseFat===true;
@@ -45,7 +48,7 @@
   return value;
  }
  function merge(raw,prior,p={},ai=null){
-  const base=normalizeDraft(prior)||defaults(p),text=wording(raw,base),scalarText=base.pendingField?text:raw,local=root.MealIntentCore.parse(text,base),macro=root.MealIntentCore.parse(scalarText,base),explicit=root.MealIntentCore.macroValues(scalarText),duration=/(?:next|for|over)\s+(?:\d+|one|two|three|seven|fourteen|a|an)?\s*(?:days?|weeks?|fortnight|months?)/i.test(text),days=duration?local.days:base.days;
+  const base=normalizeDraft(prior)||{...defaults(p),profileSnapshot:profileSnapshot(p)},text=wording(raw,base),scalarText=base.pendingField?text:raw,local=root.MealIntentCore.parse(text,base),macro=root.MealIntentCore.parse(scalarText,base),explicit=root.MealIntentCore.macroValues(scalarText),duration=/(?:next|for|over)\s+(?:\d+|one|two|three|seven|fourteen|a|an)?\s*(?:days?|weeks?|fortnight|months?)/i.test(text),days=duration?local.days:base.days;
   const result={...base,days,meals:/[234]\s*meals?\s*(?:a|per|each|in a)\s*day/i.test(text)||local.requests.Breakfast&&local.requests.Lunch&&local.requests.Dinner?local.meals:base.meals,
    calories:explicit.calories?macro.calories:base.calories,protein:explicit.protein?macro.protein:base.protein,nutritionTargets:{...base.nutritionTargets},requests:{...base.requests},scheduledMeals:base.scheduledMeals.map(row=>({...row,day:row.atEnd?days:row.day})),exclude:[...base.exclude],pendingCategory:'',pendingDay:0,pendingField:'',requireProtein:explicit.protein?false:base.requireProtein};
   if(explicit.calories)result.nutritionTargets.calorieMode=macro.nutritionTargets.calorieMode;if(explicit.carbs){result.nutritionTargets.carbs=macro.nutritionTargets.carbs;result.nutritionTargets.carbMode=macro.nutritionTargets.carbMode;}if(explicit.fat)result.nutritionTargets.fatMax=macro.nutritionTargets.fatMax;if(macro.nutritionTargets.minimiseFat)result.nutritionTargets.minimiseFat=true;
@@ -94,5 +97,5 @@
  }
  function planSignature(state){const p=state.profile||{};return JSON.stringify([state.week,state.mealServings,p.days,p.meals,p.people,p.budget,p.calories,p.protein,p.nutritionTargets,p.diet,p.equipment,p.dislikes,p.cookTime,p.varietyMode,p.tailoredMeals,p.scheduledMeals,state.shoppingStore||p.supermarket]);}
  function normalizeReceipt(raw){if(!raw||!['saved','needs_info','no_feasible_plan','unavailable','stale','cancelled'].includes(raw.status))return null;return {status:raw.status,days:number(raw.days,0),meals:number(raw.meals,0),store:clean(raw.store,20),cost:number(raw.cost,null),budget:number(raw.budget,null),signature:clean(raw.signature,30000)};}
- root.KitchenPlanCore=Object.freeze({defaults,normalizeDraft,isPlan,wording,merge,prepare,planSignature,normalizeReceipt});
+ root.KitchenPlanCore=Object.freeze({defaults,normalizeDraft,rebase,isPlan,wording,merge,prepare,planSignature,normalizeReceipt});
 })(globalThis);

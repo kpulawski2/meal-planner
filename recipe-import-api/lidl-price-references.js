@@ -8,14 +8,17 @@ export function validatePriceReferences(document) {
   const sources = new Map();
   for (const source of document.sources) {
     const url = new URL(source.url);
-    const allowed = url.origin === 'https://www.lidl.co.uk' && /^\/static\/assets\/[^/]+\.pdf$/.test(url.pathname) || url.origin === 'https://corporate.lidl.co.uk' && /^\/media-centre\/pressreleases\/\d{4}\/[\w!-]+$/.test(url.pathname);
+    const allowed = ['https://www.lidl.co.uk','https://www.lidl-ni.co.uk'].includes(url.origin) && /^\/static\/assets\/[^/]+\.pdf$/.test(url.pathname) || url.origin === 'https://corporate.lidl.co.uk' && /^\/media-centre\/pressreleases\/\d{4}\/[\w!-]+$/.test(url.pathname);
     if (!allowed || url.username || url.password || url.search || url.hash || !source.id || sources.has(source.id) || !source.label || !source.period || source.date !== null && !/^\d{4}-\d{2}(?:-\d{2})?$/.test(source.date || '')) throw new Error('Invalid Lidl price reference source.');
     sources.set(source.id, source);
   }
   const ids = new Set();
   return document.references.map(row => {
     const source = sources.get(row.sourceId);
-    if (!source || !/^[\w-]+$/.test(row.id || '') || ids.has(row.id) || !row.name || !row.category || !row.packSize || !Number.isFinite(row.priceGBP) || row.priceGBP <= 0 || row.priceGBP > 10000 || !Array.isArray(row.regions) || row.regions.some(region => !['England', 'Wales', 'Scotland'].includes(region)) || row.storeSku !== null && !/^\d+$/.test(row.storeSku || '') || (row.packQuantity === null ? row.packUnit !== null : !(Number.isFinite(row.packQuantity) && row.packQuantity > 0 && ['g','ml','pieces','pint'].includes(row.packUnit)))) throw new Error('Invalid Lidl price reference product.');
+    if (!source || !/^[\w-]+$/.test(row.id || '') || ids.has(row.id) || !row.name || !row.category || !row.packSize || !Number.isFinite(row.priceGBP) || row.priceGBP <= 0 || row.priceGBP > 10000 || !Array.isArray(row.regions) || row.regions.some(region => !['England', 'Wales', 'Scotland', 'Northern Ireland'].includes(region)) || row.storeSku !== null && !/^\d+$/.test(row.storeSku || '') || (row.packQuantity === null ? row.packUnit !== null : !(Number.isFinite(row.packQuantity) && row.packQuantity > 0 && ['g','ml','pieces','pint'].includes(row.packUnit)))) throw new Error('Invalid Lidl price reference product.');
+    // NI and GB item numbers are separate namespaces. A Northern Ireland
+    // reference retains its region and cannot attach to an unrelated GB SKU.
+    if (new URL(source.url).hostname === 'www.lidl-ni.co.uk' && (row.storeSku !== null || row.regions.length !== 1 || row.regions[0] !== 'Northern Ireland')) throw new Error('Invalid Northern Ireland price reference identity.');
     ids.add(row.id);
     const ref = { ...row, sourceUrl: source.url, sourceLabel: source.label, sourcePeriod: source.period, sourceDate: source.date, reviewedAt: document.reviewedAt };
     trustedRows.add(ref);
