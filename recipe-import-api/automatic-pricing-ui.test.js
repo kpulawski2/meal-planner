@@ -244,3 +244,28 @@ test('missing Lidl product shows an optional checked-pack action while normal pr
  await app.load();assert.match(app.readItem('oats'),/excluded from the subtotal/);assert.equal(app.requestBodies[0].personalPrices,undefined);
  assert.match(html,/onclick="openPersonalPrice\(\)"/);assert.match(html,/personal-prices-core\.js/);assert.match(html,/personal-prices-ui\.js/);
 });
+
+test('simple shopping copy shows full packs and checkmarks without links and drops stale pack counts',async()=>{
+ const entries=[item('Milk',4500,'volume')],app=harness(entries);
+ assert.match(app.simpleShoppingListText(),/Milk — Need 4500 ml/);
+ await app.load();app.state.shopping.milk=true;
+ assert.match(app.simpleShoppingListText(),/\[x\] ASDA Semi Skimmed Milk — Buy 3 × 2000 ml/);
+ assert.doesNotMatch(app.simpleShoppingListText(),/https:|undefined/);
+ entries[0][1].groups.volume.remaining=500;
+ assert.match(app.simpleShoppingListText(),/Milk — Need 500 ml/);
+ assert.doesNotMatch(app.simpleShoppingListText(),/Buy 3/);
+ await app.load();assert.match(app.simpleShoppingListText(),/Buy 1 × 2000 ml/);
+});
+
+test('simple shopping copy retains every selected pack size and unpriced ingredients',async()=>{
+ const app=harness([item('Milk',2500,'volume'),['unknown',{name:'Unknown spice',c:'Other',unknown:true,groups:{},pantryNotes:[]}]],{respond:rows=>rows.map(row=>{
+  if(row.name!=='Milk')return {key:row.key,match:null,plan:null};
+  const result=recommendation(row,1,2000,'ml'),first={...result.plan.products[0],packs:1,costGBP:1};
+  result.plan={...result.plan,totalQuantity:3000,totalCostGBP:2,products:[first,{...first,productName:'ASDA Milk Small',packQuantity:1000,packSize:'1000 ml'}]};return result;
+ })});
+ await app.load();const text=app.simpleShoppingListText();
+ assert.match(text,/ASDA Semi Skimmed Milk — Buy 1 × 2000 ml/);
+ assert.match(text,/ASDA Milk Small — Buy 1 × 1000 ml/);
+ assert.match(text,/Unknown spice — Need .*Pack count unavailable/);
+ assert.doesNotMatch(text,/Buy 0|undefined/);
+});
