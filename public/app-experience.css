@@ -1,6 +1,21 @@
 /* A shared responsive shell for the existing planner and kitchen tools. */
 /* Focus controls keep selected packs and purchase confirmation available. */
 .shopping-focus .shopping-details {display:none}
+.shopping-buy-lines {display:none}
+.shopping-focus .auto-catalog-items {display:none}
+.shopping-focus .shopping-buy-lines {display:block;margin-top:5px;font-size:13px;font-weight:400;line-height:1.5}
+.shopping-buy-line {display:block;margin-top:5px;overflow-wrap:anywhere}
+.shopping-buy-line strong {color:var(--accent)}
+.shopping-buy-line small {display:block;color:var(--muted);font-size:12px}
+.shop-row .name {min-width:0;overflow-wrap:anywhere}
+.shopping-focus .shop-row {display:grid;grid-template-columns:24px minmax(0,1fr);align-items:start}
+.shopping-focus .shop-row .qty,.shopping-focus .shop-row .pantry-note {grid-column:2;width:auto;margin:0;padding:0}
+.shopping-list-actions {display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+@media print {
+  #shop .trip-toolbar,#shop .shopping-details,#shop .pantry-purchase-panel,#shop .actions {display:none!important}
+  #shop .shopping-buy-lines {display:block}
+  #shop .auto-catalog-items {display:none}
+}
 .trip-toolbar h2 {margin:4px 0;font-size:23px}
 .trip-toolbar .section-heading {gap:12px;flex-wrap:wrap}
 .trip-progress {height:8px;background:var(--line);border-radius:8px;overflow:hidden;margin:12px 0 16px}
