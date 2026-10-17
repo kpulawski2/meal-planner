@@ -400,3 +400,14 @@ input:focus,select:focus,textarea:focus {border-color:var(--accent);box-shadow:0
 .agent-plan-day ul {padding-left:18px;margin:6px 0 0}
 .agent-plan-day li {margin:4px 0;overflow-wrap:anywhere}
 .agent-compose [hidden] {display:none}
+
+/* Product warnings and purchase review use the active light/dark palette. */
+#shop .auto-catalog-card,#shop .auto-catalog-summary {background:var(--surface);border-color:var(--line);color:var(--text)}
+#shop .auto-catalog-card b,#shop .auto-catalog-card span,#shop .auto-catalog-card small {color:var(--text)}
+.purchase-review-row summary,.receipt-price-notes summary {font-weight:700;cursor:pointer;min-height:32px}
+.purchase-review-row input[type=checkbox] {width:20px;height:20px;accent-color:var(--accent)}
+.purchase-review-row input,.purchase-review-row select {min-width:0}
+
+.toast {background:var(--text);color:var(--bg)}
+
+#purchaseError:empty {display:none}
