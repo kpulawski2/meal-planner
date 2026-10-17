@@ -51,6 +51,14 @@ test('fixed historical portions are not subject to the free-portion bounds used 
  const input={...request,profile:{...request.profile,days:1},week:[{day:'Monday',meals:['oats','wrap','chicken']}],locked:{'Monday::0':true,'Monday::1':true,'Monday::2':true}};
  assert.equal(Why.explain({request:input}).issues.some(row=>row.kind==='fat'),false);
 });
+
+test('weekly spending follows a confirmed receipt purchase date rather than the later entry date',()=>{
+ const state={foodLog:[],pantryLedger:{transactions:[
+  {id:'old-receipt',type:'purchase',purchaseDate:'2026-10-01',createdAt:'2026-10-17T12:00:00Z',totalCostGBP:20},
+  {id:'this-week',type:'purchase',purchaseDate:'2026-10-16',createdAt:'2026-10-17T12:00:00Z',totalCostGBP:5}
+ ]}};
+ const review=Weekly.review(state,'2026-10-17');assert.equal(review.purchases.count,1);assert.equal(review.purchases.total,5);
+});
 test('repeat-favourite explanations count only the recipe that the user selected',()=>{
  const why=Why.explain({request:{...request,profile:{...request.profile,varietyMode:'Repeat favourites',repeatMeals:{Breakfast:'oats'}},recipes:[...rows,recipe('other-oats','Breakfast')]}});assert.equal(why.coverage[0].selected,1);
 });
