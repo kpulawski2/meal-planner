@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
-const source=await Promise.all(['personal-prices-core','budget-core','consumer-tools','swap-core'].map(name=>readFile(new URL(`../public/${name}.js`,import.meta.url),'utf8')));
+const source=await Promise.all(['personal-prices-core','budget-core','planner-settings-core','consumer-tools','swap-core'].map(name=>readFile(new URL(`../public/${name}.js`,import.meta.url),'utf8')));
 const date=new Date().toLocaleDateString('en-CA',{timeZone:'Europe/London'});
 function harness(){
  const values=new Map(),messages=[],downloads=[];
@@ -60,7 +60,7 @@ test('failed-plan ingredient gaps open the exact pack notebook action before a s
 });
 test('planner requests carry eligible personal packs only after opt-in and outside the public profile',()=>{
  const app=harness(),c=app.context;c.recipes=[];c.selectedShoppingStore=()=>c.state.profile.supermarket;c.lifecyclePlannerInput=()=>({cookedMeals:{},locked:{},pantry:[],leftovers:[]});c.planBudget=()=>35;c.planCashSpent=()=>0;
- vm.runInContext(html.slice(html.indexOf('function personalPricePayload('),html.indexOf('function personalProductValid('))+'\n'+html.slice(html.indexOf('function budgetPlannerPayload('),html.indexOf('function budgetPlannerFingerprint(')),c);
+ vm.runInContext(html.slice(html.indexOf('function personalPricePayload('),html.indexOf('function personalProductValid('))+'\n'+html.slice(html.indexOf('function projectedPlannerInput('),html.indexOf('function budgetPlannerFingerprint(')),c);
  c.PersonalPricesCore.write({...app.snapshot,includeInPlanning:false});assert.equal(c.budgetPlannerPayload().allowPersonalPrices,undefined);
  c.PersonalPricesCore.setIncluded(true);const payload=c.budgetPlannerPayload();assert.equal(payload.allowPersonalPrices,true);assert.equal(payload.personalPrices[0].id,app.record.id);assert.equal(payload.profile.personalPrices,undefined);
  c.state.profile.supermarket='Asda';assert.equal(c.budgetPlannerPayload().personalPrices,undefined);

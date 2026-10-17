@@ -88,7 +88,7 @@
     const selected = entries.filter(([key, item]) => state.shopping?.[key] || state.shopping?.[item.name]);
     if (!selected.length) return { ok: false, error: 'Tick the items you bought first.' };
     if (new Set(selected.map(([key]) => key)).size !== selected.length) return { ok: false, error: 'Your shopping list contains duplicate rows. Refresh the list.' };
-    if (!['Asda', 'Lidl'].includes(store) || basket?.status !== 'ready' || basket.offline || catalogue.offline) return { ok: false, error: 'Wait for the current supermarket packs to load online.' };
+    if (!['Asda', 'Lidl', 'Aldi'].includes(store) || basket?.status !== 'ready' || basket.offline || catalogue.offline) return { ok: false, error: 'Wait for the current supermarket packs to load online.' };
     const loadedAt = num(catalogue.loadedAt); if (!(loadedAt > 0) || new Date(now).getTime() - loadedAt > 30 * 60 * 1000 || loadedAt > new Date(now).getTime() + 60 * 1000) return { ok: false, error: 'Refresh these product prices before confirming your purchase.' };
     const lots = [], rows = [], requests = []; let totalCostGBP = 0;
     for (const [key, item] of selected) {
@@ -114,7 +114,7 @@
           }
           const quantity = core().unitMeta(unit, item.name); if (quantity.dim !== dimension || !(num(qty) > 0)) return { ok: false, error: item.name + ' has an unknown usable pack quantity.' };
           lineQuantity += qty * quantity.factor; lineCost += cost;
-          lots.push({ name: item.name, qty: rounded(qty), unit, place: /frozen/i.test(item.name + ' ' + product.productName) ? 'Freezer' : /milk|yoghurt|yogurt|cheese|chicken|pork|beef|salmon|cod|turkey|prawn|mixed salad|lettuce/i.test(item.name) && !/uht|tinned|canned|dried/i.test(product.productName) ? 'Fridge' : 'Pantry', expiry: '', purchasedAt: new Date(now).toISOString(), store, estimated, quantityBasis: product.quantityBasis || null, product: { id: product.id || product.sku || null, name: product.productName || item.name, url: product.url, packs, packQuantity: size, packUnit: product.packUnit, packSize: product.packSize || '', priceGBP: price, costGBP: cost, checkedAt, validFrom: product.validFrom || product.offer?.validFrom || null, validThrough: product.validThrough || product.offer?.validThrough || null } });
+          lots.push({ name: item.name, qty: rounded(qty), unit, place: product.storage === 'Freezer' || /frozen/i.test(item.name + ' ' + product.productName) ? 'Freezer' : /milk|yoghurt|yogurt|cheese|chicken|pork|beef|salmon|cod|turkey|prawn|mixed salad|lettuce/i.test(item.name) && !/uht|tinned|canned|dried/i.test(product.productName) ? 'Fridge' : 'Pantry', expiry: '', purchasedAt: new Date(now).toISOString(), store, estimated, quantityBasis: product.quantityBasis || null, product: { id: product.id || product.sku || null, name: product.productName || item.name, url: product.url, packs, packQuantity: size, packUnit: product.packUnit, packSize: product.packSize || '', priceGBP: price, costGBP: cost, checkedAt, validFrom: product.validFrom || product.offer?.validFrom || null, validThrough: product.validThrough || product.offer?.validThrough || null } });
         }
         if (!Number.isFinite(num(plan.totalQuantity)) || Math.abs(lineQuantity - num(plan.totalQuantity)) > .001 || lineQuantity + EPS < num(group.remaining) || !(num(plan.totalCostGBP) >= 0) || Math.abs(lineCost - num(plan.totalCostGBP)) > .011) return { ok: false, error: item.name + ' has an inconsistent purchase plan.' };
         totalCostGBP += lineCost;

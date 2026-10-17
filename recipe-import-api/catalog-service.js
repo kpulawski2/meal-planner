@@ -108,6 +108,10 @@ export function optimizeMealPlan(request, { signal } = {}) {
   return callWorker('optimizeMealPlan', [request], { signal, timeoutMs: 150_000 });
 }
 
+export function findOneOffMeals(request, { signal } = {}) {
+  return callWorker('findOneOffMeals', [request], { signal });
+}
+
 export function fetchProductPage(storeName, url) {
   return callWorker('fetchProductPage', [storeName, url]);
 }

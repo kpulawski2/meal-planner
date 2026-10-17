@@ -1,21 +1,23 @@
 {
   "title": "Meal Planner Direct Retailer Product & Price Reference Catalogue",
-  "generatedDate": "2026-10-06",
-  "ingredientCount": 114,
+  "generatedDate": "2026-10-17",
+  "ingredientCount": 116,
   "retailerCount": 2,
   "retailers": [
     "Asda",
     "Aldi"
   ],
-  "directProductPageCount": 93,
-  "pricedSnapshotCount": 83,
+  "directProductPageCount": 96,
+  "pricedSnapshotCount": 86,
   "importantNotes": [
     "All links are direct ASDA or ALDI product-detail pages; there are no Google or other search-result links.",
-    "The catalogue contains one row per ingredient/store pair for the 114 ingredients in the bundled recipe library.",
+    "The catalogue contains one row per listed ingredient/store pair. It is a separate dated reference export; the app uses its refreshed official product catalogues for automatic pricing.",
     "A numeric price appears only when a price snapshot was captured from an official retailer product-page listing. Prices and product availability can vary by postcode and over time.",
     "Rows with a direct product page but no price remain unpriced until a price is verified.",
     "If a direct product page is not verified, its URL and price are blank rather than substituting a search-engine link.",
-    "The catalogue is restricted to ASDA and ALDI."
+    "The catalogue is restricted to ASDA and ALDI.",
+    "Each row keeps its own original price-check date. Adding the FUEL10K cereal on 16 October 2026 does not recheck older entries or establish a Lidl price.",
+    "Frozen and fresh chicken have separate entries. Only the chicken rows were rechecked on 17 October 2026; other rows retain their original dates."
   ],
   "currentPriceSnapshots": [
     {
@@ -87,13 +89,13 @@
     {
       "ingredient": "Chicken breast",
       "store": "Aldi",
-      "productName": "Everyday Essentials Chicken Breast Fillets",
+      "productName": "Ashfields Chicken Breast Fillets",
       "size": 1000,
       "unit": "g",
-      "priceGBP": 4.25,
-      "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-chicken-breast-fillets-000000000000365448",
-      "checkedAt": "2026-10-06",
-      "note": "Official ALDI product page lists 1 kg at £4.25; page warns online and in-store prices may vary."
+      "priceGBP": 6.69,
+      "productUrl": "https://www.aldi.co.uk/product/ashfields-chicken-breast-fillets-000000000000387924",
+      "checkedAt": "2026-10-17",
+      "note": "Official Aldi UK page checked 17 October 2026: fresh Ashfields chicken breast fillets, 1 kg at £6.69. The £4.25 Everyday Essentials bag is frozen and has a separate ingredient row. Local prices and availability may vary."
     },
     {
       "ingredient": "Chicken stock",
@@ -657,6 +659,17 @@
       "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
     },
     {
+      "ingredient": "FUEL10K Chocolate Multigrain Flakes",
+      "store": "Asda",
+      "productName": "FUEL10K Chocolate Multigrain Flakes High Protein Breakfast Cereal 350g",
+      "size": 350,
+      "unit": "g",
+      "priceGBP": 2.5,
+      "productUrl": "https://www.asda.com/groceries/product/family-cereals/fuel-fuel10k-chocolate-multigrain-flakes-high-protein-breakfast-cereal-350g/9184193",
+      "checkedAt": "2026-10-16",
+      "note": "Official ASDA product page and 16 October 2026 catalogue confirm the exact 350 g flakes box at £2.50. Chocolate hoops and granola are different products. Price and availability may vary by location and date."
+    },
+    {
       "ingredient": "Halloumi",
       "store": "Asda",
       "productName": "ASDA Halloumi",
@@ -930,6 +943,28 @@
       "productUrl": "https://www.asda.com/groceries/product/wraps/the-bakery-at-asda-the-bakery-8-wholemeal-wraps-488g/3207137",
       "checkedAt": "2026-10-06",
       "note": "Price captured from official Asda product-page listing during the 6 October 2026 review; offers, local prices and availability can change."
+    },
+    {
+      "ingredient": "Frozen chicken breast",
+      "store": "Asda",
+      "productName": "ASDA Chicken Breast Fillets 1kg",
+      "size": 1000,
+      "unit": "g",
+      "priceGBP": 6.86,
+      "productUrl": "https://www.asda.com/groceries/product/frozen-breasts-portions-thighs-joints/asda-chicken-breast-fillets-1kg/2725330",
+      "checkedAt": "2026-10-17",
+      "note": "Official ASDA UK page checked 17 October 2026: frozen chicken breast fillets (87% chicken, added water), 1 kg at £6.86. Oven cook from frozen, follow pack instructions including do not reheat. Local prices and availability may vary."
+    },
+    {
+      "ingredient": "Frozen chicken breast",
+      "store": "Aldi",
+      "productName": "Everyday Essentials Chicken Breast Fillets",
+      "size": 1000,
+      "unit": "g",
+      "priceGBP": 4.25,
+      "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-chicken-breast-fillets-000000000000365448",
+      "checkedAt": "2026-10-17",
+      "note": "Official Aldi UK page checked 17 October 2026: frozen chicken breast fillets with added water, cook from frozen, 1 kg at £4.25. Follow pack instructions; online and in-store prices may vary."
     }
   ],
   "ingredients": [
@@ -1416,16 +1451,16 @@
         },
         {
           "retailer": "Aldi",
-          "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-chicken-breast-fillets-000000000000365448",
-          "suggestedProductUrl": "https://www.aldi.co.uk/product/everyday-essentials-chicken-breast-fillets-000000000000365448",
-          "productName": "Everyday Essentials Chicken Breast Fillets",
+          "productUrl": "https://www.aldi.co.uk/product/ashfields-chicken-breast-fillets-000000000000387924",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/ashfields-chicken-breast-fillets-000000000000387924",
+          "productName": "Ashfields Chicken Breast Fillets",
           "packSize": "1000 g",
           "size": 1000,
           "unit": "g",
-          "priceGBP": 4.25,
-          "priceCheckedDate": "2026-10-06",
+          "priceGBP": 6.69,
+          "priceCheckedDate": "2026-10-17",
           "status": "verified_price_snapshot",
-          "notes": "Official ALDI product page lists 1 kg at £4.25; page warns online and in-store prices may vary."
+          "notes": "Official Aldi UK page checked 17 October 2026: fresh Ashfields chicken breast fillets, 1 kg at £6.69. The £4.25 Everyday Essentials bag is frozen and has a separate ingredient row. Local prices and availability may vary."
         }
       ]
     },
@@ -2325,6 +2360,37 @@
           "priceCheckedDate": null,
           "status": "no_verified_direct_product_page",
           "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "FUEL10K Chocolate Multigrain Flakes",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/family-cereals/fuel-fuel10k-chocolate-multigrain-flakes-high-protein-breakfast-cereal-350g/9184193",
+          "suggestedProductUrl": null,
+          "productName": "FUEL10K Chocolate Multigrain Flakes High Protein Breakfast Cereal 350g",
+          "packSize": "350 g",
+          "size": 350,
+          "unit": "g",
+          "priceGBP": 2.5,
+          "priceCheckedDate": "2026-10-16",
+          "status": "verified_price_snapshot",
+          "notes": "Official ASDA product page and 16 October 2026 catalogue confirm the exact 350 g flakes box at £2.50. Chocolate hoops and granola are different products. Price and availability may vary by location and date."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": null,
+          "suggestedProductUrl": null,
+          "productName": null,
+          "packSize": null,
+          "size": null,
+          "unit": null,
+          "priceGBP": null,
+          "priceCheckedDate": null,
+          "status": "no_verified_direct_product_page",
+          "notes": "No direct official Aldi product page has been verified for this exact branded cereal. No price is supplied."
         }
       ]
     },
@@ -4464,6 +4530,37 @@
           "priceCheckedDate": null,
           "status": "no_verified_direct_product_page",
           "notes": "No direct official product-detail page has been verified for this ingredient. No search-engine link or price is supplied."
+        }
+      ]
+    },
+    {
+      "ingredient": "Frozen chicken breast",
+      "retailers": [
+        {
+          "retailer": "Asda",
+          "productUrl": "https://www.asda.com/groceries/product/frozen-breasts-portions-thighs-joints/asda-chicken-breast-fillets-1kg/2725330",
+          "suggestedProductUrl": "https://www.asda.com/groceries/product/frozen-breasts-portions-thighs-joints/asda-chicken-breast-fillets-1kg/2725330",
+          "productName": "ASDA Chicken Breast Fillets 1kg",
+          "packSize": "1000 g",
+          "size": 1000,
+          "unit": "g",
+          "priceGBP": 6.86,
+          "priceCheckedDate": "2026-10-17",
+          "status": "verified_price_snapshot",
+          "notes": "Official ASDA UK page checked 17 October 2026: frozen chicken breast fillets (87% chicken, added water), 1 kg at £6.86. Oven cook from frozen, follow pack instructions including do not reheat. Local prices and availability may vary."
+        },
+        {
+          "retailer": "Aldi",
+          "productUrl": "https://www.aldi.co.uk/product/everyday-essentials-chicken-breast-fillets-000000000000365448",
+          "suggestedProductUrl": "https://www.aldi.co.uk/product/everyday-essentials-chicken-breast-fillets-000000000000365448",
+          "productName": "Everyday Essentials Chicken Breast Fillets",
+          "packSize": "1000 g",
+          "size": 1000,
+          "unit": "g",
+          "priceGBP": 4.25,
+          "priceCheckedDate": "2026-10-17",
+          "status": "verified_price_snapshot",
+          "notes": "Official Aldi UK page checked 17 October 2026: frozen chicken breast fillets with added water, cook from frozen, 1 kg at £4.25. Follow pack instructions; online and in-store prices may vary."
         }
       ]
     }

@@ -4,6 +4,7 @@ import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
 
 const html=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
+const settings=await readFile(new URL('../public/planner-settings-core.js',import.meta.url),'utf8');
 const core=await readFile(new URL('../public/budget-core.js',import.meta.url),'utf8');
 function source(start,end){const from=html.indexOf(start),to=html.indexOf(end,from+start.length);assert.ok(from>=0&&to>from,start);return html.slice(from,to);}
 function element(value=''){return {value,innerHTML:'',textContent:'',dataset:{},style:{},attributes:{},classList:{toggle(){}},setAttribute(name,value){this.attributes[name]=value;}};}
@@ -99,7 +100,7 @@ test('source attribution includes its licence and ignores unsafe source links',(
 test('the planner delegates its entire eligible library to the diverse bounded pool',()=>{
  const rows=Array.from({length:400},(_,index)=>row('web-'+index)),calls=[];
  const context={selectedShoppingStore:()=>'Asda',state:{profile:{},week:[],pantry:[],favorites:[]},recipes:rows,recipeAllowed:()=>true,recipeNutrition:()=>({kcal:389,p:16.9,complete:true}),recipeCategory:recipe=>recipe.cat,lifecyclePlannerInput:()=>({locked:{},cookedMeals:{},pantry:[],leftovers:[]}),planBudget:()=>45,planCashSpent:()=>0,RecipeLibraryCore:{selectPlannerRecipes(recipes,state){calls.push({recipes,state});return recipes.slice(350);}}};
- vm.runInNewContext(source('function budgetPlannerPayload(','function budgetPlannerFingerprint()'),context);
+ vm.runInNewContext(core+'\n'+settings+'\n'+source('function projectedPlannerInput(','function budgetPlannerFingerprint()'),context);
  const payload=context.budgetPlannerPayload();assert.equal(calls[0].recipes.length,400);assert.equal(calls[0].recipes[399].nutrition.complete,true);
  assert.equal(payload.recipes[0].id,'web-350');assert.equal(payload.recipes.length,50);assert.ok(Array.isArray(payload.recipes[0].equipment));
 });

@@ -76,16 +76,18 @@
     if (product.priceBasis === 'personal' || String(value || '').startsWith('personal:')) return root.PersonalPricesCore?.productMatches?.(product, {store, ingredient:item.name, dimension:item.dimension}) === true;
     try {
       const url = new URL(value);
+      if(product.priceBasis==='other_store')return root.RetailerPriceSources?.otherStoreProduct(product,store)===true;
+      if (['aldi_estimate', 'aldi_reference'].includes(product.priceBasis)) return root.RetailerPriceSources?.aldiProduct(product, store) === true;
       return url.protocol === 'https:' && !url.username && !url.password && !url.port && (store === 'Asda'
         ? ['www.asda.com', 'groceries.asda.com'].includes(url.hostname) && /^\/(?:groceries\/)?product\//.test(url.pathname)
-        : store === 'Lidl' && (url.hostname === 'www.lidl.co.uk' && /^\/p\/[^/]+\/p\d+\/?$/.test(url.pathname) || product.estimatedPrice === true && product.priceBasis === 'reference' && (url.hostname === 'www.lidl.co.uk' && /^\/static\/assets\/[^/]+\.pdf$/.test(url.pathname) || url.hostname === 'corporate.lidl.co.uk' && /^\/media-centre\/pressreleases\/\d{4}\/[\w!-]+$/.test(url.pathname))));
+        : store === 'Lidl' && (url.hostname === 'www.lidl.co.uk' && /^\/p\/[^/]+\/p\d+\/?$/.test(url.pathname) || product.estimatedPrice === true && product.priceBasis === 'reference' && (['www.lidl.co.uk', 'www.lidl-ni.co.uk'].includes(url.hostname) && /^\/static\/assets\/[^/]+\.pdf$/.test(url.pathname) || url.hostname === 'corporate.lidl.co.uk' && /^\/media-centre\/pressreleases\/\d{4}\/[\w!-]+$/.test(url.pathname))));
     } catch { return false; }
   }
   function planValid(plan, requested, store, item = {}) {
     if (!plan || !Array.isArray(plan.products) || !plan.products.length || !amount(plan.totalCostGBP) || !amount(plan.requestedQuantity) ||
       !(Number(plan.totalQuantity) > 0) || !Number.isFinite(Number(plan.totalQuantity)) || Math.abs(Number(plan.requestedQuantity) - requested) > .001 ||
       Number(plan.totalQuantity) < requested - .000001 || !(requested > 0)) return false;
-    if (plan.products.some(product => product.priceBasis === 'personal') && plan.estimatedPrice !== true) return false;
+    if (plan.products.some(product => product.priceBasis === 'personal' || ['aldi_estimate','aldi_reference','other_store'].includes(product.priceBasis)) && plan.estimatedPrice !== true) return false;
     if (!plan.products.every(product => Number.isInteger(Number(product.packs)) && Number(product.packs) > 0 && amount(product.costGBP) &&
       amount(product.priceGBP) && Number(product.priceGBP) > 0 && Number(product.totalQuantity) > 0 && Number.isFinite(Number(product.totalQuantity)) &&
       product.available !== false && (product.priceBasis !== 'personal' || Boolean(item.dimension)) && officialUrl(product.url, store, product, item) && Math.abs(Number(product.costGBP) - Number(product.packs) * Number(product.priceGBP)) < .011)) return false;

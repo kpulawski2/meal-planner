@@ -2,10 +2,20 @@
 
 ## Recipe pricing and personal pack prices
 
-The October source review adds 39 exact official references (141 records across
-eight sources), including the live five-family-meals price matrix checked on
+The app uses one collected Lidl price list automatically for planning, shopping,
+swaps and browsing. There is no separate reference-price switch. Usable current
+website prices take priority; saved published prices retain their original
+source dates and estimate labels. Old disabled settings do not suppress them.
+Prices may come from any UK Lidl branch, including Northern Ireland. UK source
+regions stay visible. Missing compatible Lidl prices automatically fall back to
+[labelled Aldi estimates](aldi-prices.md). Aldi packs never inflate Lidl listing
+counts or replace usable Lidl prices. Unknown usable quantities stay excluded.
+Personal receipt prices are still a separate optional notebook.
+
+The collected list has 143 exact price records across ten official sources. The
+GB review added 39 records, including the five-family-meals matrix checked on
 12 October 2026. The original dates remain visible: these are estimates, not
-verified current Sheffield shelf prices. For the exact same named pack and
+fresh checks of today’s shelf prices. For the exact same named pack and
 region, the newest dated observation takes precedence over an older reference.
 Different brands, variants and weights remain distinct. The source list keeps
 the historical evidence even when a newer observation is preferred.
@@ -14,7 +24,7 @@ The matrix's sweetcorn tin is labelled 340g with 285g drained contents; recipe
 purchases use the explicit 285g edible yield. Its 145g sunflower-oil tuna amount
 does not establish a drained yield and cannot cost recipe grams. It also cannot
 stand in for brine or spring-water tuna. Regional cheese and egg references
-remain restricted. Upcoming XXL chicken offers do not become today's prices.
+retain their UK origins and can be used as estimates. Upcoming XXL chicken offers do not become today's prices.
 
 The recipe matcher recognises Lidl's Baking and Oil & Fats shelves, preserves
 frozen produce categories, and safely handles plain/all-purpose flour wording.
@@ -145,7 +155,7 @@ establish local stock or a complete branch inventory.
 
 ## Reference price estimates
 
-The app includes **141 explicit Lidl pack-price reference records** in
+The app includes **143 explicit Lidl pack-price reference records** in
 `data/lidl-price-references.json`. Their sources are:
 
 - [Lidl's price comparison PDF](https://www.lidl.co.uk/static/assets/Morrisons_Price_Conparison-Online-MainList-2134661.pdf): only the Lidl retail-price column, not competitors or printed unit prices. No usable date is printed; the app shows **Undated**.
@@ -156,13 +166,15 @@ The app includes **141 explicit Lidl pack-price reference records** in
 - [High-protein product list](https://corporate.lidl.co.uk/media-centre/pressreleases/2025/tiktok-shop-protein): **18 February 2025**, individual in-store products rather than the separate promotional bundle.
 - [Way To Go tea](https://corporate.lidl.co.uk/media-centre/pressreleases/2026/waytogo!-tea): **15 September 2026**, the published launch amount and 80-bag pack.
 - [BBQ basket](https://corporate.lidl.co.uk/media-centre/pressreleases/2023/more-bangers-for-your-buck-lidl-wins-which-cheapest-bbq-basket): **19 July 2023**, historical products with exact pack sizes.
+- [Northern Ireland basket list](https://www.lidl-ni.co.uk/static/assets/WK39-1152742.pdf): **Undated**. It explicitly states 1 kg organic jumbo porridge oats at £1.99. The filename does not establish a check date; missing pack sizes for other items are not guessed.
+- [Northern Ireland July 2025 retail list](https://www.lidl-ni.co.uk/static/assets/NIWk27LPSavingsweb-1644357.pdf): **3–9 July 2025**. The 1 kg Birchwood chicken breast uses the published **LP Old RP** amount of £6.44, rather than the expired member offer of £4.79.
 
-**Use reference prices for estimates** is enabled by default in Lidl Settings.
-Turning it off restores current website prices only. Direct API callers remain
-strict unless `allowReferencePrices: true` is supplied to recommendations, or
-`profile.lidlReferencePrices: true` to the planner. Browsing uses `references=1`
-and `scope=all` for the expanded view; its independent Price sources control can
-hide references. Original 61 unpriced range records remain available too.
+The app always includes these prices in its Lidl requests, alongside website
+prices. Original source dates and estimate labels remain visible in the same
+list. The 61 unpriced range records remain available too. For diagnostics,
+direct API callers can still request a strict website-only view; the internal
+flags are `allowReferencePrices: true` for recommendations and
+`profile.lidlReferencePrices: true` for planning. The app sets them automatically.
 
 Reference records are validated separately. They do not modify the product
 snapshot, its hash, its health counts or strict matching caches. An existing
@@ -174,10 +186,13 @@ to Milbona, and organic egg prices must not transfer to ordinary eggs. Other
 references use identifiable source-document entries with source links and no
 invented product page, SKU or stock assertion.
 
-Reference products can enter the estimate index only with the explicit mode on.
+Reference products from all UK regions enter the app's estimate index automatically.
+NI source records cannot attach to GB listings by item number: those identifiers
+belong to separate markets. The source region travels through plan quotes,
+shopping, swaps, offline baskets, copied lists and CSV exports.
 Ingredient compatibility and whole-pack calculations are shared with normal
-shopping and planning. Regional references remain visible but cannot supply a
-universal GB budget; ambiguous pack weights remain unpriceable. Missing prices
+shopping and planning. Regional UK references can supply a budget estimate with their origin shown;
+ambiguous pack weights remain unpriceable. Missing prices
 stay unknown. Source dates are never replaced with the review date or reported
 as a current shelf-price check. These manually reviewed reference records do
 not auto-refresh; changed source values require another evidence review.

@@ -233,10 +233,10 @@ test('planner readiness rejects nonfinite yields, nutrients and malformed ingred
 const shipped = await readRecipeLibrary();
 const everyday = shipped.filter(row => row.id.startsWith('everyday-'));
 
-test('24 measured additions expand quick lunches, vegetarian meals and lighter dinners with complete estimates', () => {
-  assert.equal(everyday.length, 25);
+test('26 measured additions expand breakfasts, quick lunches, vegetarian meals and lighter dinners with complete estimates', () => {
+  assert.equal(everyday.length, 26);
   assert.equal(new Set(shipped.map(row => row.id)).size, shipped.length);
-  assert.deepEqual(Object.fromEntries(['Breakfast', 'Lunch', 'Dinner', 'Snack'].map(cat => [cat, everyday.filter(row => row.cat === cat).length])), { Breakfast: 4, Lunch: 9, Dinner: 8, Snack: 4 });
+  assert.deepEqual(Object.fromEntries(['Breakfast', 'Lunch', 'Dinner', 'Snack'].map(cat => [cat, everyday.filter(row => row.cat === cat).length])), { Breakfast: 5, Lunch: 9, Dinner: 8, Snack: 4 });
   for (const row of everyday) {
     assert.equal(row.servings, 1);
     assert.equal(row.cost, null);

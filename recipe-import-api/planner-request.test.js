@@ -6,7 +6,8 @@ const request = overrides => ({ profile: { days: 7, meals: 4, people: 1, budget:
 test('selected supermarket survives normalization and unsupported stores are rejected',()=>{
   assert.equal(normalizePlannerRequest(request({profile:{supermarket:'Lidl'}})).profile.supermarket,'Lidl');
   assert.equal(normalizePlannerRequest(request()).profile.supermarket,'Asda');
-  assert.throws(()=>normalizePlannerRequest(request({profile:{supermarket:'Aldi'}})),/Choose Asda or Lidl/);
+  assert.equal(normalizePlannerRequest(request({profile:{supermarket:'Aldi'}})).profile.supermarket,'Aldi');
+  assert.throws(()=>normalizePlannerRequest(request({profile:{supermarket:'Tesco'}})),/Choose Asda, Lidl or Aldi/);
 });
 
 test('planner input retains settings, recipe yields, fractions, stock and locks with bounded fields', () => {

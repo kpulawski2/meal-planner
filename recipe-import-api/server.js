@@ -15,7 +15,8 @@ import { fetchPublicRecipePage } from './public-recipe-fetch.js';
 import { PRICE_LOOKUP_STORES, lookupStoreItem, splitBatches } from './price-search-adapter.js';
 import { catalogStoreInfo } from './catalog-adapter.js';
 import { normalizePersonalPriceOptions } from './personal-prices.js';
-import { searchCatalog, browseCatalog, recommendCatalogItems, optimizeMealPlan, fetchProductPage, clearCatalogCache, catalogueStatus, cachedCatalogueStatus } from './catalog-service.js';
+import { searchCatalog, browseCatalog, recommendCatalogItems, optimizeMealPlan, findOneOffMeals, fetchProductPage, clearCatalogCache, catalogueStatus, cachedCatalogueStatus } from './catalog-service.js';
+import { normalizeOneOffRequest } from './one-off-meal.js';
 import { normalizePlannerRequest } from './planner-request.js';
 import { createBarcodeLookup } from './barcode-products.js';
 const lookupBarcodeProduct = createBarcodeLookup();
@@ -776,21 +777,21 @@ app.get('/api/connection-check', authenticated, (_req, res) => res.json({ ok: tr
 // Automatic supermarket lookups are disabled in the direct-page catalogue build. Prices are stored as verified page snapshots or manually recorded by the user.
 
 app.get('/api/catalog/stores', catalogRateLimit, (_req, res) => res.json({ ok: true, stores: catalogStoreInfo(), mode: 'official-retailer-catalogue-snapshots' }));
-app.get('/api/catalog/status', async (req, res) => { const store=cleanString(req.query.store || 'Asda',40); if(!['Asda','Lidl'].includes(store))return res.status(400).json({error:'Store must be Asda or Lidl.'}); res.json({ok:true,catalogue:await catalogueStatus(store)}); });
+app.get('/api/catalog/status', async (req, res) => { const store=cleanString(req.query.store || 'Asda',40); if(!['Asda','Lidl','Aldi'].includes(store))return res.status(400).json({error:'Store must be Asda, Lidl or Aldi.'}); res.json({ok:true,catalogue:await catalogueStatus(store)}); });
 app.get('/api/catalog/browse', catalogRateLimit, async (req, res) => {
   const store = cleanString(req.query.store || 'Lidl', 40);
-  if (store !== 'Lidl') return res.status(400).json({ error: 'Ingredient browsing is currently available for Lidl.' });
+  if (!['Lidl','Aldi'].includes(store)) return res.status(400).json({ error: 'Ingredient browsing is available for Lidl and Aldi.' });
   try {
     const result = await browseCatalog(store, { query: cleanString(req.query.q, 120), category: cleanString(req.query.category, 120), menu: cleanString(req.query.menu, 30), price: cleanString(req.query.price, 20), source: cleanString(req.query.source, 20), scope: req.query.scope === 'all' ? 'all' : 'food', allowReferencePrices: req.query.references === '1', offset: req.query.offset, limit: req.query.limit });
     res.json({ ok: true, ...result });
-  } catch { res.status(503).json({ error: 'The Lidl ingredient catalogue is unavailable. Your shopping list is saved. Please retry.' }); }
+  } catch { res.status(503).json({ error: 'The ingredient catalogue is unavailable. Your shopping list is saved. Please retry.' }); }
 });
 app.get('/api/catalog/search', catalogRateLimit, async (req, res) => {
   try {
     const store = cleanString(req.query.store || '', 40);
     const query = cleanString(req.query.q || '', 120);
     const dimension = cleanString(req.query.dim || '', 20);
-    if (!['Asda', 'Lidl'].includes(store)) return res.status(400).json({ error: 'Store must be Asda or Lidl.' });
+    if (!['Asda', 'Lidl', 'Aldi'].includes(store)) return res.status(400).json({ error: 'Store must be Asda, Lidl or Aldi.' });
     if (!query || query.length < 2) return res.status(400).json({ error: 'Enter an ingredient or product name.' });
     const result = await searchCatalog(store, query, Number(req.query.limit) || 8, dimension);
     res.json({ ok: true, ...result });
@@ -799,6 +800,19 @@ app.get('/api/catalog/search', catalogRateLimit, async (req, res) => {
   }
 });
 let activeBudgetPlans = 0;
+let activeOneOffSearches = 0;
+app.post('/api/meals/one-off', catalogRateLimit, async (req, res) => {
+  const controller = new AbortController(), closed = () => controller.abort(); let claimed = false;
+  try {
+    const request = normalizeOneOffRequest(req.body);
+    if (activeOneOffSearches >= 2) return res.set('Retry-After', '2').status(503).json({ error: 'Meal pricing is busy. Please retry shortly.' });
+    activeOneOffSearches++; claimed = true; res.once('close', closed);
+    const result = await findOneOffMeals(request, { signal: controller.signal });
+    if (!res.destroyed) res.json({ ok: true, ...result });
+  } catch (error) {
+    if (!res.destroyed && !res.headersSent) res.status(error instanceof TypeError ? 400 : 502).json({ error: cleanString(error.message || 'Meal prices are unavailable. Please retry.', 300) });
+  } finally { if (claimed) activeOneOffSearches--; res.off('close', closed); }
+});
 app.get('/api/foods/barcode/:code', catalogRateLimit, async (req,res) => {
   const controller=new AbortController(),closed=()=>controller.abort();res.once('close',closed);
   try{const result=await lookupBarcodeProduct(req.params.code,{signal:controller.signal});if(!res.destroyed)res.json({ok:true,...result});}
@@ -876,7 +890,7 @@ app.post('/api/catalog/recommend', catalogRateLimit, async (req, res) => {
     const store = cleanString(req.body?.store || '', 40);
     const rawItems = req.body?.items;
     if (req.body?.allowReferencePrices !== undefined && typeof req.body.allowReferencePrices !== 'boolean') return res.status(400).json({ error: 'Reference prices must be on or off.' });
-    if (!['Asda','Lidl'].includes(store)) return res.status(400).json({error:'Store must be Asda or Lidl.'});
+    if (!['Asda','Lidl','Aldi'].includes(store)) return res.status(400).json({error:'Store must be Asda, Lidl or Aldi.'});
     if (!Array.isArray(rawItems) || rawItems.length < 1 || rawItems.length > 200) {
       return res.status(400).json({ error: 'Send between 1 and 200 shopping-list ingredients.' });
     }
@@ -906,7 +920,7 @@ app.get('/api/catalog/product', catalogRateLimit, async (req, res) => {
   try {
     const store = cleanString(req.query.store || '', 40);
     const url = cleanString(req.query.url || '', 800);
-    if (!['Asda', 'Lidl'].includes(store)) return res.status(400).json({ error: 'Store must be Asda or Lidl.' });
+    if (!['Asda', 'Lidl', 'Aldi'].includes(store)) return res.status(400).json({ error: 'Store must be Asda, Lidl or Aldi.' });
     if (!url) return res.status(400).json({ error: 'Product URL is required.' });
     const product = await fetchProductPage(store, url);
     res.json({ ok: true, product });
@@ -916,7 +930,7 @@ app.get('/api/catalog/product', catalogRateLimit, async (req, res) => {
 });
 app.post('/api/catalog/refresh', catalogRateLimit, async (req, res) => {
   const store = cleanString(req.body?.store || '', 40);
-  if (store && !['Asda','Lidl'].includes(store)) return res.status(400).json({ error: 'Store must be Asda or Lidl.' });
+  if (store && !['Asda','Lidl','Aldi'].includes(store)) return res.status(400).json({ error: 'Store must be Asda, Lidl or Aldi.' });
   try {
     await clearCatalogCache(store || null);
     res.json({ ok: true, cleared: store || 'all' });
@@ -928,7 +942,7 @@ app.post('/api/catalog/refresh', catalogRateLimit, async (req, res) => {
 app.post('/api/prices/lookup', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct ASDA/Lidl product-page references in the Shopping List.' }));
 app.get('/api/prices/lookup/:jobId', (_req, res) => res.status(410).json({ error: 'Automatic price searching is disabled. Use the direct product-page reference catalogue.' }));
 
-app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner', aiProvider: 'Groq API (recipe/video features and meal-request interpretation)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors for AI import', priceSearchProvider: 'Official ASDA and Lidl website snapshots; no paid search API', braveSearchConfigured: false, priceSearchRetryPolicy: 'Not used by the manual price-reference UI', videoUploadSupported: true, videoRecipeOutputLanguage: 'en', videoSourceLanguages: RecipeLanguage.languages.map(([code]) => code), videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, automaticCatalogMatchingSupported: true, release: process.env.RENDER_GIT_COMMIT || 'local', uptimeSeconds: Math.floor(process.uptime()), livePriceSearchConfigured: false, livePriceStores: ['Asda', 'Lidl'], priceSearchModel: null, priceDataSource: 'ASDA official product index and every Lidl GB sitemap product page. Lidl unpublished prices remain unavailable.', manualPriceReferenceMode: false, officialCatalogMode: true, officialCatalogSources: catalogStoreInfo(), asdaCatalogue: cachedCatalogueStatus(), lidlCatalogue: cachedCatalogueStatus('Lidl'), priceReferenceCatalog: '/price-reference-catalog.json', priceReferenceCsv: '/price-reference-catalog.csv', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
+app.get('/health', (_req, res) => res.json({ ok: true, service: 'meal-planner', aiProvider: 'Groq API (recipe/video features and meal-request interpretation)', aiConfigured: Boolean(GROQ_API_KEY), tokenConfigured: Boolean(IMPORT_API_TOKEN), audioModel: AUDIO_MODEL, recipeModel: RECIPE_MODEL, retryPolicy: 'bounded retry on transient/rate-limit errors for AI import', priceSearchProvider: 'ASDA and Lidl website snapshots plus dated UK Aldi pack prices; no paid search API', braveSearchConfigured: false, priceSearchRetryPolicy: 'Not used by the manual price-reference UI', videoUploadSupported: true, videoRecipeOutputLanguage: 'en', videoSourceLanguages: RecipeLanguage.languages.map(([code]) => code), videoDownloadStrategies: VIDEO_DOWNLOAD_STRATEGIES.map(x => x.name), automaticPriceLookupSupported: true, automaticCatalogMatchingSupported: true, release: process.env.RENDER_GIT_COMMIT || 'local', uptimeSeconds: Math.floor(process.uptime()), livePriceSearchConfigured: false, livePriceStores: ['Asda', 'Lidl', 'Aldi'], priceSearchModel: null, priceDataSource: 'ASDA and Lidl product indexes plus a curated UK Aldi ingredient catalogue. Missing Lidl prices can use labelled Aldi estimates.', manualPriceReferenceMode: false, officialCatalogMode: true, officialCatalogSources: catalogStoreInfo(), asdaCatalogue: cachedCatalogueStatus(), lidlCatalogue: cachedCatalogueStatus('Lidl'), aldiCatalogue: cachedCatalogueStatus('Aldi'), priceReferenceCatalog: '/price-reference-catalog.json', priceReferenceCsv: '/price-reference-catalog.csv', shopsplitManualLookup: true, appServedFromSameOrigin: true }));
 
 app.post('/api/import-recipe', importAccess, async (req, res) => {
   let sourceLanguage;try { sourceLanguage = RecipeLanguage.source(req.body?.sourceLanguage); } catch (error) { return res.status(400).json({ error: error.message }); }

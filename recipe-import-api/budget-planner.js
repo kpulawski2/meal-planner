@@ -16,7 +16,7 @@ const pennies = value => Math.round(Number(value) * 100);
 const round = (value, digits = 2) => Number(value.toFixed(digits));
 const bookKey = (name, dimension) => `${Core.canonicalIngredientName(name)}::${dimension}`;
 
-function allowedRecipe(recipe, profile) {
+export function allowedRecipe(recipe, profile) {
   if (!Intent.allowed(recipe, profile) || !globalThis.RecipeLibraryCore.equipmentAllowed(recipe, profile)) return false;
   const ingredients = (recipe.ings || []).map(row => String(row[0]).toLowerCase()), hay = `${recipe.name} ${ingredients.join(' ')}`.toLowerCase();
   const dislikes = String(profile.dislikes || '').toLowerCase().split(',').map(value => value.trim()).filter(Boolean);
@@ -233,7 +233,13 @@ function withLocks(template, name, request, rowsById, targets, people, slots) {
   const dayIndex=Core.dayNames(Number(request.profile.days)||7).indexOf(name);
   const locked = slots.map((_, slot) => Boolean(request.locked?.[`${name}::${slot}`]));
   if (!locked.some(Boolean)) return template.rows.every(row=>Intent.allowed(row,request.profile,dayIndex))?{ ...template, name }:null;
-  const current = currentDay(request, name, rowsById, slots, people); if (!current) return null;
+  // A newly added breakfast slot may be empty while an existing lunch stays
+  // locked. Only locked slots need a prior recipe; the template fills the rest.
+  const previous = (request.week || []).find(day => day.day === name);
+  if (!previous) return null;
+  const current = { rows: slots.map((_, slot) => rowsById.get(previous.meals?.[slot])),
+    factors: slots.map((_, slot) => Number(request.mealServings?.[`${name}::${slot}`]) / people || 1) };
+  if (slots.some((category, slot) => locked[slot] && (!current.rows[slot] || !(current.rows[slot].cat === category || category === 'Snack' && current.rows[slot].cat === 'Fruit')))) return null;
   if (slots.some((category, slot) => locked[slot] && !request.cookedMeals?.[`${name}::${slot}`]
     && request.profile.varietyMode === 'Repeat favourites' && request.profile.repeatMeals?.[category]
     && current.rows[slot].id !== request.profile.repeatMeals[category])) return null;
@@ -568,12 +574,16 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   });
   const variety = Core.inspectVariety(plan.week, recipes, profile, request.cookedMeals), goals = goalReport(profile, best.days);
   const feasible = complete && totalCents <= budgetCents && nutritionDays.every(day => day.complete && day.meetsTargets) && variety.met;
+  if (recommendations.some(row => row.plan?.products?.some(product => product.preparationNote))) warnings.push('Frozen chicken is included. Follow each pack’s full cooking time and storage instructions, including any no-reheat instruction. Nutrition is estimated and can differ with added-water content.');
+  if (recommendations.some(row=>row.plan?.products?.some(product=>product.priceBasis==='other_store'))) warnings.push('The requested FUEL10K cereal is priced as a separate ASDA purchase. Its price is included in the budget; it is not a Lidl stock or price claim.');
   if (!complete) warnings.push('Some ingredients could not be priced. Unpriced ingredients are not counted as free, so this proposal cannot be accepted as within budget.');
   else if (totalCents > budgetCents) warnings.push('No plan inside this budget was found. This is the lowest-cost complete proposal found by the bounded search, not proof that a cheaper plan is impossible.');
   const uniqueMeals = new Set(plan.week.flatMap(day => day.meals)).size;
   if (!variety.met) warnings.push('No plan meeting the required meal variety was found. Repetition and protein-family limits have not been relaxed. Add alternatives, unlock conflicting meals or review the budget and targets.');
   if (Object.values(shopping).some(item => item.quantityNotes?.length)) warnings.push('Shopping quantities include labelled typical weights and cooking conversions. Actual weights and local prices can vary.');
   if (recommendations.some(row => row.plan?.products?.some(product => product.priceBasis === 'reference'))) warnings.push('This budget is an estimate using historical or undated official Lidl reference prices. Check current pack prices and stock in store before shopping.');
+  if (recommendations.some(row => row.plan?.products?.some(product => product.priceBasis === 'aldi_estimate'))) warnings.push('Missing Lidl prices use labelled Aldi pack-price estimates. These do not confirm Lidl prices, products or stock; check before shopping.');
+  if (recommendations.some(row => row.plan?.products?.some(product => product.priceBasis === 'aldi_reference'))) warnings.push('This budget uses dated UK Aldi pack prices from the curated ingredient catalogue. Check current Aldi prices and stock before shopping.');
   if (recommendations.some(row => row.plan?.products?.some(product => product.priceBasis === 'personal'))) warnings.push('This budget uses your saved Lidl shelf or receipt prices for selected ingredients. Check those pack prices and stock before shopping; saved prices do not record a new purchase.');
   return { store, status: feasible ? 'feasible' : 'no_feasible_plan', ...plan,
     basket: { store, totalCostGBP: round(totalCents / 100), complete, estimatedPrice: recommendations.some(row => row.plan?.estimatedPrice), items: basketItems, recommendations, indexSize: catalogue.indexSize, refreshedAt: catalogue.refreshedAt },

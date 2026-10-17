@@ -62,7 +62,7 @@
   }
   function planningStateKey(){const s=api.state();return JSON.stringify([s.profile,s.week,s.mealServings,s.locked,s.pantry,s.leftovers,s.pantryLedger,s.favorites,s.recipeFeedback,s.shoppingStore]);}
   async function sendPlan(question,s){
-    const Plan=root.KitchenPlanCore,current=++generation,previous=s.planDraft,useSettings=s.useSettings;let draft,source='local',reply;
+    const Plan=root.KitchenPlanCore,current=++generation,previous=Plan.rebase(s.planDraft,api.state().profile),useSettings=s.useSettings;let draft,source='local',reply;
     s.messages.push({role:'user',text:question,recipeIds:[]});s.draft=question;api.save();pending=true;busy=true;draw();
     const requestController=new AbortController();controller=requestController;
     const progress=text=>{if(active&&current===generation&&document.getElementById('agentStatus'))document.getElementById('agentStatus').textContent=text;};

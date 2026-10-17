@@ -4,6 +4,7 @@ import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
 const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
 const core = await readFile(new URL('../public/budget-core.js', import.meta.url), 'utf8');
+const settings = await readFile(new URL('../public/planner-settings-core.js', import.meta.url), 'utf8');
 const macros = await readFile(new URL('../public/macro-goals-core.js', import.meta.url), 'utf8');
 const source = html.slice(html.indexOf('let budgetPlannerState='), html.indexOf('function getRecipe('));
 const recipes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((cat, id) => ({ id: String(id), name: cat, cat, servings: 1, ings: [['Oats', 100, 'g']], nutrition: { kcal: 500, p: 50, complete: true } }));
@@ -14,7 +15,7 @@ function harness(options = {}) {
   let saved = 0, activeRequest, requestedBody;
   const state = { profile: { days: 7, meals: 4, people: 1, budget: 45, calories: 2000, protein: 200 }, week: [{ day: 'Old day', meals: ['0', '1', '2', '3'] }], mealServings: {}, locked: {}, pantry: [], favorites: [], prepPlan: { checked: { old: true }, storage: {} }, ...options.state };
   const context = { selectedShoppingStore:()=>state.profile.supermarket||'Asda', state, recipes, AbortController, DOMException, structuredClone, console, setTimeout, clearTimeout,
-    recipeAllowed: () => true, recipeCategory: recipe => recipe.cat, recipeNutrition: recipe => recipe.nutrition,
+    captureProfileDraft() {}, recipeAllowed: () => true, recipeCategory: recipe => recipe.cat, recipeNutrition: recipe => recipe.nutrition,
     mealKey: (day, index) => `${day}::${index}`, getMealServings: (day, index) => state.mealServings[`${day}::${index}`] || state.profile.people,
     automaticCatalogItems: entries => entries.flatMap(([key, item]) => Object.entries(item.groups).filter(([, group]) => group.remaining > .000001).map(([dimension, group]) => ({ key: `${key}::${dimension}`, name: item.name, dimension, quantity: group.remaining }))),
     automaticCatalogPlanValid: plan => !!plan?.products?.length && Number.isFinite(plan.totalCostGBP) && plan.totalQuantity >= plan.requestedQuantity,
@@ -28,7 +29,7 @@ function harness(options = {}) {
     save() { saved++; },
     fetch: async (_url, init) => { requestedBody = JSON.parse(init.body); if (options.deferred) await new Promise(resolve => { activeRequest = resolve; }); return { ok: true, status: 200, text: async () => JSON.stringify(options.result || context.makeFeasible(requestedBody.profile)) }; },
   };
-  vm.runInNewContext(macros + '\n' + core + '\n' + source + '\n globalThis.run=generateWeek;globalThis.cancel=cancelBudgetPlan;globalThis.validate=budgetPlanValidation;globalThis.planner=()=>budgetPlannerState;globalThis.targetsMet=dailyTargetsMet;', context);
+  vm.runInNewContext(macros + '\n' + core + '\n' + settings + '\n' + source + '\n globalThis.run=generateWeek;globalThis.cancel=cancelBudgetPlan;globalThis.validate=budgetPlanValidation;globalThis.planner=()=>budgetPlannerState;globalThis.targetsMet=dailyTargetsMet;', context);
   context.buildShopping = () => context.MealBudgetCore.buildShopping({ ...state, recipes, people: state.profile.people });
   context.makeFeasible = (profile=state.profile) => {
     const choices={Breakfast:['0','b1'],Lunch:['1','l1','l2'],Dinner:['2','d1','d2'],Snack:['3','s1']};
@@ -115,11 +116,11 @@ test('planner refuses to change locked meals or their portions', () => {
   const app = harness({ state: { week: [{ day: 'Monday', meals: ['0', '1', '2', '3'] }], locked: { 'Monday::0': true }, mealServings: { 'Monday::0': 2 } } });
   assert.equal(app.context.validate(app.context.makeFeasible()), false);
 });
-test('a shorter period or fewer meal slots cannot silently omit a kept or cooked meal',()=>{
+test('explicitly removed uncooked slots can be replaced while cooked slots cannot be omitted',()=>{
  for(const cooked of [false,true])for(const change of [{days:1},{meals:3,calories:1500,protein:150}]){
   const app=harness();app.state.week=app.context.makeFeasible().week;
   if(cooked)app.context.PantryCore={spentTotal:()=>0,spentSummary:()=>({known:true}),activePantry:rows=>rows,cookedPortions:(_state,day,index)=>day==='Wednesday'&&index===3?1:0};else app.state.locked['Wednesday::3']=true;
-  const p={...app.state.profile,...change};assert.equal(app.context.validate(app.context.makeFeasible(p),p),false);
+  const p={...app.state.profile,...change,budget:315,varietyMode:'Repeat favourites'};assert.equal(app.context.validate(app.context.makeFeasible(p),p),!cooked,JSON.stringify({cooked,change}));
  }
 });
 
