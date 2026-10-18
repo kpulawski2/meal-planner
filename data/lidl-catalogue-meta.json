@@ -29,9 +29,9 @@
   "retained_not_listed": 265,
   "new_products_added": 0,
   "new_prices_added": 0,
-  "refreshed_at": "2026-10-17T09:56:54Z",
-  "last_successful_at": "2026-10-17T09:56:54Z",
-  "duration_seconds": 322.64,
+  "refreshed_at": "2026-10-18T10:09:58Z",
+  "last_successful_at": "2026-10-18T10:09:58Z",
+  "duration_seconds": 436.37,
   "category_count": 108,
   "category_counts": {
     "Home > Decoration": 47,
@@ -2462,6 +2462,6 @@
   "with_regular_price_labels": 83,
   "with_priced_pack_size": 378,
   "with_usable_price_at_refresh": 281,
-  "products_sha256": "b39fa0553e4d0e55cbfbb15cf46d73b623335fb018c835356aaf5c63bd1d5fac",
-  "products_file_sha256": "c24ce40e5af70309ba00d46aeeb63f58a9384aa53c9c7b7ee1bc45157d476969"
+  "products_sha256": "ef54a5702e3965505b6a4b83c4750c9e08d1f58b951605c884ce16fddce377f3",
+  "products_file_sha256": "b6693972c3a95ef055955ce3d109c508e224d6e88c6a3ccf3fd8b5f91e5e751e"
 }
