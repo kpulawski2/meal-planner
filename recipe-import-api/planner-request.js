@@ -37,6 +37,7 @@ export function normalizePlannerRequest(body) {
     dislikes: text(input.dislikes, 1000), likes: text(input.likes, 1000), custom: text(input.custom, 2000),
     batch: input.batch !== false, mealPrep: Boolean(input.mealPrep), avoidRepeat: input.avoidRepeat !== false,
     minWaste: input.minWaste !== false, leftovers: input.leftovers !== false,
+    rotateMeals: input.rotateMeals !== false,
     cookTime: number(input.cookTime, 45, 1, 1440, 'Cooking time'),
     equipment: globalThis.KitchenEquipment.normalize(input.equipment),
   };
@@ -64,6 +65,8 @@ export function normalizePlannerRequest(body) {
       passiveMinutes: row.passiveMinutes == null ? null : number(row.passiveMinutes, null, 0, 10080, 'Recipe waiting time'),
       preferenceScore: number(row.preferenceScore, 0, -40, 40, 'Recipe taste score'),
       useUpScore: number(row.useUpScore, 0, 0, 10, 'Recipe use-up score'),
+      recentUseScore: number(row.recentUseScore, 0, 0, 40, 'Recent recipe use'),
+      flavourProfile: text(row.flavourProfile, 60),
       excludedByFeedback: row.excludedByFeedback === true,
       dishFamily: text(row.dishFamily, 80),
       tags: Array.isArray(row.tags) ? row.tags.slice(0, 20).map(value => text(value, 60)) : [] };
