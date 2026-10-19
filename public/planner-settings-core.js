@@ -3,7 +3,7 @@
 (function(root){
  'use strict';
  const category=recipe=>recipe?.cat==='Fruit'?'Snack':recipe?.cat;
- function signature(profile){return JSON.stringify(['days','meals','budget','people','calories','protein','nutritionTargets','diet','equipment','dislikes','likes','custom','cookTime','varietyMode','tailoredMeals','scheduledMeals','repeatMeals','rotateMeals','supermarket','goal'].map(key=>profile?.[key]));}
+ function signature(profile){return JSON.stringify(['days','meals','budget','people','calories','protein','nutritionTargets','diet','equipment','dislikes','likes','custom','cookTime','varietyMode','tailoredMeals','scheduledMeals','repeatMeals','mealStyles','cookingStyle','rotateMeals','supermarket','goal'].map(key=>profile?.[key]));}
  function project(state,recipes,profile,life={}){
   const slots=root.MealBudgetCore.mealSlots(profile.meals),names=root.MealBudgetCore.dayNames(Number(profile.days)||7),byId=new Map(recipes.map(r=>[r.id,r]));
   const week=[],locked={},mealServings={},cookedMeals={},moves={},conflicts=[];

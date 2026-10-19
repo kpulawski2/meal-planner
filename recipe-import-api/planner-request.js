@@ -3,6 +3,7 @@
 import '../public/equipment-core.js';
 import '../public/macro-goals-core.js';
 import '../public/meal-intent-core.js';
+import '../public/meal-preferences-core.js';
 import { normalizePersonalPriceOptions } from './personal-prices.js';
 const text = (value, length = 120) => typeof value === 'string' ? value.trim().slice(0, length) : '';
 const fail = message => { throw new TypeError(message); };
@@ -38,6 +39,8 @@ export function normalizePlannerRequest(body) {
     batch: input.batch !== false, mealPrep: Boolean(input.mealPrep), avoidRepeat: input.avoidRepeat !== false,
     minWaste: input.minWaste !== false, leftovers: input.leftovers !== false,
     rotateMeals: input.rotateMeals !== false,
+    mealStyles: globalThis.MealPreferencesCore.normalize(input.mealStyles,true),
+    cookingStyle: ['batch','fresh','mixed'].includes(input.cookingStyle)?input.cookingStyle:'mixed',
     cookTime: number(input.cookTime, 45, 1, 1440, 'Cooking time'),
     equipment: globalThis.KitchenEquipment.normalize(input.equipment),
   };

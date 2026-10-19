@@ -6,10 +6,10 @@ import '../public/budget-core.js';
 import '../public/equipment-core.js';
 import '../public/meal-rotation-core.js';
 const recipes=(await readRecipeLibrary()).filter(r=>r.collection==='fakeaway');
-test('thirty fakeaways include six freezer burrito batches with complete calculated nutrition',()=>{
- assert.equal(recipes.length,30);assert.equal(new Set(recipes.map(r=>r.id)).size,30);
- const burritos=recipes.filter(r=>r.tags.includes('freezer-burrito'));assert.equal(burritos.length,6);
- assert.ok(burritos.some(r=>r.cat==='Breakfast'));
+test('thirty-four fakeaways include ten freezer burrito batches with complete calculated nutrition',()=>{
+ assert.equal(recipes.length,34);assert.equal(new Set(recipes.map(r=>r.id)).size,34);
+ const burritos=recipes.filter(r=>r.tags.includes('freezer-burrito'));assert.equal(burritos.length,10);
+ assert.ok(burritos.some(r=>r.cat==='Breakfast'));assert.equal(burritos.filter(r=>r.cat==='Dinner').length,4);
  assert.ok(new Set(recipes.map(r=>r.flavourProfile)).size>=12);
  for(const r of recipes){
   assert.equal(r.nutrition.complete,true,r.name+': '+JSON.stringify(r.nutrition.missing));
@@ -35,5 +35,5 @@ test('a burrito batch buys every tortilla, filling, cheese and sauce once and su
  }
  assert.equal(shopping([1,1,1,1,1])['wholemeal wrap'].groups.mass.need,496);
  const normalized=normalizePlannerRequest({profile:{equipment:['Hob']},recipes});
- assert.equal(normalized.recipes.filter(r=>r.fixedBatch).length,6);assert.equal(normalized.recipes[0].flavourProfile,'sweet-chilli');
+ assert.equal(normalized.recipes.filter(r=>r.fixedBatch).length,10);assert.equal(normalized.recipes[0].flavourProfile,'sweet-chilli');
 });

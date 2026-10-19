@@ -72,6 +72,6 @@ batches use recipe-specific storage instructions, while CREAMi tubs retain their
 frozen-storage wording. Browsing or saving a recipe does not consume ingredients,
 record purchases or replace a user's plan.
 
-The collection also includes 30 measured fakeaways and six freezer-burrito
+The collection also includes 34 measured fakeaways and ten freezer-burrito
 batches via `public/fakeaway-recipes.js`. See [Fakeaways and fresh weeks](fakeaways-and-rotation.md)
 for source attribution, batch quantities and the recent-plan rotation preference.

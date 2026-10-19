@@ -113,4 +113,18 @@
    [['Eggs',8,'piece'],['Egg whites',200,'g'],['Wholemeal wrap',248,'g'],['Potato',320,'g'],['Frozen mixed peppers',200,'g'],['Cheddar',60,'g'],['Paprika',3,'g'],['Hot sauce',30,'ml'],['Cooking oil',8,'g']],
    ['Cut potato into small cubes and boil until tender. Drain well, then crisp in all the oil with peppers and paprika.','Whisk eggs and egg whites, add to the pan and scramble until fully set. Stir in hot sauce, keeping the cheese for assembly.'])
  );
+ root.FAKEAWAY_RECIPES.push(
+  burrito('lime-chicken-dinner-burritos','Chilli Lime Chicken Dinner Burritos','Dinner','chilli-lime',
+   [['Chicken breast',700,'g'],['Wholemeal wrap',248,'g'],['Black beans',200,'g'],['Rice',80,'g'],['Frozen mixed peppers',240,'g'],['Cheddar',50,'g'],['Hot sauce',40,'ml'],['Lime',60,'g'],['Ground cumin',4,'g'],['Garlic',8,'g'],['Cooking oil',8,'g']],
+   [chicken,'Cook dry rice following its packet. Cook small chicken pieces in all the oil with cumin and garlic until fully cooked. Add peppers and cook until tender.','Add drained beans, hot sauce and squeezed lime; heat thoroughly. Fold in freshly cooked rice and keep the weighed cheese for assembly.']),
+  burrito('peri-chicken-dinner-burritos','Peri-Peri Chicken & Potato Dinner Burritos','Dinner','peri-peri',
+   [['Chicken breast',700,'g'],['Wholemeal wrap',248,'g'],['Potato',320,'g'],['Frozen mixed peppers',200,'g'],['Cheddar',50,'g'],['Hot sauce',50,'ml'],['Lemon juice',40,'ml'],['Paprika',5,'g'],['Garlic',8,'g'],['Cooking oil',8,'g']],
+   [chicken,'Boil small potato cubes until tender and drain well. Cook finely diced chicken in all the oil with paprika and garlic until fully cooked, then add peppers and soften.','Mix hot sauce and lemon with the chicken, fold in the drained potatoes and heat thoroughly. Keep the weighed cheese for assembly.']),
+  burrito('smoky-beef-dinner-burritos','Smoky Beef & Pepper Dinner Burritos','Dinner','smoky-beef',
+   [['5% beef mince',600,'g'],['Wholemeal wrap',248,'g'],['Rice',100,'g'],['Kidney beans',200,'g'],['Frozen mixed peppers',240,'g'],['Passata',160,'g'],['Onion',120,'g'],['Paprika',5,'g'],['Ground cumin',3,'g'],['Hot sauce',30,'ml'],['Cheddar',50,'g']],
+   ['Cook dry rice following its packet. Brown mince and finely diced onion in a non-stick pan, breaking up the meat until fully cooked with no pink remaining.','Add peppers, passata, drained beans, spices and hot sauce. Simmer until thick and piping hot, fold in the freshly cooked rice and keep the weighed cheese for assembly.']),
+  burrito('black-bean-queso-burritos','Black Bean & Queso Dinner Burritos','Dinner','mexican',
+   [['Black beans',500,'g'],['Cottage cheese',440,'g'],['Wholemeal wrap',248,'g'],['Sweet potato',160,'g'],['Frozen mixed peppers',160,'g'],['Cheddar',60,'g'],['Taco seasoning',8,'g'],['Hot sauce',30,'ml'],['Cooking oil',8,'g']],
+   ['Boil small sweet-potato cubes until tender and drain well. Soften diced peppers in all the oil, stir in taco seasoning and drained beans, and heat thoroughly.','Mash the beans lightly, then stir in cottage cheese, hot sauce and sweet potato over low heat until the mixture is hot and thick. Keep the weighed cheddar for assembly.'])
+ );
 })(globalThis);

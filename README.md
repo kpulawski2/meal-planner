@@ -2,6 +2,12 @@
 
 A phone-friendly meal planner with recipes, pantry tracking, shopping lists and automatic ASDA, Lidl and Aldi pack pricing.
 
+**More → Weekly routine** saves your shopping day, prep day and the meal styles
+you want this week. Favour burritos for lunch or dinner, for example, while keeping
+your cereal breakfast and daily targets. Add the exported recurring events to
+your phone calendar for shopping and prep alerts. See [weekly routines](docs/weekly-routine.md)
+for setup, calendar alerts and assistant examples.
+
 **Today → One-off meal** finds a single breakfast, lunch, dinner or snack inside
 a separate total shopping budget. Set the people and optional ingredient search;
 full packs and pantry deductions are checked before a recipe is shown. Weekly
