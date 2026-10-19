@@ -10,7 +10,7 @@
   return {days:number(p.days,7),meals:number(p.meals,3),calories:number(p.calories,2000),protein:number(p.protein,200),nutritionTargets:{...root.MacroGoalsCore.normalise(p.nutritionTargets)},requests,
    scheduledMeals:(p.varietyMode==='Tailored'?p.scheduledMeals||[]:[]).map(row=>({day:row.day,category:row.category,query:row.query,selected:row.recipeIds?.[0]})),budget:number(p.budget,45),people:number(p.people,1),exclude:[],diet:p.diet||'No restrictions'};
  }
- function profileSnapshot(p){return JSON.stringify([p.days,p.meals,p.budget,p.people,p.calories,p.protein,p.nutritionTargets,p.diet,p.varietyMode,p.tailoredMeals,p.scheduledMeals,p.repeatMeals,p.mealStyles,p.cookingStyle]);}
+ function profileSnapshot(p){return JSON.stringify([p.days,p.meals,p.budget,p.people,p.calories,p.protein,p.nutritionTargets,p.diet,p.varietyMode,p.tailoredMeals,p.scheduledMeals,p.repeatMeals,p.mealStyles,p.mealFocus,p.cookingStyle]);}
  function rebase(raw,p){const draft=normalizeDraft(raw);if(!draft)return null;const snapshot=profileSnapshot(p);if(draft.profileSnapshot===snapshot)return draft;const current=defaults(p);return {...draft,...current,requests:{...draft.requests,...current.requests},profileSnapshot:snapshot};}
  function normalizeDraft(raw){
   if(!raw||typeof raw!=='object'||Array.isArray(raw))return null;

@@ -61,6 +61,13 @@ test('infeasible searches preserve saved meals, portions and prep completion', a
   assert.equal(app.context.planner().status, 'no_feasible_plan');
 });
 
+test('a device storage failure rolls back a checked plan, its proposed settings and the price snapshot',async()=>{
+ const app=harness(),before=structuredClone(app.state),catalogBefore=app.context.automaticCatalogState;
+ app.context.save=()=>{throw new DOMException('Storage is full','QuotaExceededError');};
+ const result=await app.context.run({profile:{...app.state.profile,budget:60}});
+ assert.equal(result.status,'unavailable');assert.match(result.message,/could not save/);assert.deepEqual(app.state,before);assert.equal(app.context.automaticCatalogState,catalogBefore);
+});
+
 test('a conversational profile is staged privately and saved with its checked plan only after success',async()=>{
  const app=harness({deferred:true}),before=structuredClone(app.state),candidate={...before.profile,days:3,meals:3,calories:1500,protein:150,budget:60};
  const pending=app.context.run({profile:candidate});assert.deepEqual(app.state,before);assert.equal(app.requestedBody.profile.days,3);app.release();const result=await pending;

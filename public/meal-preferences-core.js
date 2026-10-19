@@ -2,6 +2,13 @@
 (function(root){
  'use strict';
  const categories=['Breakfast','Lunch','Dinner','Snack'];
+ const focuses=[
+  {id:'balanced',label:'A bit of everything',description:'Let the planner mix suitable meals.'},
+  {id:'fakeaway',label:'Fakeaway',description:'Takeaway flavours, cooked at home.'},
+  {id:'healthy',label:'Healthy focused',description:'More vegetables, beans and wholegrains.'},
+  {id:'quick',label:'Quick & easy',description:'Prefer known cooking times of 25 minutes or less.'}
+ ];
+ function focus(value,strict=false){if(value==null||value==='')return 'balanced';if(focuses.some(row=>row.id===value))return value;if(strict)throw new TypeError('Choose a supported weekly meal focus.');return 'balanced';}
  const styles=[
   {id:'burritos',label:'Burritos',pattern:/\bburritos?\b/},
   {id:'wraps',label:'Wraps & pittas',pattern:/\bwraps?\b|\bpittas?\b|\bgyros\b/},
@@ -27,11 +34,24 @@
   }return result;
  }
  function matches(recipe,id){const style=styles.find(s=>s.id===id);if(!style)return false;const tags=Array.isArray(recipe.tags)?recipe.tags:[];return style.pattern.test([recipe.name,...tags].join(' ').toLowerCase());}
+ function focusScore(recipe,value){
+  const id=focus(value);if(id==='balanced')return 0;
+  if(id==='fakeaway')return ['Lunch','Dinner'].includes(category(recipe))&&matches(recipe,'fakeaway')?400:0;
+  if(id==='quick'){const minutes=Number(recipe.cookTime);return recipe.cookTime!=null&&recipe.cookTime!==''&&Number.isFinite(minutes)&&minutes>0&&minutes<=25?250:0;}
+  // Ingredient-based choice guidance, not a medical score or invented nutrient data.
+  let plants=0,wholegrain=0,pulses=0;
+  for(const [name,quantity,unit] of recipe.ings||[]){const words=String(name).toLowerCase(),perPortion=Number(quantity)/Math.max(1,Number(recipe.servings)||1),grams=unit==='kg'?perPortion*1000:unit==='g'||unit==='ml'?perPortion:unit==='piece'?perPortion*80:0;if(!Number.isFinite(grams)||grams<=0)continue;
+   if(/tomato|carrot|spinach|broccoli|courgette|cabbage|cauliflower|\bpeas\b|vegetable|onion|mushroom|berries|\bapple|\bbanana|pepper/.test(words)&&grams>=40)plants+=Math.min(200,grams);
+   if(/lentil|chickpea|\bbeans\b/.test(words)&&grams>=30)pulses+=Math.min(150,grams);
+   if(/wholegrain|wholewheat|wholemeal|brown rice|\boats\b/.test(words)&&grams>=15)wholegrain+=Math.min(100,grams);
+  }
+  return Math.min(400,plants+pulses*1.5+wholegrain*1.5);
+ }
  function score(recipe,profile={}){
-  const rule=normalize(profile.mealStyles)[category(recipe)];let score=rule&&matches(recipe,rule.style)?rule.strength==='mostly'?2000:600:0;
+  const rule=normalize(profile.mealStyles)[category(recipe)];let score=(rule&&matches(recipe,rule.style)?rule.strength==='mostly'?2000:600:0)+focusScore(recipe,profile.mealFocus);
   const tags=Array.isArray(recipe.tags)?recipe.tags:[];
   if(profile.cookingStyle==='batch')score+=recipe.fixedBatch?70:tags.includes('meal-prep')?35:0;
-  if(profile.cookingStyle==='fresh'&&Number(recipe.cookTime)>0&&Number(recipe.cookTime)<=25)score+=25;
+  if(profile.cookingStyle==='fresh')score+=recipe.fixedBatch?-1200:Number(recipe.cookTime)>0&&Number(recipe.cookTime)<=25?100:0;
   return score;
  }
  function describe(profile={}){const active=profile.meals===2?['Lunch','Dinner']:profile.meals===3?['Breakfast','Lunch','Dinner']:categories;return Object.entries(normalize(profile.mealStyles)).filter(([cat])=>active.includes(cat)).map(([cat,rule])=>({category:cat,label:styles.find(s=>s.id===rule.style).label,...rule}));}
@@ -48,5 +68,5 @@
   if(next.varietyMode==='Repeat favourites'&&!Object.keys(next.repeatMeals).length)next.varietyMode='Balanced';
   next.mealPrep=next.cookingStyle==='batch';next.batch=next.cookingStyle!=='fresh';return next;
  }
- root.MealPreferencesCore=Object.freeze({categories,styles,normalize,matches,score,describe,report,apply});
+ root.MealPreferencesCore=Object.freeze({categories,styles,focuses,focus,focusScore,normalize,matches,score,describe,report,apply});
 })(globalThis);
