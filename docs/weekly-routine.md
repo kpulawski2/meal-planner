@@ -1,6 +1,32 @@
 # Weekly shopping and cooking routine
 
-Open **More → Weekly routine**, or **Choose meals & routine** on Today.
+Open **Today → Plan this week**, also available on Plan, for guided weekly setup:
+
+1. Set the weekly household budget, people, plan length and two, three or four
+   meals each day. The total shown scales the weekly budget to the chosen days.
+   Existing purchases count towards it and pantry stock reduces what is needed.
+2. Choose **A bit of everything**, **Fakeaway**, **Healthy focused** or
+   **Quick & easy**. Then choose styles for individual meal slots, or preserve
+   exact daily meals such as cereal for breakfast. Ready-recipe examples help
+   explain each style. There is no default burrito or fakeaway selection.
+3. Choose **Batch cook**, **Individual cooks** or **A mix of both**, review the
+   choices and build the plan. Individual cooking prefers ordinary recipes over
+   fixed batch dishes; specific kept meals still apply. Batch/mixed cooking also
+   has a main prep day, saved with a successful plan.
+
+Choices stay in a private draft while moving between screens. A failed, cancelled
+or stale fit retains the previous profile and meals. A device storage failure
+also restores the previous state and price snapshot. A successful fit saves the
+checked meals, budget, chosen focus, cooking approach and review date together.
+Daily macro targets, diet, dislikes and equipment stay in force. Choosing healthy
+focused does not lower calories or alter a diet: it gives a bounded ranking bonus
+to suitable recipes with listed vegetables, pulses and wholegrains, using their
+quantities per portion. It is not a medical health score. Quick meals need a
+recorded cooking time of 25 minutes or less. Broad focuses complement explicit
+meal styles; cheaper/nutrition candidates remain available in the bounded search.
+
+For scheduling and calendar settings, open **Shopping & prep days** on Today,
+or **More → Weekly routine**. Existing routine controls remain available:
 
 1. Choose your shopping day and the time you want to choose meals. Select batch
    cooking, fresh cooking or a mix; batch/mixed routines also have a prep day/time.
@@ -15,8 +41,15 @@ Open **More → Weekly routine**, or **Choose meals & routine** on Today.
    leaves the current meals in place until you fit the plan. Failed or cancelled
    fits keep the previous meals; the saved routine remains available.
 
-On the shopping day, Today prompts you to choose meals before shopping. On the
-prep day, it offers the saved plan's prep centre. Soft preferences allow other
+**Open weekly setup on shopping day** is on by default for an enabled routine.
+The guided screen opens once per local shopping date, at or after the chosen
+time, when Today is visible. It also checks on app focus/return and while Today
+stays open. It waits while another sheet, setup, a focused input or a budget
+search is active. **Not now** dismisses it for that date; **Plan this week**
+can reopen it at any time. Turn the checkbox off to keep only the normal card.
+This prompt cannot open a closed app; phone alerts use calendar events below.
+
+On prep day, Today offers the saved plan's prep centre. Soft preferences allow other
 recipes when needed for the hard checks, and Plan's check details show actual
 matching counts. They do not guarantee every meal can be a burrito, for example.
 The existing **Prefer fresh recipes each week** control still uses archived plans
@@ -70,5 +103,7 @@ planning settings. Calendar generation and routine parsing run on the device.
 
 `weekly-routine-core.js` handles dated prompts, natural-language routine choices,
 time zones and RFC 5545 exports. `weekly-routine-ui.js` handles saving and calendar
-downloads. `meal-preferences-core.js` supplies shared style matching and ranking.
+downloads. `weekly-choice-core.js` validates the guided draft;
+`weekly-choice-ui.js` handles the screens and foreground shopping-day prompts.
+`meal-preferences-core.js` supplies shared style/focus matching and ranking.
 Preferences also keep matching candidates in the bounded recipe selection.

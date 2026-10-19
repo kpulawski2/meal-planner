@@ -25,6 +25,7 @@
   for(const row of root.RecipeExperience?root.RecipeExperience.rank(allowed,state):[])if(root.RecipeExperience.feedbackValue(row,state)==='again')keep(row.id);
   const ready=allowed.filter(r=>r.cookedOnly!==true&&planReady(r)&&(!root.MacroGoalsCore||root.MacroGoalsCore.complete(r.nutrition,profile)));
   if(root.MealPreferencesCore)for(const {category,style} of root.MealPreferencesCore.describe(profile))for(const row of ready.filter(r=>r.cat===category&&root.MealPreferencesCore.matches(r,style)).sort((a,b)=>(a.recentUseScore||0)-(b.recentUseScore||0)).slice(0,6))keep(row.id);
+  if(root.MealPreferencesCore&&root.MealPreferencesCore.focus(profile.mealFocus)!=='balanced')for(const cat of root.MealPreferencesCore.categories)for(const row of ready.filter(r=>category(r)===cat&&root.MealPreferencesCore.focusScore(r,profile.mealFocus)>0).sort((a,b)=>root.MealPreferencesCore.focusScore(b,profile.mealFocus)-root.MealPreferencesCore.focusScore(a,profile.mealFocus)).slice(0,4))keep(row.id);
   if(ready.length+selected.size<=max){for(const row of ready)keep(row.id);return [...selected.values()];}
   const week=Math.floor(Date.now()/604800000),rotation=root.MealRotationCore?.scores(ready,state)||new Map(),seed=JSON.stringify([week,profile.diet,profile.goal,profile.varietyMode,profile.dislikes,profile.likes,profile.rotateMeals===false?[]:root.MealRotationCore?.recent(state).map(row=>[row.planId,row.archivedAt,row.week.flatMap(day=>day?.meals||[])])]);
   const groups=new Map();

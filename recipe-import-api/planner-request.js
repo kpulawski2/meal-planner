@@ -40,6 +40,7 @@ export function normalizePlannerRequest(body) {
     minWaste: input.minWaste !== false, leftovers: input.leftovers !== false,
     rotateMeals: input.rotateMeals !== false,
     mealStyles: globalThis.MealPreferencesCore.normalize(input.mealStyles,true),
+    mealFocus: globalThis.MealPreferencesCore.focus(input.mealFocus,true),
     cookingStyle: ['batch','fresh','mixed'].includes(input.cookingStyle)?input.cookingStyle:'mixed',
     cookTime: number(input.cookTime, 45, 1, 1440, 'Cooking time'),
     equipment: globalThis.KitchenEquipment.normalize(input.equipment),

@@ -10,6 +10,7 @@
   prepDay:day(raw?.prepDay)||'Sunday',prepTime:time(raw?.prepTime)?raw.prepTime:'10:00',
   cookingStyle:['batch','fresh','mixed'].includes(raw?.cookingStyle)?raw.cookingStyle:'mixed',timeZone:zone(raw?.timeZone||'Europe/London'),
   reviewedDate:typeof raw?.reviewedDate==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(raw.reviewedDate)?raw.reviewedDate:'',
+  promptOnShopDay:raw?.promptOnShopDay!==false,promptedDate:typeof raw?.promptedDate==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(raw.promptedDate)?raw.promptedDate:'',
   calendarRevision:typeof raw?.calendarRevision==='string'?raw.calendarRevision.slice(0,3000):''
  };}
  function parts(now=new Date(),timeZone='Europe/London'){
@@ -37,7 +38,7 @@
  }
  function status(raw,now=new Date()){
   const r=normalize(raw),today=date(now,r.timeZone),p=parts(now,r.timeZone),reviewDue=r.enabled&&p.weekday===r.shopDay&&r.reviewedDate!==today;
-  return {routine:r,today,reviewDue,prepDue:r.enabled&&r.cookingStyle!=='fresh'&&p.weekday===r.prepDay,
+  return {routine:r,today,reviewDue,promptDue:reviewDue&&r.promptOnShopDay&&r.promptedDate!==today&&p.hour+':'+p.minute>=r.shopTime,prepDue:r.enabled&&r.cookingStyle!=='fresh'&&p.weekday===r.prepDay,
    nextShop:next(r.shopDay,r.shopTime,r.timeZone,now).toISOString(),nextPrep:next(r.prepDay,r.prepTime,r.timeZone,now).toISOString()};
  }
  function interpret(text,current={},profile={}){
