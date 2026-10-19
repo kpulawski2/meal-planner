@@ -25,15 +25,15 @@
   for(const row of root.RecipeExperience?root.RecipeExperience.rank(allowed,state):[])if(root.RecipeExperience.feedbackValue(row,state)==='again')keep(row.id);
   const ready=allowed.filter(r=>r.cookedOnly!==true&&planReady(r)&&(!root.MacroGoalsCore||root.MacroGoalsCore.complete(r.nutrition,profile)));
   if(ready.length+selected.size<=max){for(const row of ready)keep(row.id);return [...selected.values()];}
-  const week=Math.floor(Date.now()/604800000),seed=JSON.stringify([week,profile.diet,profile.goal,profile.varietyMode,profile.dislikes,profile.likes]);
+  const week=Math.floor(Date.now()/604800000),rotation=root.MealRotationCore?.scores(ready,state)||new Map(),seed=JSON.stringify([week,profile.diet,profile.goal,profile.varietyMode,profile.dislikes,profile.likes,profile.rotateMeals===false?[]:root.MealRotationCore?.recent(state).map(row=>[row.planId,row.archivedAt,row.week.flatMap(day=>day?.meals||[])])]);
   const groups=new Map();
   for(const row of ready){
-   const source=row.collection==='social'?'social':/^(web-|world-)/.test(row.id)?'web':row.id.startsWith('creami-')?'creami':'everyday';
+   const source=['social','fakeaway'].includes(row.collection)?'social':/^(web-|world-)/.test(row.id)?'web':row.id.startsWith('creami-')?'creami':'everyday';
    const family=root.MealBudgetCore?.proteinFamily(row)||row.proteinFamily||'other';
    const key=[category(row),source,family].join('::');
    if(!groups.has(key))groups.set(key,[]);groups.get(key).push(row);
   }
-  for(const group of groups.values())group.sort((a,b)=>(root.RecipeExperience?root.RecipeExperience.feedbackScore(b,state)-root.RecipeExperience.feedbackScore(a,state):0)||hash(seed+a.id)-hash(seed+b.id)||a.id.localeCompare(b.id));
+  for(const group of groups.values())group.sort((a,b)=>(rotation.get(a.id)||0)-(rotation.get(b.id)||0)||(root.RecipeExperience?root.RecipeExperience.feedbackScore(b,state)-root.RecipeExperience.feedbackScore(a,state):0)||hash(seed+a.id)-hash(seed+b.id)||a.id.localeCompare(b.id));
   const ordered=[...groups].sort(([a],[b])=>a.localeCompare(b));
   let more=true;
   while(selected.size<max&&more){more=false;for(const [,group] of ordered){if(!group.length)continue;more=true;keep(group.shift().id);if(selected.size>=max)break;}}

@@ -3,6 +3,7 @@ import '../public/equipment-core.js';
 import '../public/recipe-library-core.js';
 import '../public/macro-goals-core.js';
 import '../public/meal-intent-core.js';
+import '../public/meal-rotation-core.js';
 import { macroPortionVertices } from './macro-portions.js';
 const Macros = globalThis.MacroGoalsCore, Intent = globalThis.MealIntentCore;
 import { catalogPurchaseOffers, calculatePackPurchase } from './catalog-adapter.js';
@@ -183,10 +184,10 @@ function shoppingForPlan(plan, recipes, people, pantry, lifecycle) {
   return Core.buildShopping(plannerShoppingInput(plan, recipes, people, pantry, lifecycle));
 }
 
-export function recipeRankingAdjustment(recipe = {}) {
+export function recipeRankingAdjustment(recipe = {}, profile = {}) {
   // Soft preferences only rank candidates that already satisfy every hard
   // nutrition, dietary, price, equipment and meal-category requirement.
-  return -clamp(recipe.preferenceScore,-40,40,0)*1.5-clamp(recipe.useUpScore,0,10,0)*2;
+  return -clamp(recipe.preferenceScore,-40,40,0)*1.5-clamp(recipe.useUpScore,0,10,0)*2+globalThis.MealRotationCore.penalty(recipe,profile);
 }
 
 function safePools(rows, slots, stock, people, days, books, profile, favorites) {
@@ -197,7 +198,7 @@ function safePools(rows, slots, stock, people, days, books, profile, favorites) 
     if (likes.some(value => `${row.name} ${row.ings.map(item => item[0]).join(' ')}`.toLowerCase().includes(value))) row.preference++;
     row.family = Core.proteinFamily(row);
     row.quality = recipeQuality(row, profile);
-    row.quality.penalty += recipeRankingAdjustment(row);
+    row.quality.penalty += recipeRankingAdjustment(row,profile);
     row.priceable = row.known && [...row.amounts].every(([key, quantity]) => Number.isFinite(books.get(key)?.unitCost) || (stock.get(key) || 0) + EPS >= quantity * people * days * 2);
   }
   return slots.map(slot => {
@@ -210,7 +211,8 @@ function safePools(rows, slots, stock, people, days, books, profile, favorites) 
     const goalChoices = eligible.slice().sort((a, b) => a.quality.penalty - b.quality.penalty || a.linear - b.linear);
     const nutrientChoices = Macros.active(profile) ? [...eligible.slice().sort((a,b)=>(a.n.c || 0)/Math.max(.1,a.n.p)-(b.n.c || 0)/Math.max(.1,b.n.p)).slice(0,4),...eligible.slice().sort((a,b)=>(a.n.f || 0)/Math.max(.1,a.n.p)-(b.n.f || 0)/Math.max(.1,b.n.p)).slice(0,4)] : [];
     const scheduledChoices=eligible.filter(row=>(profile.scheduledMeals||[]).some(choice=>choice.category===slot&&choice.recipeIds.includes(row.id)));
-    return [...new Map([...scheduledChoices,...families, ...nutrientChoices, ...value.slice(0, 12), ...protein.slice(0, 6), ...goalChoices.slice(0, 4), ...favoritesSorted.slice(0, 2)].map(row => [row.id, row])).values()].slice(0, 24);
+    const freshChoices=profile.rotateMeals!==false&&eligible.some(row=>row.recentUseScore>0)?eligible.slice().sort((a,b)=>globalThis.MealRotationCore.penalty(a,profile)-globalThis.MealRotationCore.penalty(b,profile)||a.quality.penalty-b.quality.penalty||a.linear-b.linear).slice(0,4):[];
+    return [...new Map([...scheduledChoices,...freshChoices,...families, ...nutrientChoices, ...value.slice(0, 12), ...protein.slice(0, 6), ...goalChoices.slice(0, 4), ...favoritesSorted.slice(0, 2)].map(row => [row.id, row])).values()].slice(0, 24);
   });
 }
 
@@ -423,6 +425,7 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
     }
     const proposals = [];
     for (const state of beam) {
+      const recentWeek=dayIndex>=7?globalThis.MealRotationCore.weekMemory(state.days):null;
       if (!exactLifecyclePricing) for (const binding of bindings.values()) {
         binding.previous = state.amounts.get(binding.key) || 0; binding.oldCost = state.ingredientCosts.get(binding.key) || 0;
       }
@@ -439,7 +442,8 @@ async function searchWeek(templates, names, request, byId, slots, targets, peopl
       if (familyCount + remainingDays * 2 < requiredFamilies) continue;
       const cost = exactLifecyclePricing ? basketCost([...state.days,template],people,stock,books,request) : candidateCost(state, template, bindings); if (!Number.isFinite(cost)) continue;
       const batchPenalty = easy ? template.rows.reduce((sum, row) => sum + (state.batches.has(row.id) ? 0 : (row.quality?.cookMinutes || 45) * .7), 0) : 0;
-      const quality = state.quality + (template.quality ?? dailyQuality(template.rows, template.factors, profile)) - template.preferencePenalty + batchPenalty;
+      const rotationPenalty=recentWeek?template.rows.reduce((sum,row,index)=>sum+(Intent.exception(profile,slots[index],dayIndex)||request.locked?.[`${name}::${index}`]?0:globalThis.MealRotationCore.secondWeekPenalty(row,recentWeek,profile)),0):0;
+      const quality = state.quality + (template.quality ?? dailyQuality(template.rows, template.factors, profile)) - template.preferencePenalty + batchPenalty + rotationPenalty;
       const novelty = template.rows.reduce((sum, row, i) => sum + (state.distinct[i].has(row.id) ? 0 : 1), 0);
       const unmet = Math.max(0, requiredFamilies - familyCount) + template.rows.reduce((sum, row, i) => sum + Math.max(0, minimumDistinct[i] - state.ordinaryDistinct[i].size - (Intent.exception(profile,slots[i],dayIndex)||state.ordinaryDistinct[i].has(row.id) ? 0 : 1)), 0);
       // Cost remains in integer pence. Quality only ranks complete, target-safe
@@ -573,6 +577,8 @@ export async function optimizeMealPlan(request, { signal } = {}) {
     return { day: names[index], ...Object.fromEntries(Object.entries(total).map(([key,value]) => [key,value === null ? null : round(value)])), complete: day.rows.every(row => Macros.complete(row.n, profile)), meetsTargets: nutritionValid(day.rows, day.factors, targets) };
   });
   const variety = Core.inspectVariety(plan.week, recipes, profile, request.cookedMeals), goals = goalReport(profile, best.days);
+  const rotated=profile.rotateMeals!==false&&recipes.some(row=>row.recentUseScore>0);
+  if(rotated)goals.explanation.push('Recent plans guide recipe and flavour rotation. Explicit daily favourites, kept meals, nutrition and budget still take priority.');
   const feasible = complete && totalCents <= budgetCents && nutritionDays.every(day => day.complete && day.meetsTargets) && variety.met;
   if (recommendations.some(row => row.plan?.products?.some(product => product.preparationNote))) warnings.push('Frozen chicken is included. Follow each pack’s full cooking time and storage instructions, including any no-reheat instruction. Nutrition is estimated and can differ with added-water content.');
   if (recommendations.some(row=>row.plan?.products?.some(product=>product.priceBasis==='other_store'))) warnings.push('The requested FUEL10K cereal is priced as a separate ASDA purchase. Its price is included in the budget; it is not a Lidl stock or price claim.');
