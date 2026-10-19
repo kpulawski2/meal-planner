@@ -1,12 +1,14 @@
 # Fakeaways, burrito batches and fresh weeks
 
 Recipes → TikTok ideas → Recipe style now includes **Fakeaways** and
-**Meal-prep burritos**. Thirty measured recipes cover crispy chilli chicken,
+**Meal-prep burritos**. Thirty-four measured recipes cover crispy chilli chicken,
 shawarma fries, peri-peri rice, curry, Cajun pasta, burger wraps, sweet-and-sour
 chicken, satay noodles, pizza wraps, beef bowls, salmon and tofu.
 
-Six four-portion burrito batches cover buffalo chicken, smoky honey chicken,
-beef and bean, chicken tikka, BBQ chicken and egg/potato breakfast burritos.
+Ten four-portion burrito batches cover buffalo chicken, smoky honey chicken,
+beef and bean, chicken tikka, BBQ chicken and egg/potato breakfast burritos,
+plus chilli-lime chicken, peri-peri chicken/potato, smoky beef/pepper and
+black bean queso dinners.
 Shopping rounds these recipes to complete batches, including every wrap, oil,
 cheese and sauce. Eating one burrito records one portion's nutrition; cooking
 one batch buys four and supports storing the extra portions. Methods include
@@ -35,3 +37,10 @@ selection lists cannot exclude newly added meals forever. Freshness remains a
 preference: budget, diet, equipment, portions and nutrition are hard limits, and
 recent meals can be used when needed. Turn the preference off to stop using
 recent plans for rotation. Existing diary and extra-meal actions are unchanged.
+
+Choose **More → Weekly routine** to strongly favour a style for a meal slot.
+For example, keep cereal for breakfast and favour burritos for dinner. Matching
+recipes receive a stronger ranking than general cooking and saving preferences;
+hard nutrition, budget, variety, food/equipment rules and kept meals still apply.
+The plan check shows how many meals match each requested style. See
+[weekly routines](weekly-routine.md).

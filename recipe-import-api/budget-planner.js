@@ -4,6 +4,7 @@ import '../public/recipe-library-core.js';
 import '../public/macro-goals-core.js';
 import '../public/meal-intent-core.js';
 import '../public/meal-rotation-core.js';
+import '../public/meal-preferences-core.js';
 import { macroPortionVertices } from './macro-portions.js';
 const Macros = globalThis.MacroGoalsCore, Intent = globalThis.MealIntentCore;
 import { catalogPurchaseOffers, calculatePackPurchase } from './catalog-adapter.js';
@@ -187,7 +188,7 @@ function shoppingForPlan(plan, recipes, people, pantry, lifecycle) {
 export function recipeRankingAdjustment(recipe = {}, profile = {}) {
   // Soft preferences only rank candidates that already satisfy every hard
   // nutrition, dietary, price, equipment and meal-category requirement.
-  return -clamp(recipe.preferenceScore,-40,40,0)*1.5-clamp(recipe.useUpScore,0,10,0)*2+globalThis.MealRotationCore.penalty(recipe,profile);
+  return -clamp(recipe.preferenceScore,-40,40,0)*1.5-clamp(recipe.useUpScore,0,10,0)*2+globalThis.MealRotationCore.penalty(recipe,profile)-globalThis.MealPreferencesCore.score(recipe,profile);
 }
 
 function safePools(rows, slots, stock, people, days, books, profile, favorites) {
@@ -212,7 +213,9 @@ function safePools(rows, slots, stock, people, days, books, profile, favorites) 
     const nutrientChoices = Macros.active(profile) ? [...eligible.slice().sort((a,b)=>(a.n.c || 0)/Math.max(.1,a.n.p)-(b.n.c || 0)/Math.max(.1,b.n.p)).slice(0,4),...eligible.slice().sort((a,b)=>(a.n.f || 0)/Math.max(.1,a.n.p)-(b.n.f || 0)/Math.max(.1,b.n.p)).slice(0,4)] : [];
     const scheduledChoices=eligible.filter(row=>(profile.scheduledMeals||[]).some(choice=>choice.category===slot&&choice.recipeIds.includes(row.id)));
     const freshChoices=profile.rotateMeals!==false&&eligible.some(row=>row.recentUseScore>0)?eligible.slice().sort((a,b)=>globalThis.MealRotationCore.penalty(a,profile)-globalThis.MealRotationCore.penalty(b,profile)||a.quality.penalty-b.quality.penalty||a.linear-b.linear).slice(0,4):[];
-    return [...new Map([...scheduledChoices,...freshChoices,...families, ...nutrientChoices, ...value.slice(0, 12), ...protein.slice(0, 6), ...goalChoices.slice(0, 4), ...favoritesSorted.slice(0, 2)].map(row => [row.id, row])).values()].slice(0, 24);
+    const style=globalThis.MealPreferencesCore.describe(profile).find(row=>row.category===slot);
+    const styleChoices=style?eligible.filter(row=>globalThis.MealPreferencesCore.matches(row,style.style)).sort((a,b)=>a.quality.penalty-b.quality.penalty||a.linear-b.linear).slice(0,4):[];
+    return [...new Map([...scheduledChoices,...styleChoices,...freshChoices,...families, ...nutrientChoices, ...value.slice(0, 12), ...protein.slice(0, 6), ...goalChoices.slice(0, 4), ...favoritesSorted.slice(0, 2)].map(row => [row.id, row])).values()].slice(0, 24);
   });
 }
 
@@ -595,5 +598,5 @@ export async function optimizeMealPlan(request, { signal } = {}) {
     basket: { store, totalCostGBP: round(totalCents / 100), complete, estimatedPrice: recommendations.some(row => row.plan?.estimatedPrice), items: basketItems, recommendations, indexSize: catalogue.indexSize, refreshedAt: catalogue.refreshedAt },
     nutrition: { days: nutritionDays, calorieMin: targets.min, calorieMax: targets.max, proteinTarget: targets.protein, perPerson: true, source: 'recipe nutrition estimates' },
     budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP), overGBP: round(Math.max(0, totalCents - budgetCents) / 100), household: true },
-    variety, goals, warnings, diagnostics: { elapsedMs: Date.now() - started, searchCostGBP: round(best.cost / 100), combinations, evaluatedPortions: examined, mealCoverage, budgetRecovery:searched.budgetRecovery||null,weekExpansions: searched.expansions, stages: searched.stages, searchVarietyViolations: searched.searchVarietyViolations, recipeCount: recipes.length, ingredientCount: books.size, uniqueMeals, search: 'bounded main-meal pairs and weekly beam search, goal-aware portions, shared full-pack basket, hard variety and nutrition limits' } };
+    variety, goals, mealPreferences:globalThis.MealPreferencesCore.report(plan.week,recipes,profile), warnings, diagnostics: { elapsedMs: Date.now() - started, searchCostGBP: round(best.cost / 100), combinations, evaluatedPortions: examined, mealCoverage, budgetRecovery:searched.budgetRecovery||null,weekExpansions: searched.expansions, stages: searched.stages, searchVarietyViolations: searched.searchVarietyViolations, recipeCount: recipes.length, ingredientCount: books.size, uniqueMeals, search: 'bounded main-meal pairs and weekly beam search, goal-aware portions, shared full-pack basket, hard variety and nutrition limits' } };
 }

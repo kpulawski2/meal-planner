@@ -411,3 +411,5 @@ input:focus,select:focus,textarea:focus {border-color:var(--accent);box-shadow:0
 .toast {background:var(--text);color:var(--bg)}
 
 #purchaseError:empty {display:none}
+
+.weekly-routine-card .section-heading{margin-bottom:8px}.weekly-routine-card h2{font-size:1.1rem}.weekly-routine-sheet h3{margin-top:24px}.weekly-meal-choice{display:grid;grid-template-columns:1.3fr 1fr;gap:12px;margin-bottom:12px}.weekly-routine-sheet select,.weekly-routine-sheet input{max-width:100%;min-width:0}.weekly-routine-sheet [hidden],#weeklyRoutineError:empty{display:none!important}@media(max-width:600px){.weekly-meal-choice{grid-template-columns:1fr;gap:0}}

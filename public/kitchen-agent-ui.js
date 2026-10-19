@@ -1,6 +1,6 @@
 (function(root) {
   'use strict';
-  let api, active = false, busy = false, generation = 0, controller = null, pending = false;
+  let api, active = false, busy = false, generation = 0, controller = null, pending = false, routineSaved = false;
   const Core = () => root.KitchenAgentCore;
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const arg = value => encodeURIComponent(String(value)).replace(/'/g, '%27');
@@ -33,8 +33,9 @@
   }
   async function send() {
     if (!active || busy) return;
+    routineSaved = false;
     const s = session(), question = document.getElementById('agentQuestion').value.trim(); let work;
-    try { const parsed=Core().interpret(question,s.focus),last=s.messages.at(-1);if(root.KitchenPlanCore.isPlan(question,parsed.kind,s.planDraft,last?.kind))return await sendPlan(question,s); }
+    try { const routine=root.WeeklyRoutineCore?.interpret(question,api.state().weeklyRoutine,api.state().profile);if(routine&&root.WeeklyRoutineUI)return await sendRoutine(question,routine);const parsed=Core().interpret(question,s.focus),last=s.messages.at(-1);if(root.KitchenPlanCore.isPlan(question,parsed.kind,s.planDraft,last?.kind))return await sendPlan(question,s); }
     catch(error){document.getElementById('agentStatus').textContent=error.message;return;}
     try { work = input(question, s); } catch (error) { document.getElementById('agentStatus').textContent = error.message; return; }
     const historyBefore = s.messages.map(message => ({ ...message })), priorFocus = { ...s.focus }, current = ++generation;
@@ -59,6 +60,30 @@
     live.messages = live.messages.slice(-24); pending = false; busy = false; api.save(); document.getElementById('agentQuestion').value = ''; draw();
     document.getElementById('agentStatus').textContent = reply.source === 'ai' ? 'AI reply grounded in your recipe options. Review the measured cards before choosing.' : 'Using measured on-device matching. AI can help when its service is available.';
     const answer = document.getElementById('agentMessages').lastElementChild; answer?.scrollIntoView?.({ behavior: root.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
+  }
+  async function sendRoutine(question,proposal){
+    const current=++generation;let result;
+    try{result=root.WeeklyRoutineUI.applyInterpretation(proposal);routineSaved=true;}catch(error){document.getElementById('agentStatus').textContent=error.message;return;}
+    let live=session();live.messages.push({role:'user',text:question,recipeIds:[]});live.draft='';
+    live.messages.push({role:'assistant',kind:'discover',source:'local',text:'Your weekly choices are saved. '+result.text+'. These preferences favour matching recipes while keeping your budget, nutrition, equipment and kept meals in force. Add phone reminders from More → Weekly routine.',recipeIds:[]});
+    live.messages=live.messages.slice(-24);api.save();document.getElementById('agentQuestion').value='';draw();
+    const fit=/\b(?:make|build|generate|update|fit|tailor)\b.{0,40}\bplan\b|\bplan (?:my|the|next) week\b|\b(?:calories?|kcal|protein|carbs?|fat|budget|vegan|vegetarian)\b|£/i.test(question)&&!/\b(?:don’t|don't|do not)\b/i.test(question);
+    if(!fit){document.getElementById('agentStatus').textContent='Routine and meal preferences saved. Your existing plan stays in place until you fit it.';return;}
+    busy=true;draw();const requestController=new AbortController(),baseline=planningStateKey();controller=requestController;let outcome,draft;
+    document.getElementById('agentStatus').textContent='Fitting your preferred meal styles to your budget and targets…';
+    try{
+      await api.loadRecipes();if(requestController.signal.aborted||current!==generation)return;
+      if(planningStateKey()!==baseline)throw new Error('Your settings or stock changed. Ask again to use the latest details.');
+      draft=root.KitchenPlanCore.merge(question,null,result.profile).draft;
+      for(const cat of proposal.mealCategories||[])delete draft.requests[cat];
+      const candidate=root.KitchenPlanCore.prepare(draft,result.profile,api.recipes(),{allowed:(r,p)=>api.allowed(r,p),nutrition:api.planNutrition});
+      if(!Object.keys(candidate.tailoredMeals).length&&!candidate.scheduledMeals.length)candidate.varietyMode=result.profile.varietyMode==='Tailored'?'Balanced':result.profile.varietyMode;
+      outcome=await api.generate(candidate,{signal:requestController.signal,guard:()=>active&&current===generation&&planningStateKey()===baseline});
+    }catch(error){outcome={status:'unavailable',message:error.message};}
+    finally{if(controller===requestController)controller=null;}
+    if(!active||current!==generation)return;busy=false;live=session();if(draft)live.planDraft=draft;
+    const saved=outcome.status==='feasible',p=api.state().profile,receipt=saved?{status:'saved',days:p.days,meals:p.meals,store:p.supermarket,cost:Number(outcome.result.basket.totalCostGBP)+Number(api.spent?.()||0),budget:p.budget*p.days/7,signature:root.KitchenPlanCore.planSignature(api.state())}:{status:outcome.status==='no_feasible_plan'?'no_feasible_plan':'unavailable'};
+    live.messages.push({role:'assistant',kind:'plan',source:'local',text:saved?'Your plan is checked and saved with your weekly meal preferences.':'Your choices are saved, and your previous meals are retained. '+(outcome.message||'Review the budget and targets before trying again.'),planReceipt:receipt,recipeIds:[]});live.messages=live.messages.slice(-24);api.save();draw();
   }
   function planningStateKey(){const s=api.state();return JSON.stringify([s.profile,s.week,s.mealServings,s.locked,s.pantry,s.leftovers,s.pantryLedger,s.favorites,s.recipeFeedback,s.shoppingStore]);}
   async function sendPlan(question,s){
@@ -109,7 +134,7 @@
     pending=false;busy=false;api.save();document.getElementById('agentQuestion').value='';draw();progress(reply.status==='saved'?'Plan checked and saved. You can keep talking here.':'Tell me the change here, or try again when you’re ready.');
     document.getElementById('agentMessages').lastElementChild?.scrollIntoView?.({behavior:root.matchMedia?.('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
   }
-  function stopRequest(){stop();draw();const target=document.getElementById('agentStatus');if(target)target.textContent='Stopped. Your saved plan and settings are unchanged.';}
+  function stopRequest(){stop();draw();const target=document.getElementById('agentStatus');if(target)target.textContent=routineSaved?'Stopped. Your routine is saved; your previous meal plan is unchanged.':'Stopped. Your saved plan and settings are unchanged.';}
   function planReceipt(message){
     const receipt=message.planReceipt;if(receipt?.status!=='saved')return '';
     if(receipt.signature!==root.KitchenPlanCore.planSignature(api.state()))return '<p class="sub">This was an earlier saved plan. Your current plan or settings have since changed.</p>';
