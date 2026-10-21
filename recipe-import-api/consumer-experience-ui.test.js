@@ -53,7 +53,7 @@ test('the complete app starts and renders every panel with a new or saved plan',
   for(const id of ['home','week','shop','pantry','recipes','favourites','profile'])assert.ok(elements[id].innerHTML.length>30,id+' rendered on '+(existingPlan?'saved':'fresh')+' startup');
   assert.ok(elements.recipes.innerHTML.includes(shippedRecipeCount+' recipes'));
   assert.match(elements.recipeResults.innerHTML,/View recipe/);
-  assert.match(elements.profile.innerHTML,/Make it your week/);
+  assert.match(elements.profile.innerHTML,/<h1>Settings<\/h1>/);
   assert.equal(context.recipeCategory({cat:'snacks'}),'Snack');
   assert.equal(context.recipeCategory({cat:'fresh fruit'}),'Fruit');
   for(const button of nav){assert.equal(typeof button.onclick,'function');button.onclick();assert.ok(elements[button.dataset.tab].innerHTML.length>30,'navigation renders '+button.dataset.tab);}
@@ -158,9 +158,9 @@ function settingsHarness(profile={}){
  return {context,elements,buttons,get saved(){return saved;}};
 }
 
-test('selected settings light up with accessible state and retain typed values',()=>{
+test('selected settings reflect the chosen options and retain typed values',()=>{
  const app=settingsHarness();app.context.setChoice('days','7 days');assert.equal(app.context.state.profile.days,7);assert.equal(app.context.state.profile.budget,32);assert.equal(app.context.state.profile.dislikes,'Pork');
- assert.match(app.elements.profile.innerHTML,/class="chip on" aria-pressed="true" data-setting="days" onclick="setChoice\('days','7 days'\)"/);
+ assert.match(app.elements.profile.innerHTML,/<select aria-label="Plan length"[^>]*>[\s\S]*?<option value="7" selected>7 days<\/option>/);
  app.context.setChoice('varietyMode','More variety');assert.equal(app.context.state.profile.varietyMode,'More variety');assert.match(app.elements.profile.innerHTML,/aria-pressed="true" data-setting="varietyMode"/);
  app.context.setChoice('diet','Vegetarian');assert.match(app.elements.profile.innerHTML,/aria-pressed="true" data-setting="diet"/);
 });

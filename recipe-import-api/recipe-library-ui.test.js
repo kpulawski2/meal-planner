@@ -13,7 +13,7 @@ function harness(options={}){
  const base=[row('everyday')],custom=row('user_saved',{custom:true}),elements=Object.fromEntries(['recipes','recipeResults','recipeResultCount','recipeSearch','profile','sheet','modal'].map(id=>[id,element()]));
  const state={profile:{equipment:[]},customRecipes:[custom],favorites:[],week:[],...options.state};
  let fetches=0,homeRenders=0,settingsRenders=0;
- const context={console,AbortSignal,window:null,state,builtInRecipes:base,recipes:base.concat(custom),activeRecipeCategory:'All',activeRecipeProtein:'All',activeRecipeQuick:false,activeRecipeReady:false,activeRecipeCollection:'All',activeRecipeQuery:'',recipePageSize:60,recipeLibraryPromise:null,recipeLibraryState:{status:'loading',count:0,error:''},document:{getElementById:id=>elements[id],querySelector:()=>({id:options.active||'recipes'}),querySelectorAll:()=>[]},fetch:async()=>{fetches++;if(options.fetch) return options.fetch();return {ok:true,text:async()=>JSON.stringify(options.data||{schemaVersion:1,recipes:[row('web-one')]})};},escape:value=>String(value).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;'),recipeCostText:()=> 'Price checked when planned',recipeCategory:recipe=>recipe.cat,recipeProteinGroup:()=> 'Plant proteins',recipeMethodSteps:recipe=>Array.isArray(recipe.method)?recipe.method:[],renderHome(){homeRenders++;},renderWeek(){},renderShop(){},renderProfile(){settingsRenders++;},captureProfileDraft(){},save(){}};
+ const context={console,AbortSignal,window:null,state,builtInRecipes:base,recipes:base.concat(custom),activeRecipeCuisine:'All',activeRecipeCategory:'All',activeRecipeProtein:'All',activeRecipeQuick:false,activeRecipeReady:false,activeRecipeCollection:'All',activeRecipeQuery:'',recipePageSize:12,recipeLibraryPromise:null,recipeLibraryState:{status:'loading',count:0,error:''},document:{getElementById:id=>elements[id],querySelector:()=>({id:options.active||'recipes'}),querySelectorAll:()=>[]},fetch:async()=>{fetches++;if(options.fetch) return options.fetch();return {ok:true,text:async()=>JSON.stringify(options.data||{schemaVersion:1,recipes:[row('web-one')]})};},escape:value=>String(value).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;'),recipeCostText:()=> 'Price checked when planned',recipeCategory:recipe=>recipe.cat,recipeProteinGroup:()=> 'Plant proteins',recipeMethodSteps:recipe=>Array.isArray(recipe.method)?recipe.method:[],renderHome(){homeRenders++;},renderWeek(){},renderShop(){},renderProfile(){settingsRenders++;},captureProfileDraft(){},save(){}};
  context.window=context;
  context.activeRecipeEquipment='All';context.activeRecipeStyle='All';
  vm.runInNewContext(core+'\nfunction canonicalIngredientName(name){return MealBudgetCore.canonicalIngredientName(name)}\n'+source('const NUTRITION_PROFILES=','function mealKey(')+'\n'+source('function recipeEquipmentReady(','function migrateAutomaticPricing()')+'\n'+source('function recipeFilterCount(){','let recipeImportController=')+'\n'+source('function toggleEquipment(','function toggleShop('),context);
@@ -39,12 +39,12 @@ test('failed or malformed collection loads preserve saved recipes and offer a re
  }
 });
 
-test('a large collection renders only 60 cards while every recipe remains searchable',async()=>{
+test('a large collection renders only 12 cards while every recipe remains searchable',async()=>{
  const app=harness({data:{schemaVersion:1,recipes:Array.from({length:1000},(_,index)=>row('web-'+index))}});
  await app.context.loadRecipeLibrary();assert.equal(app.context.recipes.length,1002);
- assert.equal((app.elements.recipeResults.innerHTML.match(/<article/g)||[]).length,60);
- assert.match(app.elements.recipeResultCount.textContent,/Showing 60 of 1002/);
- app.context.showMoreRecipes();assert.equal((app.elements.recipeResults.innerHTML.match(/<article/g)||[]).length,120);
+ assert.equal((app.elements.recipeResults.innerHTML.match(/<article/g)||[]).length,12);
+ assert.match(app.elements.recipeResultCount.textContent,/Showing 12 of 1002/);
+ app.context.showMoreRecipes();assert.equal((app.elements.recipeResults.innerHTML.match(/<article/g)||[]).length,24);
  app.elements.recipeSearch.value='web-999';app.context.filterRecipes();assert.equal((app.elements.recipeResults.innerHTML.match(/<article/g)||[]).length,1);assert.match(app.elements.recipeResults.innerHTML,/web-999/);
 });
 

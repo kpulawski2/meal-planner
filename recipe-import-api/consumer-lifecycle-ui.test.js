@@ -152,7 +152,7 @@ function oneOffReply(app, body) {
 }
 test('one-off dinner uses its own £10 budget and full-pack quote without changing weekly meals, targets, stock or spending',async()=>{
   const app=harness({state:{customRecipes:[copy(oneOffRecipe)],profile:{supermarket:'Asda',days:14,budget:35,people:2,calories:1600,protein:150,equipment:['Hob']}}});await app.flush();
-  assert.match(app.node('home').innerHTML,/One-off meal/);
+  assert.match(app.context.AppExperienceUI.more(),/One-off meal/);
   const before=app.state();await app.context.OneOffMealUI.open();oneOffForm(app);
   let sent;
   app.context.fetch=async(url,options)=>{assert.equal(url,'/api/meals/one-off');sent=JSON.parse(options.body);return {ok:true,json:async()=>oneOffReply(app,sent)};};
@@ -358,13 +358,13 @@ test('closed or edited kitchen requests discard late responses and cooked weight
 
 test('the Romanian and Polish collection filters dishes without changing a saved plan or preferences',async()=>{
  const app=harness();await app.flush();const before=app.state();app.context.showTab('recipes');app.context.setRecipeCollection('Romanian & Polish');
- assert.match(app.node('recipes').innerHTML,/Recipe cuisine/);assert.match(app.node('recipeResultCount').textContent,/48 of 48/);
- app.context.setRecipeCuisine('Polish');assert.match(app.node('recipeResultCount').textContent,/24 of 24/);assert.doesNotMatch(app.node('recipeResults').innerHTML,/Chicken Ostropel/);
+ assert.match(app.node('recipes').innerHTML,/Recipe cuisine/);assert.match(app.node('recipeResultCount').textContent,/12 of 48/);
+ app.context.setRecipeCuisine('Polish');assert.match(app.node('recipeResultCount').textContent,/12 of 24/);assert.doesNotMatch(app.node('recipeResults').innerHTML,/Chicken Ostropel/);
  app.context.setRecipeCategory('Breakfast');assert.match(app.node('recipeResultCount').textContent,/4 of 4/);
  app.context.setRecipeCategory('All');app.node('recipeSearch').value='golabki';app.context.filterRecipes();assert.match(app.node('recipeResultCount').textContent,/1 of 1/);assert.match(app.node('recipeResults').innerHTML,/Gołąbki/);
  // This minimal DOM keeps old input nodes after innerHTML replacement; mirror
  // the empty search input that reset renders in the browser.
- app.node('recipeSearch').value='';app.context.clearRecipeFilters();app.context.setRecipeCollection('Romanian & Polish');app.context.setRecipeCuisine('Romanian');assert.match(app.node('recipeResultCount').textContent,/24 of 24/);
+ app.node('recipeSearch').value='';app.context.clearRecipeFilters();app.context.setRecipeCollection('Romanian & Polish');app.context.setRecipeCuisine('Romanian');assert.match(app.node('recipeResultCount').textContent,/12 of 24/);
  app.context.setRecipeCollection('Everyday');assert.equal(app.run('activeRecipeCuisine'),'All');
  for(const key of ['week','profile','pantry','pantryLedger','foodLog'])assert.deepEqual(app.state()[key],before[key]);
 });
