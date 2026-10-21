@@ -114,6 +114,13 @@ scanner also reads barcode photos locally, supports declared serving/pack
 weights, meal groups, extra label nutrients and **Add & scan next**. See
 [recipe preferences and food scanning](docs/recipe-taste-food-scanner.md).
 
+**Diary** now has its own navigation tab, meal groups, calorie/macro progress,
+optional diary-only goals, reviewed meal/day copying and a seven-day intake
+view. Add food offers searchable Recent / Saved / Common / Recipes filters and
+explicit UK packaged-food searches. Nutrient detail includes supplied mineral
+and vitamin values with unknown/partial coverage kept visible. See
+[nutrition diary](docs/nutrition-diary.md) for behaviour, data sources and limits.
+
 ## Shopping, stock and cooking
 
 **Chat with my assistant** builds and saves checked meal plans directly from your request, with follow-up changes and questions handled in chat. It also supports saved conversations, measured recipe comparisons, optional AI context sharing and reviewed recipe/prep actions. See [direct assistant plans](docs/direct-assistant-plans.md) and [the conversational assistant guide](docs/conversational-assistant.md). Navy and soft blue is the default, with palette choices in More.

@@ -2,6 +2,11 @@
 (function(root){
  'use strict';
  const fields=[{key:'fiber',label:'Fibre',unit:'g',off:'fiber',scale:1},{key:'sugar',label:'Sugars',unit:'g',off:'sugars',scale:1},{key:'saturatedFat',label:'Saturates',unit:'g',off:'saturated-fat',scale:1},{key:'salt',label:'Salt',unit:'g',off:'salt',scale:1},{key:'sodium',label:'Sodium',unit:'mg',off:'sodium',scale:1000}];
+ fields.push(...[
+  ['potassium','Potassium','potassium'],['calcium','Calcium','calcium'],['iron','Iron','iron'],['magnesium','Magnesium','magnesium'],['zinc','Zinc','zinc']
+ ].map(([key,label,off])=>({key,label,off,unit:'mg',scale:1000,group:'Minerals'})),...[
+  ['vitaminC','Vitamin C','vitamin-c','mg',1000],['vitaminD','Vitamin D','vitamin-d','µg',1000000],['vitaminB12','Vitamin B12','vitamin-b12','µg',1000000],['vitaminB6','Vitamin B6','vitamin-b6','mg',1000],['vitaminE','Vitamin E','vitamin-e','mg',1000]
+ ].map(([key,label,off,unit,scale])=>({key,label,off,unit,scale,group:'Vitamins'})));
  const known=value=>(typeof value==='number'||typeof value==='string'&&/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(value.trim()))&&Number.isFinite(Number(value))&&Number(value)>=0;
  function read(raw={},strict=false){const result={};for(const field of fields){if(!Object.hasOwn(raw,field.key))continue;const value=raw[field.key];if(value==null||value===''){result[field.key]=null;continue;}if(!known(value)||Number(value)>100000){if(strict)throw new Error('Enter a valid '+field.label.toLowerCase()+' value, or leave it blank.');result[field.key]=null;}else result[field.key]=Number(value);}return result;}
  function off(raw={},missing=false){return Object.fromEntries(fields.map(field=>{const value=raw[field.off+'_100g'];return [field.key,!missing&&known(value)&&Number(value)<=100?Number(value)*field.scale:null];}));}

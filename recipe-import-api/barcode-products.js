@@ -10,7 +10,7 @@ export function createBarcodeLookup({fetchImpl=fetch,now=Date.now,cacheLimit=300
  return async function lookup(value,{signal}={}){
   signal?.throwIfAborted();const barcode=Core.code(value),at=now(),saved=cache.get(barcode);if(saved&&saved.expires>at)return structuredClone(saved.value);
   if(inflight.has(barcode))return structuredClone(await waitForProduct(inflight.get(barcode),signal));
-  starts=starts.filter(time=>at-time<60000);if(starts.length>=40||inflight.size>=2){const error=new Error('Product lookup is busy. Try again shortly or enter the pack label.');error.status=429;throw error;}starts.push(at);
+  starts=starts.filter(time=>at-time<60000);if(starts.length>=14||inflight.size>=2){const error=new Error('Product lookup is busy. Try again shortly or enter the pack label.');error.status=429;throw error;}starts.push(at);
   const promise=(async()=>{
    const url=new URL('https://world.openfoodfacts.org/api/v3/product/'+barcode);url.searchParams.set('fields','code,product_name,product_name_en,brands,nutriments,nutrition_data_per,no_nutrition_data,obsolete,product_type,serving_size,serving_quantity,product_quantity,product_quantity_unit');url.searchParams.set('cc','gb');url.searchParams.set('lc','en');url.searchParams.set('product_type','food');
    const timeout=AbortSignal.timeout(12000);

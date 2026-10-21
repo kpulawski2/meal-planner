@@ -35,7 +35,7 @@ page hide and tab hide, including delayed permission and decoder startup.
 `GET /api/foods/barcode/:code` queries the fixed Open Food Facts v3 food endpoint
 with a named application User-Agent. Redirects are refused. Responses are
 limited to 128 KiB and 12 seconds. The process allows two concurrent distinct
-lookups and 40 uncached starts per minute, in addition to the existing client
+lookups and 14 uncached starts per minute, in addition to the existing client
 rate limit. Identical requests share work without one disconnected caller
 cancelling other callers. A bounded 300-entry cache keeps found results for six
 hours and missing results for 15 minutes. No API key or paid AI is required.
@@ -58,6 +58,11 @@ The scanner also accepts a JPEG, PNG or WebP **barcode photo** up to 12 MiB,
 decoded locally using the same bundled decoder. It reads the printed barcode;
 it does not estimate calories from a food photo. Camera autofocus and a torch
 control are available when the device exposes those capabilities.
+
+The dedicated **Diary** tab adds grouped meals, goal progress, reviewed meal/day
+copying, a seven-day view and explicit packaged-food search. Optional vitamin
+and mineral fields extend label review and dated totals. See
+[nutrition diary](nutrition-diary.md) for source coverage and search limits.
 
 Review a declared serving or whole-pack weight, then log grams/millilitres,
 fractions of a serving or packs. Unknown weights require manual entry from
