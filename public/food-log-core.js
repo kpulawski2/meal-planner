@@ -21,6 +21,7 @@
       else if (!number(raw[key]) || Number(raw[key]) > 100000) throw new Error('Nutrition values must be non-negative numbers.');
       else result[key] = Number(raw[key]);
     }
+    Object.assign(result,root.FoodNutrientsCore?.read(raw,true)||{});
     return result;
   }
   function definition(raw = {}) {
@@ -28,19 +29,20 @@
     if (!name || !['g', 'ml', 'piece', 'slice', 'tsp', 'tbsp', 'portion'].includes(unit) || !number(raw.quantity) || quantity <= 0 || quantity > 100000)
       throw new Error('Add a food name, serving amount and supported unit.');
     const provenance = root.BarcodeCore?.provenance(raw.provenance);
-    return { name, unit, quantity, nutrition: nutrition(raw.nutrition), note: text(raw.note, 300), ...(provenance ? { provenance } : {}) };
+    const serving=root.FoodNutrientsCore?.portion(raw.serving,unit),pack=root.FoodNutrientsCore?.portion(raw.pack,unit);
+    return { name, unit, quantity, nutrition: nutrition(raw.nutrition), note: text(raw.note, 300), ...(provenance ? { provenance } : {}),...(serving?{serving}:{}),...(pack?{pack}:{}),...(text(raw.brand)?{brand:text(raw.brand)}:{}) };
   }
   function scaled(food, quantity) {
     const base = definition(food), amount = Number(quantity);
     if (!number(quantity) || amount <= 0 || amount > 100000) throw new Error('Enter the amount you ate.');
     const factor = amount / base.quantity;
-    return nutrition(Object.fromEntries([...keys.map(key => [key, base.nutrition[key] === null ? null : base.nutrition[key] * factor]), ['source', base.nutrition.source]]));
+    return nutrition({...Object.fromEntries([...keys.map(key => [key, base.nutrition[key] === null ? null : base.nutrition[key] * factor]), ['source', base.nutrition.source]]),...(root.FoodNutrientsCore?.scale(base.nutrition,factor)||{})});
   }
   function entry(raw = {}) {
     if (!validDate(raw.date) || !text(raw.id)) throw new Error('Choose a valid date for this food.');
     const food = definition(raw.food), quantity = Number(raw.quantity);
     return { id: text(raw.id, 180), date: raw.date, food, quantity,
-      nutrition: scaled(food, quantity), originKey: text(raw.originKey, 240) || null };
+      nutrition: scaled(food, quantity), originKey: text(raw.originKey, 240) || null,...(['Breakfast','Lunch','Dinner','Snack'].includes(raw.meal)?{meal:raw.meal}:{}) };
   }
   function normalizeState(state) {
     const rows = [], ids = new Set(), origins = new Set();
@@ -85,7 +87,8 @@
       totals[key] = rows.reduce((sum, row) => sum + (number(row.nutrition?.[key]) ? Number(row.nutrition[key]) : 0), 0);
       missing[key] = rows.filter(row => !number(row.nutrition?.[key])).length;
     }
-    return { rows: copy(rows), totals, missing, estimated: rows.some(row => row.nutrition?.source !== 'label') };
+    const extraTotals={},extraMissing={};for(const {key} of root.FoodNutrientsCore?.fields||[]){extraTotals[key]=rows.reduce((sum,row)=>sum+(number(row.nutrition?.[key])?Number(row.nutrition[key]):0),0);extraMissing[key]=rows.filter(row=>!number(row.nutrition?.[key])).length;}
+    return { rows: copy(rows), totals, missing, extraTotals,extraMissing,estimated: rows.some(row => row.nutrition?.source !== 'label') };
   }
   function shiftDate(date, offset) {
     if (!validDate(date) || !Number.isInteger(offset) || Math.abs(offset) > 366) throw new Error('Choose a valid diary date.');
