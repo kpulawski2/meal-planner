@@ -1,4 +1,5 @@
 import '../public/barcode-core.js';
+import '../public/food-nutrients-core.js';
 const Core=globalThis.BarcodeCore;
 function waitForProduct(promise,signal){
  if(!signal)return promise;signal.throwIfAborted();
@@ -11,7 +12,7 @@ export function createBarcodeLookup({fetchImpl=fetch,now=Date.now,cacheLimit=300
   if(inflight.has(barcode))return structuredClone(await waitForProduct(inflight.get(barcode),signal));
   starts=starts.filter(time=>at-time<60000);if(starts.length>=40||inflight.size>=2){const error=new Error('Product lookup is busy. Try again shortly or enter the pack label.');error.status=429;throw error;}starts.push(at);
   const promise=(async()=>{
-   const url=new URL('https://world.openfoodfacts.org/api/v3/product/'+barcode);url.searchParams.set('fields','code,product_name,product_name_en,brands,nutriments,nutrition_data_per,no_nutrition_data,obsolete,product_type');url.searchParams.set('cc','gb');url.searchParams.set('lc','en');url.searchParams.set('product_type','food');
+   const url=new URL('https://world.openfoodfacts.org/api/v3/product/'+barcode);url.searchParams.set('fields','code,product_name,product_name_en,brands,nutriments,nutrition_data_per,no_nutrition_data,obsolete,product_type,serving_size,serving_quantity,product_quantity,product_quantity_unit');url.searchParams.set('cc','gb');url.searchParams.set('lc','en');url.searchParams.set('product_type','food');
    const timeout=AbortSignal.timeout(12000);
    const response=await fetchImpl(url,{headers:{'User-Agent':'MealPlanner/2.1.0 (https://github.com/kpulawski2/meal-planner)','Accept':'application/json'},signal:timeout,redirect:'error'});
    let result;if(response.status===404)result={status:'not_found',barcode,product:null};

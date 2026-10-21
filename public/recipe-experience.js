@@ -16,7 +16,7 @@
   const latest=new Map();
   for(const row of Array.isArray(state.recipeFeedback)?state.recipeFeedback:[]){
    const recipeId=text(row?.recipeId),value=row?.value;
-   if(!recipeId||!['again','skip'].includes(value)||!validTime(row.updatedAt))continue;
+   if(!recipeId||!['again','skip','neutral'].includes(value)||!validTime(row.updatedAt))continue;
    if(!latest.has(recipeId)||Date.parse(latest.get(recipeId).updatedAt)<=Date.parse(row.updatedAt))latest.set(recipeId,{recipeId,value,updatedAt:new Date(row.updatedAt).toISOString()});
   }
   return [...latest.values()].sort((a,b)=>Date.parse(b.updatedAt)-Date.parse(a.updatedAt)).slice(0,5000);
@@ -50,14 +50,15 @@
  }
  function feedbackValue(recipe,state={}){
   const id=idOf(recipe),source=text(recipe?.copiedFrom?.recipeId);
-  const values=tasteIndex(state).feedback;return values.get(id)||values.get(source)||null;
+  const values=tasteIndex(state).feedback,value=values.has(id)?values.get(id):values.get(source);return value==='neutral'?null:value||null;
  }
  function allowedFeedback(recipe,state={}){return feedbackValue(recipe,state)!=='skip';}
  function setFeedback(state,recipe,value,options={}){
   const recipeId=idOf(recipe);if(!recipeId||!['again','skip',null].includes(value))throw new TypeError('Choose would eat again, skip next time, or clear.');
   const at=options.at||new Date().toISOString();if(!validTime(at))throw new TypeError('Feedback needs a valid date.');
+  const source=text(recipe?.copiedFrom?.recipeId),inherited=source&&feedbackValue(source,state),savedValue=value===null&&inherited?'neutral':value;
   state.recipeFeedback=feedbackRows(state).filter(row=>row.recipeId!==recipeId);
-  if(value)state.recipeFeedback.unshift({recipeId,value,updatedAt:new Date(at).toISOString()});
+  if(savedValue)state.recipeFeedback.unshift({recipeId,value:savedValue,updatedAt:new Date(at).toISOString()});
   state.recipeFeedback=state.recipeFeedback.slice(0,5000);
   return state.recipeFeedback;
  }
@@ -67,6 +68,15 @@
   const current=historyRows(state,now);if(current.some(row=>row.transactionId===transactionId)){state.recentMeals=current;return false;}
   state.recentMeals=historyRows({recentMeals:[{recipeId,dishFamily:text(recipe?.dishFamily,80)||root.MealBudgetCore?.dishFamily?.(recipe)||'',cookedAt,transactionId,portions:options.portions},...current]},now);
   return true;
+ }
+ function excludeFutureChoices(state,recipes){
+  const byId=new Map(recipes.map(r=>[r.id,r])),excluded=id=>byId.has(id)&&!allowedFeedback(byId.get(id),state),p=state.profile||{},changes={daily:0,locks:0};
+  p.repeatMeals={...p.repeatMeals};for(const [cat,id] of Object.entries(p.repeatMeals))if(excluded(id)){delete p.repeatMeals[cat];changes.daily++;}
+  p.tailoredMeals=clone(p.tailoredMeals||{});for(const [cat,rule] of Object.entries(p.tailoredMeals)){rule.recipeIds=(rule.recipeIds||[]).filter(id=>!excluded(id));if(!rule.recipeIds.length){delete p.tailoredMeals[cat];changes.daily++;}}
+  p.scheduledMeals=(p.scheduledMeals||[]).map(rule=>({...rule,recipeIds:(rule.recipeIds||[]).filter(id=>!excluded(id))})).filter(rule=>rule.recipeIds.length);
+  if(p.varietyMode==='Tailored'&&!Object.keys(p.tailoredMeals).length&&!p.scheduledMeals.length||p.varietyMode==='Repeat favourites'&&!Object.keys(p.repeatMeals).length)p.varietyMode='Balanced';
+  state.locked={...state.locked};for(const day of state.week||[])for(const [index,id] of day.meals.entries())if(excluded(id)){const key=day.day+'::'+index,cooked=root.PantryCore?.cookedPortions(state,day.day,index,recipes)||0;if(state.locked[key]&&cooked<=0){delete state.locked[key];changes.locks++;}}
+  if(state.kitchenConversation)state.kitchenConversation={...state.kitchenConversation,planDraft:null};return changes;
  }
  function feedbackScore(recipe,state={},options={}){
   const now=options.now??Date.now(),id=idOf(recipe),family=text(recipe?.dishFamily,80)||root.MealBudgetCore?.dishFamily?.(recipe)||'';
@@ -111,7 +121,7 @@
   const profile=options.profile||{},available=new Set((Array.isArray(profile.equipment)?profile.equipment:[]).map(v=>String(v).toLowerCase()));
   const missingEquipment=root.KitchenEquipment?root.KitchenEquipment.missing(recipe,profile):(Array.isArray(recipe.equipment)?recipe.equipment:[]).filter(name=>!available.has(String(name).toLowerCase()));
   for(const name of missingEquipment)add('equipment','Enable '+String(name)+' in your kitchen equipment.');
-  if(options.state&&!allowedFeedback(recipe,options.state))add('feedback','You chose Skip next time. Clear that preference to use this recipe again.');
+  if(options.state&&!allowedFeedback(recipe,options.state))add('feedback','You disliked this recipe. Clear that preference to use it again.');
   // Unchecked prices are not an error. Only report gaps from an actual catalogue check.
   const pricing=options.pricing;
   if(pricing?.checked===true&&pricing.complete===false){
@@ -141,5 +151,5 @@
   next.modifications=[text(recipe.modifications,5000),next.changeNotice].filter(Boolean).join(' ');
   return next;
  }
- root.RecipeExperience=Object.freeze({normalizeState,personalNote,setPersonalNote,feedbackValue,allowedFeedback,setFeedback,recordCook,feedbackScore,rank,readiness,editableCopy,applyCorrections});
+ root.RecipeExperience=Object.freeze({normalizeState,personalNote,setPersonalNote,feedbackValue,allowedFeedback,setFeedback,excludeFutureChoices,recordCook,feedbackScore,rank,readiness,editableCopy,applyCorrections});
 })(globalThis);

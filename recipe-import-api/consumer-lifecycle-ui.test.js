@@ -290,12 +290,12 @@ test('recent-food shortcuts review frozen label values and selected diary dates 
   app.run('FoodLogCore.record(state,{date:"2026-10-12",food:{name:"My snack",quantity:100,unit:"g",nutrition:{kcal:400,p:10,c:50,f:null,source:"label"}},quantity:25,originKey:"meal-reference"},{id:"past-snack"});FoodLogCore.saveFood(state,{name:"My snack",quantity:100,unit:"g",nutrition:{kcal:900,p:20,c:70,f:20,source:"label"}},{id:"new-label"});renderHome()');
   const before = app.state(); assert.match(app.node('home').innerHTML, /Log a recent food again/);
   app.context.FoodLogUI.setDate('2026-10-13'); app.context.FoodLogUI.openRecent('past-snack');
-  assert.equal(app.node('diaryAmount').value, '25'); assert.equal(app.node('diaryUnit').value, 'g'); assert.match(app.node('diaryPreview').textContent, /100 kcal/); assert.match(app.node('diaryPreview').textContent, /missing macros/);
+  assert.equal(app.node('diaryAmount').value, '25'); assert.equal(app.node('diaryUnit').value, 'g'); assert.match(app.node('diaryPreview').innerHTML, /100 kcal/); assert.match(app.node('diaryPreview').innerHTML, /missing macros/);
   assert.deepEqual(app.state(), before, 'Opening the shortcut records nothing.');
   app.node('diaryDate').value = '2026-10-13'; app.node('diarySaveFood').checked = false; app.context.FoodLogUI.commit();
   const current = app.state(); assert.equal(current.foodLog.length, 2); assert.equal(current.foodLog[1].date, '2026-10-13'); assert.equal(current.foodLog[1].nutrition.kcal, 100); assert.equal(current.foodLog[1].nutrition.f, null); assert.equal(current.foodLog[1].originKey, null);
   for (const key of ['week', 'pantry', 'leftovers', 'profile', 'savedFoods', 'pantryLedger']) assert.deepEqual(current[key], before[key], key);
-  const restored = harness({ state: current }); await restored.flush(); restored.context.FoodLogUI.openRecent(current.foodLog[1].id); assert.match(restored.node('diaryPreview').textContent, /100 kcal/);
+  const restored = harness({ state: current }); await restored.flush(); restored.context.FoodLogUI.openRecent(current.foodLog[1].id); assert.match(restored.node('diaryPreview').innerHTML, /100 kcal/);
 });
 test('diary date navigation and changing entry mode retain the chosen calendar date without logging', async () => {
   const app = harness(); await app.flush(); const before = app.state();
@@ -491,6 +491,20 @@ test('barcode results require label review and preserve corrected nutrition thro
  for(const key of ['week','profile','pantry','pantryLedger'])assert.deepEqual(app.state()[key],before[key]);
  const restored=harness({state:app.state()});await restored.flush();restored.context.fetch=()=>{throw new Error('Saved labels must work offline');};restored.context.BarcodeUI.open('2026-10-12');restored.node('barcodeNumber').value=code;await restored.context.BarcodeUI.lookup();assert.equal(restored.node('diary-kcal').value,'400');assert.match(restored.node('sheet').innerHTML,/saved reviewed label/);
 });
+
+test('scanned serving fractions log declared weights, extra nutrients and meal groups without touching the household plan',async()=>{
+ const app=harness();await app.flush();const before=app.state();
+ app.context.FoodLogUI.openLabel({barcode:'3017620422003',name:'Fixture skyr',quantity:100,unit:'g',serving:{quantity:150,unit:'g'},pack:{quantity:450,unit:'g'},nutrition:{kcal:63,p:11,c:4,f:.2,fiber:0,sodium:40},source:'Pack label'},'2026-10-21');
+ assert.equal(app.node('diaryUnit').value,'serving');assert.match(app.node('diaryPreview').innerHTML,/94.5/);
+ app.context.FoodLogUI.portion(.5);app.node('barcodeConfirmed').checked=true;app.node('diaryMeal').value='Snack';app.node('diaryDate').value='2026-10-21';app.node('diarySaveFood').checked=true;app.context.FoodLogUI.commit(true);
+ const saved=app.state();assert.equal(saved.foodLog[0].quantity,75);assert.equal(saved.foodLog[0].nutrition.kcal,47.25);assert.equal(saved.foodLog[0].nutrition.sodium,30);assert.equal(saved.foodLog[0].nutrition.fiber,0);assert.equal(saved.foodLog[0].meal,'Snack');assert.equal(saved.savedFoods[0].serving.quantity,150);assert.match(app.node('sheet').innerHTML,/Scan a food barcode/);
+ for(const key of ['week','profile','pantry','pantryLedger'])assert.deepEqual(saved[key],before[key],key);
+});
+
+test('a label cannot be partially saved when device storage is full',async()=>{
+ const app=harness();await app.flush();const before=app.state();app.context.FoodLogUI.openLabel({barcode:'3017620422003',name:'Snack',quantity:100,unit:'g',nutrition:{kcal:100},source:'Pack label'},'2026-10-21');app.node('barcodeConfirmed').checked=true;app.node('diaryDate').value='2026-10-21';app.node('diarySaveFood').checked=true;
+ app.context.localStorage.setItem=()=>{throw new DOMException('Storage full','QuotaExceededError');};app.context.FoodLogUI.commit();assert.deepEqual(app.state().foodLog,before.foodLog);assert.deepEqual(app.state().savedFoods,before.savedFoods);assert.deepEqual(app.state().week,before.week);
+});
 test('camera permission, detection and lookup results arriving after close cannot reopen a scanner or log food',async()=>{
  const app=harness();await app.flush();let release,stopped=0,detect;app.context.isSecureContext=true;app.node('barcodeVideo').play=async()=>{};
  app.context.BarcodeDetector=class {static async getSupportedFormats(){return ['ean_13','ean_8','upc_a'];}detect(){return new Promise(resolve=>{detect=resolve;});}};
@@ -662,9 +676,9 @@ test('use-soon reminders save real dates without creating stock, spending or foo
 test('taste controls persist, show selected states and remove skipped recipes from future payloads', async () => {
   const app = harness(); await app.flush();
   app.context.showRecipe(basic.id, 'Monday', 0);
-  assert.match(app.node('sheet').innerHTML, /Would eat again/);
+  assert.match(app.node('sheet').innerHTML, /Like/);
   app.context.setRecipeFeedback(basic.id, 'again');
-  assert.match(app.node('sheet').innerHTML, /aria-pressed="true" onclick="setRecipeFeedback\('user_measured_oats','again'\)"/);
+  assert.match(app.node('sheet').innerHTML, /aria-pressed="true" class="on"/);
   assert.equal(app.state().recipeFeedback[0].value, 'again');
   assert.equal(JSON.parse(app.storage.get('mealPlannerState')).recipeFeedback[0].value, 'again');
   let payload = copy(app.context.budgetPlannerPayload());
@@ -673,7 +687,7 @@ test('taste controls persist, show selected states and remove skipped recipes fr
   payload = copy(app.context.budgetPlannerPayload());
   assert.ok(payload.excludedRecipeIds.includes(basic.id));
   assert.ok(!payload.recipes.some(row => row.id === basic.id));
-  assert.match(app.node('sheet').innerHTML, /You chose Skip next time/);
+  assert.match(app.node('sheet').innerHTML, /You disliked this recipe/);
   app.context.setRecipeFeedback(basic.id, null);
   assert.equal(app.state().recipeFeedback.length, 0);
   assert.ok(app.context.budgetPlannerPayload().recipes.some(row => row.id === basic.id));
@@ -838,7 +852,7 @@ test('the actual diary scales personal food, preserves history in backups and le
   app.context.FoodLogUI.mode(true);
   for (const [id, value] of Object.entries({ diaryDate: '2026-10-11', diaryName: 'Snack bar', diaryBasis: '100', diaryBasisUnit: 'g', 'diary-kcal': '400', 'diary-p': '', 'diary-c': '50', 'diary-f': '18', diaryAmount: '25' })) app.node(id).value = value;
   app.node('diarySaveFood').checked = true;
-  app.context.FoodLogUI.preview(); assert.match(app.node('diaryPreview').textContent, /100 kcal/);
+  app.context.FoodLogUI.preview(); assert.match(app.node('diaryPreview').innerHTML, /100 kcal/);
   app.context.FoodLogUI.commit();
   const saved = app.state(); assert.equal(saved.foodLog[0].nutrition.kcal, 100); assert.equal(saved.foodLog[0].nutrition.p, null); assert.equal(saved.savedFoods.length, 1);
   assert.deepEqual(saved.week, original.week); assert.deepEqual(saved.pantry, original.pantry);

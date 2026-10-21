@@ -54,6 +54,19 @@ keeps historical diary entries unchanged. Reviewed source metadata survives
 reload and existing JSON backup/restore. Community product data is not a
 claim of verified label accuracy or supermarket availability.
 
+The scanner also accepts a JPEG, PNG or WebP **barcode photo** up to 12 MiB,
+decoded locally using the same bundled decoder. It reads the printed barcode;
+it does not estimate calories from a food photo. Camera autofocus and a torch
+control are available when the device exposes those capabilities.
+
+Review a declared serving or whole-pack weight, then log grams/millilitres,
+fractions of a serving or packs. Unknown weights require manual entry from
+the label. No mass/volume conversion is guessed. Choose Breakfast, Lunch,
+Dinner or Snack and use **Add & scan next** to continue on the same diary date.
+Fibre, sugars, saturates, salt and sodium are optional label fields. They scale
+with the amount eaten and appear in diary totals with missing values labelled
+Unknown or partial. See [recipe preferences and scanner details](recipe-taste-food-scanner.md).
+
 ## Review recorded activity
 
 Choose a review-ending date for the preceding seven calendar days. Diary dates
@@ -68,7 +81,7 @@ a measure of adherence to planned meals.
 Spending includes dated active purchase transactions, excluding undone
 transactions. No purchases or an unknown purchase price means an unknown
 total, not zero spending. Cooking confirmations and leftover uses are shown
-separately from food eaten. Meals marked “Would eat again” appear when rated
+separately from food eaten. Meals marked “Like” appear when rated
 during the period or cooked during it. Ideas link to existing diary, pantry,
 recipe and tailored-plan tools; they do not change the plan automatically.
 

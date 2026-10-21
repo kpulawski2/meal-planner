@@ -107,6 +107,13 @@ summarises dated food, active purchases, cooking confirmations and liked meals;
 unlogged days and unknown values never count as zero. See
 [kitchen insights](docs/kitchen-insights.md) for data handling, limits and licences.
 
+Recipes and planned meals have **Like / Dislike** controls. Disliked recipes
+stay out of new plans and suggestions; **More → Recipe likes & dislikes** lets
+you clear a choice or request a checked update of the current plan. The food
+scanner also reads barcode photos locally, supports declared serving/pack
+weights, meal groups, extra label nutrients and **Add & scan next**. See
+[recipe preferences and food scanning](docs/recipe-taste-food-scanner.md).
+
 ## Shopping, stock and cooking
 
 **Chat with my assistant** builds and saves checked meal plans directly from your request, with follow-up changes and questions handled in chat. It also supports saved conversations, measured recipe comparisons, optional AI context sharing and reviewed recipe/prep actions. See [direct assistant plans](docs/direct-assistant-plans.md) and [the conversational assistant guide](docs/conversational-assistant.md). Navy and soft blue is the default, with palette choices in More.

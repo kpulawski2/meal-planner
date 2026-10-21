@@ -9,12 +9,16 @@
   const nutrient=(key,max)=>known(n[key])&&Number(n[key])<=max?Number(n[key]):null;
   let kcal=nutrient('energy-kcal_100g',1200);if(kcal===null){const kj=nutrient('energy-kj_100g',5021)??(n.energy_unit==='kJ'?nutrient('energy_100g',5021):null);if(kj!==null){kcal=Number((kj/4.184).toFixed(2));warnings.push('Calories converted from the database kJ value. Check your pack.');}}
   const nutrition={kcal,p:nutrient('proteins_100g',100),c:nutrient('carbohydrates_100g',100),f:nutrient('fat_100g',100),source:'label'};
+  Object.assign(nutrition,root.FoodNutrientsCore?.off(n,p.no_nutrition_data===true||p.no_nutrition_data==='on')||{});
   if(p.no_nutrition_data===true||p.no_nutrition_data==='on'){for(const key of ['kcal','p','c','f'])nutrition[key]=null;}
   if(p.obsolete===1||p.obsolete==='on')warnings.push('This database entry is marked obsolete. Confirm the current pack.');
   if(nutrition.kcal===null)warnings.push('Calories are missing or invalid. Enter the pack value before logging.');
   if(['p','c','f'].some(key=>nutrition[key]===null))warnings.push('Some macros are missing. Leave them unknown or copy them from the pack.');
   warnings.push('Community product data can differ from your pack. Confirm the product, values and g/ml basis.');
-  return {barcode,name:text(p.product_name_en)||text(p.product_name)||'',brand:text(p.brands),quantity:100,unit:p.nutrition_data_per==='100ml'?'ml':'g',nutrition,
+  const measuredPack=root.FoodNutrientsCore?.measure(p.product_quantity,p.product_quantity_unit),unit=p.nutrition_data_per==='100ml'||measuredPack?.unit==='ml'?'ml':'g';
+  const measuredServing=root.FoodNutrientsCore?.fromText(p.serving_size)||(unit==='g'?root.FoodNutrientsCore?.measure(p.serving_quantity,'g'):null);
+  const serving=root.FoodNutrientsCore?.portion({...measuredServing,label:text(p.serving_size,80)||'Serving'},unit),pack=root.FoodNutrientsCore?.portion({...measuredPack,label:'Whole pack'},unit);
+  return {barcode,name:text(p.product_name_en)||text(p.product_name)||'',brand:text(p.brands),quantity:100,unit,nutrition,...(serving?{serving}:{}),...(pack?{pack}:{}),
    source:'Open Food Facts',sourceUrl:'https://world.openfoodfacts.org/product/'+barcode,license:'ODbL',warnings};
  }
  function provenance(raw){let barcode;try{barcode=code(raw?.barcode);}catch{return null;}if(raw.source==='Open Food Facts')return {barcode,source:'Open Food Facts',sourceUrl:'https://world.openfoodfacts.org/product/'+barcode,license:'ODbL'};return {barcode,source:'Pack label'};}
