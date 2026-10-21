@@ -444,3 +444,66 @@ input:focus,select:focus,textarea:focus {border-color:var(--accent);box-shadow:0
 #diary>.page-heading {display:flex;justify-content:space-between;align-items:flex-start;gap:12px}#diary>.page-heading>.btn {white-space:nowrap;margin-top:10px}.diary-date-bar input {min-height:44px;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:12px;color:var(--text);font:inherit} @media(max-width:430px){.diary-macro {padding:12px 9px}.diary-macro>b {font-size:19px}.diary-macro small {font-size:10px}#diary>.page-heading>.btn {font-size:10px;padding:10px}}
 
 .diary-energy-mark {border:0;position:relative;isolation:isolate;background:conic-gradient(var(--accent) var(--diary-progress,0%),var(--line) 0)}.diary-energy-mark::before {content:"";position:absolute;inset:8px;background:var(--soft);border-radius:50%;z-index:-1}.diary-energy-mark>span {position:relative}@media(max-width:760px){.diary-energy-mark {border:0}.diary-energy-mark::before {inset:6px}}
+
+/* Keep everyday tasks visible and tuck secondary controls into labelled disclosures. */
+.page-heading:has(>div:only-child) {margin-bottom:22px}
+.planned-day-field {display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%}
+.planned-day-field label {font-size:13px;color:var(--muted)}
+.planned-day-field select {min-height:44px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);font:inherit;max-width:70%}
+.plan-browser {margin-block:18px 24px}.plan-day>.section-heading {margin-bottom:14px}
+.compact-nutrition {margin:0 0 24px;background:var(--card)}
+.compact-nutrition summary {padding:15px 17px}.compact-nutrition summary>span {width:100%}
+.compact-nutrition summary small {display:inline;margin-left:8px;font-size:10px}
+.compact-nutrition .nutrition-glance {display:flex;flex-wrap:wrap;gap:8px 15px;margin-top:12px;font-size:11px;color:var(--muted)}
+.nutrition-glance strong {font-size:14px;color:var(--text)}
+.compact-nutrition .daily-nutrition {border:0;padding:0;margin:0;box-shadow:none;background:none}
+.meal-plan-card {padding:18px;margin-bottom:12px}.meal-plan-card .meal-primary-actions {margin-top:14px}
+.meal-plan-card>.ui-disclosure {margin:0}.meal-plan-card>.ui-disclosure summary {min-height:44px}
+.meal-option-buttons {flex-wrap:wrap;gap:8px}.meal-plan-card .recipe-taste {margin-top:16px}
+.home-aside .section-heading {margin-bottom:0}.diary-glance {padding:18px}.assistant-shortcut {min-height:62px}
+#week .page-actions>.ui-disclosure {flex:1;min-width:150px;margin:0}
+#week .page-actions {align-items:start}.page-actions>.btn {min-height:48px}
+#week .view-switch {margin-top:18px;width:100%}
+#more .more-layout {display:block}#more .kitchen-menu small {display:none}
+#more .menu-group {margin-bottom:18px}#more .kitchen-menu button {min-height:64px}
+#more .utility-menu {display:grid;grid-template-columns:1fr;gap:0}
+#more .utility-menu button {min-height:64px}#more .utility-menu small {font-size:11px}
+#recipes>.page-heading {display:flex;justify-content:space-between;align-items:center;gap:16px}
+#recipes>.page-heading h1 {margin-top:0}#recipes .recipe-search-row {grid-template-columns:minmax(0,1fr) minmax(100px,.45fr)}
+#recipes .recipe-advanced {margin-block:14px 0}.recipe-results-heading {margin-top:12px}
+.recipe-card .recipe-buttons {display:flex;gap:10px;margin-top:16px}.recipe-card .fav {margin-left:auto}
+.recipe-card>.recipe-card-options {margin:8px 0 0;border:0;border-top:1px solid var(--line);border-radius:0;background:none}
+.recipe-card>.recipe-card-options summary {padding:0;min-height:44px;font-size:12px}
+.recipe-card>.recipe-card-options .disclosure-content {padding:12px 0 0}
+.recipe-card-tools {display:grid;gap:14px}.recipe-card-tools .recipe-source {font-size:11px}
+.diary-toolbar {display:flex;align-items:start;gap:12px;margin:18px 0}
+.diary-toolbar>.ui-disclosure {margin:0;flex:1}.diary-toolbar>.btn {min-height:48px}
+.diary-source-note {font-size:11px}.diary-source-note:empty {display:none}
+.diary-macro-grid {gap:10px}.diary-macro {padding:15px}
+.diary-macro>small:last-child {display:none}.nutrition-diary-layout {display:block}
+.diary-meals {gap:12px}.diary-meal {padding:18px}.diary-meal-heading {padding-bottom:0;align-items:center}
+.diary-meal h2 {font-size:16px}.diary-meal-heading .text-button {white-space:nowrap;min-height:44px;padding:8px;font-size:12px}
+.diary-meal-heading .sub {font-size:11px}.diary-entry {margin-top:8px}
+.diary-all-nutrients {margin-top:20px}.diary-date-bar {margin-block:0 18px}
+#shop>.page-heading {margin-bottom:18px}#shop .trip-toolbar {padding:18px}
+#shop .trip-toolbar h2 {font-size:18px}#shop .trip-toolbar .section-heading {margin-bottom:12px}
+.trip-toolbar .shopping-list-actions {margin:0}.trip-toolbar #tripStatus:empty {display:none}
+.trip-toolbar .trip-list-filters {margin-top:10px}.trip-list-filters>summary {min-height:44px;display:flex;align-items:center;cursor:pointer}
+.trip-list-filters .actions {margin-block:14px}.trip-toolbar .shopping-list-actions button {padding:8px 0;min-height:44px}
+@media(max-width:600px){
+ #week .page-actions {display:grid;grid-template-columns:1fr 1fr;gap:10px}
+ #week .page-actions>.btn {justify-content:center}
+ #week .plan-browser {margin-block:18px}
+ .compact-nutrition summary small {display:block;margin:5px 0 0}
+ .compact-nutrition .nutrition-glance {gap:8px 12px;font-size:10px}
+ .nutrition-glance strong {font-size:13px}
+ .diary-energy {padding:18px;margin-bottom:12px}.diary-energy h2 {font-size:29px}
+ .diary-macro {padding:12px 10px}.diary-macro>b {margin:8px 0}
+ #recipes .recipe-search-row {grid-template-columns:minmax(0,1fr) minmax(105px,.5fr);gap:10px}
+ .recipe-add-menu summary {min-height:44px;padding:12px}
+}
+.recipe-card>.recipe-card-options {width:auto;align-self:stretch;grid-column:1/-1}
+.recipe-card>.recipe-card-options>summary {width:100%;max-width:none;justify-content:space-between}
+.recipe-card>.recipe-card-options>summary>span {flex:1;min-width:0}
+
+.top-log,.top-action {background:var(--soft);color:var(--accent);border:1px solid var(--line)}
