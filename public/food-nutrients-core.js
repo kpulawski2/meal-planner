@@ -2,7 +2,7 @@
 (function(root){
  'use strict';
  const fields=[{key:'fiber',label:'Fibre',unit:'g',off:'fiber',scale:1},{key:'sugar',label:'Sugars',unit:'g',off:'sugars',scale:1},{key:'saturatedFat',label:'Saturates',unit:'g',off:'saturated-fat',scale:1},{key:'salt',label:'Salt',unit:'g',off:'salt',scale:1},{key:'sodium',label:'Sodium',unit:'mg',off:'sodium',scale:1000}];
- const known=value=>(typeof value==='number'||typeof value==='string'&&/^\d+(?:\.\d+)?$/.test(value.trim()))&&Number.isFinite(Number(value))&&Number(value)>=0;
+ const known=value=>(typeof value==='number'||typeof value==='string'&&/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(value.trim()))&&Number.isFinite(Number(value))&&Number(value)>=0;
  function read(raw={},strict=false){const result={};for(const field of fields){if(!Object.hasOwn(raw,field.key))continue;const value=raw[field.key];if(value==null||value===''){result[field.key]=null;continue;}if(!known(value)||Number(value)>100000){if(strict)throw new Error('Enter a valid '+field.label.toLowerCase()+' value, or leave it blank.');result[field.key]=null;}else result[field.key]=Number(value);}return result;}
  function off(raw={},missing=false){return Object.fromEntries(fields.map(field=>{const value=raw[field.off+'_100g'];return [field.key,!missing&&known(value)&&Number(value)<=100?Number(value)*field.scale:null];}));}
  function scale(raw,factor){return Object.fromEntries(Object.entries(read(raw)).map(([key,value])=>[key,value===null?null:value*factor]));}

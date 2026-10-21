@@ -19,6 +19,7 @@ test('expanded nutrients scale with servings, survive reload, and unknowns remai
  Food.record(state,{date:'2026-10-21',food:{name:'Other food',quantity:100,unit:'g',nutrition:{kcal:100}},quantity:100},{id:'second'});
  const restored=Food.normalizeState(JSON.parse(JSON.stringify(state))),summary=Food.summary(restored,'2026-10-21');assert.equal(summary.extraTotals.fiber,0);assert.equal(summary.extraMissing.fiber,1);assert.equal(summary.extraTotals.sodium,30);assert.equal(restored.savedFoods[0].serving.quantity,150);
  assert.equal(Barcode.product({product:{...raw.product,no_nutrition_data:'on'}},code).nutrition.sodium,null);assert.equal(Nutrients.off({fiber_100g:false}).fiber,null);
+ assert.equal(Nutrients.read({fiber:'.5'},true).fiber,0.5);assert.throws(()=>Nutrients.read({fiber:false},true),/valid fibre/);
 });
 test('disliking a repeat removes conflicting future choices without deleting the saved week, pantry or history',()=>{
  const rows=[{id:'oats'},{id:'tuna'},{id:'tuna-copy',copiedFrom:{recipeId:'tuna'}}],state={profile:{varietyMode:'Repeat favourites',repeatMeals:{Breakfast:'oats',Lunch:'tuna'},calories:1600,protein:150},week:[{day:'Monday',meals:['oats','tuna','tuna-copy']}],locked:{'Monday::1':true},foodLog:[{id:'past'}],pantry:[{id:'stock'}],kitchenConversation:{planDraft:{old:true}}};
