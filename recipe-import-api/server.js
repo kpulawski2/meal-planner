@@ -19,7 +19,8 @@ import { searchCatalog, browseCatalog, recommendCatalogItems, optimizeMealPlan, 
 import { normalizeOneOffRequest } from './one-off-meal.js';
 import { normalizePlannerRequest } from './planner-request.js';
 import { createBarcodeLookup } from './barcode-products.js';
-const lookupBarcodeProduct = createBarcodeLookup();
+import { createFoodSearch } from './food-search.js';
+const lookupBarcodeProduct = createBarcodeLookup(), searchFoodProducts = createFoodSearch();
 import { interpretMealRequest } from './meal-intent.js';
 import { interpretKitchenRequest } from './kitchen-assistant.js';
 import { normalizeChatRequest, answerKitchenChat } from './kitchen-agent.js';
@@ -812,6 +813,10 @@ app.post('/api/meals/one-off', catalogRateLimit, async (req, res) => {
   } catch (error) {
     if (!res.destroyed && !res.headersSent) res.status(error instanceof TypeError ? 400 : 502).json({ error: cleanString(error.message || 'Meal prices are unavailable. Please retry.', 300) });
   } finally { if (claimed) activeOneOffSearches--; res.off('close', closed); }
+});
+app.get('/api/foods/search', catalogRateLimit, async (req,res) => {
+  try{const result=await searchFoodProducts(req.query.q);if(!res.destroyed)res.json({ok:true,...result});}
+  catch(error){if(!res.destroyed&&!res.headersSent){if(error.status===429)res.set('Retry-After','30');res.status(error.status===400?400:error.status===429?429:502).json({error:cleanString(error instanceof SyntaxError?'Food search returned an incomplete response. Try a barcode.':error.message||'Food search is unavailable.',300)});}}
 });
 app.get('/api/foods/barcode/:code', catalogRateLimit, async (req,res) => {
   const controller=new AbortController(),closed=()=>controller.abort();res.once('close',closed);

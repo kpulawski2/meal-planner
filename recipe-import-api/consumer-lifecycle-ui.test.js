@@ -19,6 +19,15 @@ const basic = {
   cookTime: 8, custom: true, cost: null, kcal: null, p: null, c: null, f: null, nutritionStatus: 'estimated',
 };
 const copy = value => JSON.parse(JSON.stringify(value));
+test('the dedicated diary saves independent goals and reviewed copies while leaving the household plan intact',async()=>{
+ const app=harness();await app.flush();app.context.showTab('diary');assert.match(app.node('diary').innerHTML,/Food diary/);assert.match(app.node('diary').innerHTML,/Diary goals/);assert.match(app.node('diary').innerHTML,/Breakfast/);
+ const before=JSON.stringify([app.state().profile,app.state().week,app.state().pantry,app.state().shopping,app.state().pantryLedger]);
+ app.context.NutritionDiaryUI.goals();app.node('diaryGoalMode').value='custom';for(const [key,value] of Object.entries({kcal:1800,p:150,c:90,f:20}))app.node('diaryGoal-'+key).value=value;app.context.NutritionDiaryUI.saveGoals();assert.equal(app.state().foodDiaryGoals.kcal,1800);assert.equal(JSON.parse(app.storage.get('mealPlannerState')).foodDiaryGoals.c,90);
+ app.run("FoodLogCore.record(state,{date:'2026-10-20',meal:'Breakfast',food:{name:'Measured cereal',quantity:100,unit:'g',nutrition:{kcal:400,p:25,c:50,f:6}},quantity:50},{id:'recorded'})");
+ app.context.NutritionDiaryUI.copy();app.node('diaryCopySource').value='2026-10-20';app.node('diaryCopyTarget').value='2026-10-21';app.node('diaryCopyMeal').value='Breakfast';app.context.NutritionDiaryUI.copyPreview();assert.match(app.node('diaryCopyReview').innerHTML,/Measured cereal/);
+ app.node('diaryCopyTarget').value='2026-10-22';app.context.NutritionDiaryUI.copyApply();assert.equal(app.state().foodLog.length,1,'changed options require another review');app.node('diaryCopyTarget').value='2026-10-21';
+ const save=app.context.localStorage.setItem;app.context.localStorage.setItem=()=>{throw new DOMException('Full','QuotaExceededError')};app.context.NutritionDiaryUI.copyApply();assert.equal(app.state().foodLog.length,1,'failed storage cannot partially copy entries');app.context.localStorage.setItem=save;app.context.NutritionDiaryUI.copyApply();assert.equal(app.state().foodLog.length,2);assert.equal(app.state().foodLog[1].meal,'Breakfast');assert.equal(app.state().foodLog[1].quantity,50);assert.equal(app.state().foodLog[1].date,'2026-10-21');assert.equal(JSON.stringify([app.state().profile,app.state().week,app.state().pantry,app.state().shopping,app.state().pantryLedger]),before);
+});
 function element(value = '') {
   const classes = new Set(); let current = String(value);
   return {
@@ -288,7 +297,7 @@ test('closed, invalid or changed pantry editors cannot apply a stale stock adjus
 test('recent-food shortcuts review frozen label values and selected diary dates before creating a separate intake entry', async () => {
   const app = harness(); await app.flush();
   app.run('FoodLogCore.record(state,{date:"2026-10-12",food:{name:"My snack",quantity:100,unit:"g",nutrition:{kcal:400,p:10,c:50,f:null,source:"label"}},quantity:25,originKey:"meal-reference"},{id:"past-snack"});FoodLogCore.saveFood(state,{name:"My snack",quantity:100,unit:"g",nutrition:{kcal:900,p:20,c:70,f:20,source:"label"}},{id:"new-label"});renderHome()');
-  const before = app.state(); assert.match(app.node('home').innerHTML, /Log a recent food again/);
+  const before = app.state(); app.context.FoodPickerUI.open('2026-10-13'); assert.match(app.node('foodPickerResults').innerHTML, /My snack/);
   app.context.FoodLogUI.setDate('2026-10-13'); app.context.FoodLogUI.openRecent('past-snack');
   assert.equal(app.node('diaryAmount').value, '25'); assert.equal(app.node('diaryUnit').value, 'g'); assert.match(app.node('diaryPreview').innerHTML, /100 kcal/); assert.match(app.node('diaryPreview').innerHTML, /missing macros/);
   assert.deepEqual(app.state(), before, 'Opening the shortcut records nothing.');
@@ -856,7 +865,7 @@ test('the actual diary scales personal food, preserves history in backups and le
   app.context.FoodLogUI.commit();
   const saved = app.state(); assert.equal(saved.foodLog[0].nutrition.kcal, 100); assert.equal(saved.foodLog[0].nutrition.p, null); assert.equal(saved.savedFoods.length, 1);
   assert.deepEqual(saved.week, original.week); assert.deepEqual(saved.pantry, original.pantry);
-  assert.match(app.node('home').innerHTML, /some macros missing/);
+  assert.match(app.node('diary').innerHTML, /Incomplete data/);
   assert.equal(app.context.budgetPlannerPayload().foodLog, undefined);
   app.context.backupData(); const backup = app.downloads.at(-1).contents;
   app.context.confirmNextPlan(); assert.equal(app.state().foodLog.length, 1);
