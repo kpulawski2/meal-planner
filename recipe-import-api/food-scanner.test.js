@@ -26,3 +26,9 @@ test('disliking a repeat removes conflicting future choices without deleting the
  assert.equal(state.profile.repeatMeals.Breakfast,'oats');assert.equal(state.profile.repeatMeals.Lunch,undefined);assert.equal(state.locked['Monday::1'],undefined);assert.equal(state.profile.calories,1600);assert.equal(state.profile.protein,150);assert.equal(state.kitchenConversation.planDraft,null);assert.equal(Taste.allowedFeedback(rows[2],state),false);assert.equal(JSON.stringify([state.week,state.pantry,state.foodLog]),before);
  const restored=JSON.parse(JSON.stringify(state));Taste.normalizeState(restored);assert.equal(Taste.allowedFeedback(rows[1],restored),false);Taste.setFeedback(restored,'tuna',null);assert.equal(Taste.allowedFeedback(rows[1],restored),true);
 });
+test('clearing an inherited dislike permits a copy while preserving the original choice across reload',()=>{
+ const original={id:'original'},copy={id:'copy',copiedFrom:{recipeId:'original'}},state={};Taste.setFeedback(state,original,'skip');assert.equal(Taste.allowedFeedback(copy,state),false);
+ Taste.setFeedback(state,copy,null);assert.equal(Taste.feedbackValue(copy,state),null);assert.equal(Taste.allowedFeedback(original,state),false);
+ const restored=JSON.parse(JSON.stringify(state));Taste.normalizeState(restored);assert.equal(Taste.allowedFeedback(copy,restored),true);assert.equal(Taste.allowedFeedback(original,restored),false);
+ Taste.setFeedback(restored,copy,'skip');assert.equal(Taste.allowedFeedback(copy,restored),false);Taste.setFeedback(restored,copy,null);assert.equal(Taste.allowedFeedback(copy,restored),true);assert.equal(Taste.feedbackScore(copy,restored),0);
+});

@@ -16,7 +16,7 @@
   const latest=new Map();
   for(const row of Array.isArray(state.recipeFeedback)?state.recipeFeedback:[]){
    const recipeId=text(row?.recipeId),value=row?.value;
-   if(!recipeId||!['again','skip'].includes(value)||!validTime(row.updatedAt))continue;
+   if(!recipeId||!['again','skip','neutral'].includes(value)||!validTime(row.updatedAt))continue;
    if(!latest.has(recipeId)||Date.parse(latest.get(recipeId).updatedAt)<=Date.parse(row.updatedAt))latest.set(recipeId,{recipeId,value,updatedAt:new Date(row.updatedAt).toISOString()});
   }
   return [...latest.values()].sort((a,b)=>Date.parse(b.updatedAt)-Date.parse(a.updatedAt)).slice(0,5000);
@@ -50,14 +50,15 @@
  }
  function feedbackValue(recipe,state={}){
   const id=idOf(recipe),source=text(recipe?.copiedFrom?.recipeId);
-  const values=tasteIndex(state).feedback;return values.get(id)||values.get(source)||null;
+  const values=tasteIndex(state).feedback,value=values.has(id)?values.get(id):values.get(source);return value==='neutral'?null:value||null;
  }
  function allowedFeedback(recipe,state={}){return feedbackValue(recipe,state)!=='skip';}
  function setFeedback(state,recipe,value,options={}){
   const recipeId=idOf(recipe);if(!recipeId||!['again','skip',null].includes(value))throw new TypeError('Choose would eat again, skip next time, or clear.');
   const at=options.at||new Date().toISOString();if(!validTime(at))throw new TypeError('Feedback needs a valid date.');
+  const source=text(recipe?.copiedFrom?.recipeId),inherited=source&&feedbackValue(source,state),savedValue=value===null&&inherited?'neutral':value;
   state.recipeFeedback=feedbackRows(state).filter(row=>row.recipeId!==recipeId);
-  if(value)state.recipeFeedback.unshift({recipeId,value,updatedAt:new Date(at).toISOString()});
+  if(savedValue)state.recipeFeedback.unshift({recipeId,value:savedValue,updatedAt:new Date(at).toISOString()});
   state.recipeFeedback=state.recipeFeedback.slice(0,5000);
   return state.recipeFeedback;
  }

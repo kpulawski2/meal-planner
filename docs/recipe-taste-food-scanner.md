@@ -10,7 +10,9 @@ a migration. Favourites are still independent saved recipes.
 
 Dislike excludes the recipe from future generation, swaps and suggestions
 through the existing shared recipe eligibility check. Editable copies retain
-the existing source-feedback inheritance. Likes rank otherwise suitable meals;
+the existing source-feedback inheritance. Clearing a choice on a copy records
+a neutral override, so it can be used again without changing the original.
+Likes rank otherwise suitable meals;
 they do not override budget, nutrition, dietary or equipment requirements.
 
 On dislike, conflicting daily, tailored and scheduled recipe choices are
