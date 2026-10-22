@@ -6,7 +6,7 @@ import '../public/budget-core.js';
 import '../public/pantry-core.js';
 import '../public/equipment-core.js';
 import '../public/recipe-library-core.js';
-const recipes = (await readRecipeLibrary()).filter(recipe => recipe.collection === 'social');
+const recipes = (await readRecipeLibrary()).filter(recipe => recipe.id.startsWith('social-'));
 const equipment = globalThis.KitchenEquipment;
 
 test('sixty measured social ideas cover oats, bowls, meal prep, air frying, slow cooking and ordinary meals', () => {

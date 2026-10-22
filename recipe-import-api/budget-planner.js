@@ -214,7 +214,15 @@ function safePools(rows, slots, stock, people, days, books, profile, favorites) 
     const scheduledChoices=eligible.filter(row=>(profile.scheduledMeals||[]).some(choice=>choice.category===slot&&choice.recipeIds.includes(row.id)));
     const freshChoices=profile.rotateMeals!==false&&eligible.some(row=>row.recentUseScore>0)?eligible.slice().sort((a,b)=>globalThis.MealRotationCore.penalty(a,profile)-globalThis.MealRotationCore.penalty(b,profile)||a.quality.penalty-b.quality.penalty||a.linear-b.linear).slice(0,4):[];
     const style=globalThis.MealPreferencesCore.describe(profile).find(row=>row.category===slot);
-    const styleChoices=style?eligible.filter(row=>globalThis.MealPreferencesCore.matches(row,style.style)).sort((a,b)=>a.quality.penalty-b.quality.penalty||a.linear-b.linear).slice(0,4):[];
+    // Keep affordable and protein-efficient style matches alongside the
+    // broad-focus favourites; a larger fakeaway collection must not squeeze
+    // out the only preferred lunch that fits the user's tighter targets.
+    const styleEligible=style?eligible.filter(row=>globalThis.MealPreferencesCore.matches(row,style.style)):[];
+    const styleChoices=style?[...new Map([
+      ...styleEligible.slice().sort((a,b)=>a.quality.penalty-b.quality.penalty||a.linear-b.linear).slice(0,2),
+      ...styleEligible.slice().sort((a,b)=>a.linear/Math.max(.1,a.n.p)-b.linear/Math.max(.1,b.n.p)).slice(0,2),
+      ...styleEligible.slice().sort((a,b)=>a.n.kcal/Math.max(.1,a.n.p)-b.n.kcal/Math.max(.1,b.n.p)).slice(0,2)
+    ].map(row=>[row.id,row])).values()]:[];
     const focusChoices=globalThis.MealPreferencesCore.focus(profile.mealFocus)!=='balanced'?eligible.filter(row=>globalThis.MealPreferencesCore.focusScore(row,profile.mealFocus)>0).sort((a,b)=>a.quality.penalty-b.quality.penalty||a.linear-b.linear).slice(0,4):[];
     return [...new Map([...scheduledChoices,...styleChoices,...freshChoices,...families, ...nutrientChoices, ...value.slice(0, 12), ...protein.slice(0, 6), ...focusChoices, ...goalChoices.slice(0, 4), ...favoritesSorted.slice(0, 2)].map(row => [row.id, row])).values()].slice(0, 24);
   });

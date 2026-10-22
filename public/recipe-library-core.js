@@ -35,6 +35,13 @@
    const key=[category(row),source,family].join('::');
    if(!groups.has(key))groups.set(key,[]);groups.get(key).push(row);
   }
+  // Preserve protein-dense alternatives before rotating the bounded search
+  // sample. Appending a collection must not displace the only low-calorie
+  // dinner that makes a preferred lunch fit a high-protein target.
+  if(root.MacroGoalsCore?.active(profile))for(const [key,group] of groups){
+   if(!/^(Lunch|Dinner)::/.test(key))continue;
+   for(const row of group.slice().sort((a,b)=>a.nutrition.kcal/Math.max(.1,a.nutrition.p)-b.nutrition.kcal/Math.max(.1,b.nutrition.p)||a.id.localeCompare(b.id)).slice(0,2))keep(row.id);
+  }
   for(const group of groups.values())group.sort((a,b)=>(rotation.get(a.id)||0)-(rotation.get(b.id)||0)||(root.RecipeExperience?root.RecipeExperience.feedbackScore(b,state)-root.RecipeExperience.feedbackScore(a,state):0)||hash(seed+a.id)-hash(seed+b.id)||a.id.localeCompare(b.id));
   const ordered=[...groups].sort(([a],[b])=>a.localeCompare(b));
   let more=true;
