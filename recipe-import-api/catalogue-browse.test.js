@@ -23,7 +23,9 @@ test('category, search aliases and price filters include unknown ingredients wit
   const row = found.results.find(row => row.productName === 'Batts Light Mayonnaise');
   assert.ok(row); assert.equal(row.priceGBP, null); assert.equal(row.kind, 'range_reference'); assert.equal(row.sourcePeriod, '2026-05');
   assert.match(row.url, /Lidl5-for-20-May2026/); assert.equal(row.packSize, null); assert.equal(row.publishedPack, '500ml');
-  assert.equal((await browseCatalog('Lidl', { query: 'mayonnaise', price: 'priced' })).matched, 0);
+  const pricedMayo=await browseCatalog('Lidl', { query: 'mayonnaise', price: 'priced' });
+  assert.ok(pricedMayo.results.every(item=>item.kind==='product'&&item.priceGBP>0));
+  assert.ok(!pricedMayo.results.some(item=>item.id===row.id),'An unpriced range reference never becomes a priced product.');
   assert.ok((await browseCatalog('Lidl', { query: 'fat free natural yoghurt' })).results.some(row => row.productName === 'Simply Fat-Free Natural Yogurt'));
   assert.equal((await browseCatalog('Lidl', { query: 'no-such-ingredient-xyz' })).matched, 0);
   const priced = await browseCatalog('Lidl', { price: 'priced', limit: 1000 });

@@ -20,7 +20,9 @@ function verify(result, settings) {
   assert.ok(result.diagnostics.elapsedMs < 30000, 'A bounded search must remain suitable for the free service');
 }
 
-test('the full shipped library gives a genuinely varied whole-pack week inside the default budget', { timeout: 45000 }, async t => {
+// Each variant retains the 30-second search assertion in verify(). Allow the
+// aggregate test enough time for up to four sequential bounded searches on CI.
+test('the full shipped library gives a genuinely varied whole-pack week inside the default budget', { timeout: 150000 }, async t => {
   const result = await run({});
   verify(result, profile);
   assert.ok(result.variety.distinctRecipes.Breakfast >= 2 && result.variety.distinctRecipes.Snack >= 2);
@@ -34,7 +36,7 @@ test('the full shipped library gives a genuinely varied whole-pack week inside t
   t.diagnostic(`Default £${result.basket.totalCostGBP.toFixed(2)}; Cheapest £${cheapest.basket.totalCostGBP.toFixed(2)}; ${result.diagnostics.uniqueMeals} distinct dishes; ${result.diagnostics.elapsedMs} ms`);
 });
 
-test('higher variety gives extra options, and lower configured protein needs can support a smaller budget', { timeout: 45000 }, async t => {
+test('higher variety gives extra options, and lower configured protein needs can support a smaller budget', { timeout: 150000 }, async t => {
   const more = await run({ varietyMode: 'More variety' });
   verify(more, { ...profile, varietyMode: 'More variety' });
   assert.ok(more.variety.distinctRecipes.Lunch >= 4 && more.variety.distinctRecipes.Dinner >= 4);
@@ -48,7 +50,7 @@ test('higher variety gives extra options, and lower configured protein needs can
   t.diagnostic(`More variety £${more.basket.totalCostGBP.toFixed(2)}; user-selected 120g protein £${smaller.basket.totalCostGBP.toFixed(2)}; vegetarian £${vegetarian.basket.totalCostGBP.toFixed(2)}`);
 });
 
-test('goals alter real recipe selections without changing the configured nutrition bounds', { timeout: 45000 }, async () => {
+test('goals alter real recipe selections without changing the configured nutrition bounds', { timeout: 150000 }, async () => {
   const easy = await run({ goal: ['Make cooking easier'] });
   const healthy = await run({ goal: ['Eat healthy'] });
   const muscle = await run({ goal: ['Gain muscle'] });

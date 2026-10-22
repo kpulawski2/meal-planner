@@ -5,7 +5,7 @@
  'use strict';
  const meatCheck='Cook meat and poultry fully through; use a food thermometer to check the centre reaches 75°C for at least 30 seconds.';
  const oil=['Cooking oil',10,'g'];
- function recipe(id,name,cat,cuisine,title,revision,servings,time,ings,method,modifications='Measured quantities, serving yield and shorter preparation supplied by Meal Planner; ingredients and instructions revised for the shopping catalogue.'){
+ function recipe(id,name,cat,cuisine,title,revision,servings,time,ings,method,modifications='Measured quantities, serving yield and preparation supplied by Meal Planner; ingredients and instructions revised for the shopping catalogue.'){
   const source='https://en.wikibooks.org/wiki/'+encodeURIComponent('Cookbook:'+title);
   return {id:'world-'+id,name,cat,icon:'🍽️',servings,cookTime:time,ings,method,
    kcal:null,p:null,c:null,f:null,cost:null,nutritionStatus:'estimated',equipment:[],
