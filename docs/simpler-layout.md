@@ -12,3 +12,7 @@ The main tabs remain Today, Plan, Diary, Shopping list and More. Secondary actio
 - More shows Recipes, Favourites, Pantry and Settings. One-off meals and specialist tools live in Planning & cooking; Appearance and backup have their own disclosures.
 
 This changes presentation, not saved meals, pantry quantities, prices, diary entries, planner checks or notifications. App shell/cache revision: v51.
+
+## Shared planned day
+
+Today and Plan use one saved `plannedDay` selection. Changing either dropdown refreshes both views, including nutrition and meal actions. Existing independent preferences migrate using the saved Plan selection first, then the old Today selection. Week-two labels remain distinct. This updates presentation preferences only; meals, servings, cooked records, pantry stock and diary entries stay intact. App shell v54 distributes the fix offline.
