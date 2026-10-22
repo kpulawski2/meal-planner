@@ -531,14 +531,14 @@ test('check-ins use actual dated food and a failed request explanation retains i
  app.run('budgetPlannerLastRequest=budgetPlannerPayload();budgetPlannerLastRequest.profile.nutritionTargets={calorieMode:"max",fatMax:0};budgetPlannerState={status:"error",message:"No fit",result:{status:"unavailable"}};');app.context.KitchenInsightsUI.why();assert.match(app.node('sheet').innerHTML,/At most 0 g fat/);assert.match(app.node('sheet').innerHTML,/failed request can differ/);assert.deepEqual(app.state(),before);
  app.context.KitchenInsightsUI.action('budget','',60);assert.equal(app.node('bud').value,'60');assert.deepEqual(app.state().profile,before.profile);
 });
-test('the redesigned daily browser keeps week-two choices and plan views separate from saved meal and stock data',async()=>{
+test('daily and weekly browsers share week-two choices without changing saved meal and stock data',async()=>{
   const week=Array.from({length:14},(_,i)=>({day:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][i%7]+(i>6?' (Week 2)':''),meals:[basic.id,'tailored-tuna-wrap','tailored-lemon-chicken']}));
   const app=harness({state:{week}});await app.flush();const before=app.state();
   app.context.AppExperienceUI.selectDay('home',7);assert.equal(app.state().interfacePreferences.homeDay,'Monday (Week 2)');assert.match(app.node('home').innerHTML,/Monday \(Week 2\)/);
-  app.context.AppExperienceUI.selectDay('week',13);assert.match(app.node('week').innerHTML,/Sunday \(Week 2\)/);assert.equal((app.node('week').innerHTML.match(/class="card meal-plan-card"/g)||[]).length,3);
+  app.context.AppExperienceUI.selectDay('week',13);assert.equal(app.state().interfacePreferences.plannedDay,'Sunday (Week 2)');assert.match(app.node('home').innerHTML,/Sunday \(Week 2\)/);assert.match(app.node('week').innerHTML,/Sunday \(Week 2\)/);assert.equal((app.node('week').innerHTML.match(/class="card meal-plan-card"/g)||[]).length,3);
   app.context.AppExperienceUI.planView('all');assert.equal((app.node('week').innerHTML.match(/class="card meal-plan-card"/g)||[]).length,42);
   for(const key of ['week','mealServings','profile','pantry','pantryLedger','foodLog'])assert.deepEqual(app.state()[key],before[key],key);
-  const restored=harness({state:app.state()});await restored.flush();assert.equal(restored.state().interfacePreferences.homeDay,'Monday (Week 2)');assert.equal(restored.state().interfacePreferences.planView,'all');
+  const restored=harness({state:app.state()});await restored.flush();assert.equal(restored.state().interfacePreferences.homeDay,'Sunday (Week 2)');assert.equal(restored.state().interfacePreferences.planDay,'Sunday (Week 2)');assert.equal(restored.state().interfacePreferences.planView,'all');
 });
 test('appearance and the kitchen menu persist while retaining direct access to saved recipes, inventory and preferences',async()=>{
   const app=harness();await app.flush();app.context.showTab('more');assert.match(app.node('more').innerHTML,/Your favourites/);assert.match(app.node('more').innerHTML,/Pantry &amp; leftovers|Pantry & leftovers/);
