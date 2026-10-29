@@ -91,6 +91,7 @@ app.use((req, res, next) => {
 });
 // The private gate covers app assets and every API before uploads or parsing.
 app.use(createPrivateAccess({password:process.env.PRIVATE_APP_PASSWORD||''}));
+if(process.env.PRIVATE_APP_PASSWORD)console.info('Private app access enabled.');
 app.use(express.json({ limit: '256kb', strict: true }));
 // Serve the app and its API from one origin so it works as a simple installable mobile web app.
 const PUBLIC_DIR = path.resolve(process.cwd(), 'public');

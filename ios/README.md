@@ -15,8 +15,8 @@ compilation and basic shell behavior only.
 ## 1. Move existing data before switching
 
 Safari and the iPhone app have separate storage. On the current website, open
-**More → Backup & restore → Export backup**, save the JSON to Files, and keep it.
-After installing, sign in and use Import backup from the same menu. Check your
+**More → Back up my kitchen → Download backup**, save the JSON to Files, and keep it.
+After installing, sign in and open **More → Settings → Data & app details → Import backup**. Check your
 plan, pantry, food diary, receipt prices and recipes before removing anything.
 Do not delete the existing installation or clear Safari data before checking.
 
@@ -24,7 +24,7 @@ Do not delete the existing installation or clear Safari data before checking.
 
 After saving the backup, open the existing `meal-planner` service in Render →
 Environment. Add `PRIVATE_APP_PASSWORD` with a unique password of 16–256
-characters, using Render's secure form. Save/redeploy. **Do not put the password
+characters, using Render's secure form. Save/redeploy. The startup log confirms `Private app access enabled.` once active. **Do not put the password
 in GitHub, this file, a build artifact or chat.** The initial code release does
 not set a password or lock out existing users automatically.
 
