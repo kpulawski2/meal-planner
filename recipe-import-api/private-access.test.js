@@ -29,7 +29,7 @@ test('only a correct same-origin password creates a secure persistent session; A
 test('sessions expire, password changes invalidate them, and logout removes the host cookie',async t=>{
  let at=1800000000000;const {request,login,origin}=await fixture(t,{password,now:()=>at,sessionMs:1000});const cookie=(await login()).headers.get('set-cookie').split(';')[0];assert.equal((await request('/api/secret',{headers:{cookie}})).status,200);
  at+=1001;assert.equal((await request('/api/secret',{headers:{cookie}})).status,401);
- const other=await fixture(t,{password:password+' changed',now:()=>at});assert.equal((await other.request('/api/secret',{headers:{cookie}})).status,401);
+ const other=await fixture(t,{password:password+' changed',now:()=>at-1001});assert.equal((await other.request('/api/secret',{headers:{cookie}})).status,401);
  const out=await request('/private/logout',{method:'POST',headers:{origin,cookie}});assert.match(out.headers.get('set-cookie'),/Max-Age=0/);
 });
 test('repeated guesses are bounded before expensive password work',async t=>{
