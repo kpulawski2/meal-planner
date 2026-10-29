@@ -1,0 +1,57 @@
+name: iPhone Build
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['ios/**', '.github/workflows/ios-build.yml']
+  pull_request:
+    paths: ['ios/**', '.github/workflows/ios-build.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate iPhone project
+        working-directory: ios
+        run: xcodegen generate
+      - name: Select available iPhone simulator
+        run: |
+          simulator_id=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for group in d["devices"].values() for x in group if x["name"].startswith("iPhone")))')
+          echo "SIMULATOR_ID=$simulator_id" >> "$GITHUB_ENV"
+      - name: Test private shell and navigation boundaries
+        run: |
+          xcodebuild -project ios/MealPlanner.xcodeproj -scheme MealPlanner \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_ID" \
+            -derivedDataPath "$RUNNER_TEMP/MealPlannerSimulator" \
+            -resultBundlePath "$RUNNER_TEMP/MealPlannerTests.xcresult" \
+            -parallel-testing-enabled NO CODE_SIGNING_ALLOWED=NO test
+      - name: Build for physical iPhone
+        run: |
+          xcodebuild -project ios/MealPlanner.xcodeproj -scheme MealPlanner \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/MealPlannerDevice" \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" CODE_SIGNING_ALLOWED=NO build
+      - name: Package unsigned app for personal signing
+        run: |
+          mkdir -p "$RUNNER_TEMP/package/Payload"
+          cp -R "$RUNNER_TEMP/MealPlannerDevice/Build/Products/Release-iphoneos/MealPlanner.app" "$RUNNER_TEMP/package/Payload/"
+          cd "$RUNNER_TEMP/package"
+          zip -qr "$RUNNER_TEMP/MealPlanner.ipa" Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MealPlanner-iPhone-unsigned
+          path: ${{ runner.temp }}/MealPlanner.ipa
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: MealPlanner-iPhone-test-results
+          path: ${{ runner.temp }}/MealPlannerTests.xcresult
+          if-no-files-found: warn
+          retention-days: 7

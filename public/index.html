@@ -946,6 +946,7 @@ function exportPriceReferenceCsv() {
   }
   const csvCell=value=>{const text=String(value??'');return '"'+(/^[=+@\t\r-]/.test(text)?"'":'')+text.replace(/"/g,'""')+'"';};
   const csv='\ufeff'+rows.map(row=>row.map(csvCell).join(',')).join('\r\n');
+  if(window.webkit?.messageHandlers?.kitchenExport){downloadFile(`meal-planner-priced-list-${new Date().toISOString().slice(0,10)}.csv`,csv,'text/csv');toast('Automatic shopping prices exported');return;}
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),link=document.createElement('a');
   link.href=url;link.download=`meal-planner-priced-list-${new Date().toISOString().slice(0,10)}.csv`;
   document.body.appendChild(link);link.click();link.remove();URL.revokeObjectURL(url);toast('Automatic shopping prices exported');
