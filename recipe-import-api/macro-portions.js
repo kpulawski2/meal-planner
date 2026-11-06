@@ -1,5 +1,6 @@
 /* Tiny bounded vertex search for at most four meal-portion variables. */
 import '../public/macro-goals-core.js';
+import '../public/budget-core.js';
 const EPS = 1e-8;
 function subsets(values, size) {
   const result = [];
@@ -24,6 +25,7 @@ function solve(matrix, values) {
 export function macroPortionVertices(rows, profile, fixed = []) {
   const goals = globalThis.MacroGoalsCore, limits = goals.targets(profile), count = rows.length;
   if (count < 2 || count > 4 || rows.some(row => !goals.complete(row.n || row.nutrition || row, profile))) return [];
+  fixed = rows.map((row,index)=>fixed[index] ?? globalThis.MealBudgetCore.portionFactor(row,profile));
   const bounds = rows.map((_, index) => fixed[index] != null ? [fixed[index], fixed[index]] : [.5, 2]);
   const result = [], seen = new Set(), indexes = rows.map((_, index) => index);
   const add = factors => {

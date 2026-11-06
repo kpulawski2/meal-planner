@@ -18,7 +18,11 @@ export function normalizePlannerRequest(body) {
   const input = body.profile || {};
   if (input.supermarket != null && !['Asda','Lidl','Aldi'].includes(input.supermarket)) fail('Choose Asda, Lidl or Aldi as your supermarket.');
   if (input.lidlReferencePrices !== undefined && typeof input.lidlReferencePrices !== 'boolean') fail('Lidl reference prices must be on or off.');
+  if(input.mealPortions!==undefined&&(!input.mealPortions||typeof input.mealPortions!=='object'||Array.isArray(input.mealPortions)))fail('Meal portions must describe each meal type.');
+  if(input.portionMode!=null&&!['fixed','automatic'].includes(input.portionMode))fail('Choose fixed or automatic meal portions.');
   const profile = {
+    portionMode: input.portionMode || 'automatic', // Compatibility with earlier clients; the current app explicitly sends fixed.
+    mealPortions: Object.fromEntries(['Breakfast','Lunch','Dinner','Snack'].map(category=>[category,number(input.mealPortions?.[category],1,.25,10,category+' portions')])),
     supermarket: input.supermarket || 'Asda',
     lidlReferencePrices: input.lidlReferencePrices === true,
     calories: number(input.calories, 2000, 400, 10000, 'Daily calories'),
@@ -45,6 +49,7 @@ export function normalizePlannerRequest(body) {
     cookTime: number(input.cookTime, 45, 1, 1440, 'Cooking time'),
     equipment: globalThis.KitchenEquipment.normalize(input.equipment),
   };
+  if(Object.values(profile.mealPortions).some(value=>value*profile.people>100))fail('Planned household portions must be at most 100 per meal.');
   profile.scheduledMeals=profile.varietyMode==='Tailored'?globalThis.MealIntentCore.scheduled(input.scheduledMeals,profile.days,true):[];
   if (!Array.isArray(body.recipes) || !body.recipes.length || body.recipes.length > 250) fail('Send between 1 and 250 recipes.');
   const ids = new Set();
@@ -65,7 +70,7 @@ export function normalizePlannerRequest(body) {
       ings, nutrition: { kcal: nutrient('kcal'), p: nutrient('p'), c: nutrient('c'), f: nutrient('f'), complete: source.complete === true, source: text(source.source, 40) },
       cookTime: row.cookTime === undefined || row.cookTime === null || row.cookTime === '' ? null : number(row.cookTime, null, 0, 1440, 'Recipe cooking time'),
       equipment: requiredEquipment,
-      fixedBatch: row.fixedBatch === true, batchStorage: row.batchStorage === 'recipe' ? 'recipe' : null, freezeMinutes: row.freezeMinutes == null ? null : number(row.freezeMinutes, null, 0, 10080, 'Recipe freeze time'),
+      fixedPortion: row.fixedPortion === true, fixedBatch: row.fixedBatch === true, batchStorage: row.batchStorage === 'recipe' ? 'recipe' : null, freezeMinutes: row.freezeMinutes == null ? null : number(row.freezeMinutes, null, 0, 10080, 'Recipe freeze time'),
       passiveMinutes: row.passiveMinutes == null ? null : number(row.passiveMinutes, null, 0, 10080, 'Recipe waiting time'),
       preferenceScore: number(row.preferenceScore, 0, -40, 40, 'Recipe taste score'),
       useUpScore: number(row.useUpScore, 0, 0, 10, 'Recipe use-up score'),

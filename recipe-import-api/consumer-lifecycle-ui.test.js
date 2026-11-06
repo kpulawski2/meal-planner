@@ -191,7 +191,7 @@ function kitchenForm(app, overrides = {}) {
 }
 
 function conversationalFixture(app,payload){
- const slots=app.context.MealBudgetCore.mealSlots(payload.profile.meals),week=app.context.MealBudgetCore.dayNames(payload.profile.days).map(day=>({day,meals:slots.map(cat=>payload.profile.tailoredMeals?.[cat]?.recipeIds[0]||payload.recipes.find(row=>row.cat===cat).id)})),mealServings=Object.fromEntries(week.flatMap(row=>row.meals.map((_,i)=>[row.day+'::'+i,.25])));
+ const slots=app.context.MealBudgetCore.mealSlots(payload.profile.meals),week=app.context.MealBudgetCore.dayNames(payload.profile.days).map(day=>({day,meals:slots.map(cat=>payload.recipes.filter(row=>row.cat===cat&&(!payload.profile.tailoredMeals?.[cat]?.recipeIds?.length||payload.profile.tailoredMeals[cat].recipeIds.includes(row.id))).sort((a,b)=>a.nutrition.kcal-b.nutrition.kcal)[0].id)})),mealServings=Object.fromEntries(week.flatMap(row=>row.meals.map((_,i)=>[row.day+'::'+i,app.context.MealBudgetCore.portionFactor(payload.recipes.find(r=>r.id===row.meals[i]),payload.profile)??.25])));
  app.context.planFixture={...app.state(),profile:payload.profile,week,mealServings};
  const shopping=app.run('MealBudgetCore.buildShopping(PantryCore.shoppingInput(planFixture,recipes))'),items=app.context.automaticCatalogItems(Object.entries(shopping));
  const recommendations=items.map(item=>({key:item.key,match:{productName:'Test pack for '+item.name},plan:{requestedQuantity:item.quantity,totalQuantity:item.quantity,totalCostGBP:.25,products:[{packs:1,costGBP:.25,productName:'Test pack',url:'https://groceries.asda.com/product/test'}]}}));
@@ -199,7 +199,7 @@ function conversationalFixture(app,payload){
 }
 const directQuestion='Make a 1-day plan; breakfast: measured milk oats; lunch: tuna; dinner: turkey. Under 1600 calories per day and 0g protein.';
 test('an assistant plan request interprets and saves a checked plan inside chat without opening the tailored form',async()=>{
- const app=harness();await app.flush();const before=app.state();
+ const app=harness();await app.flush();app.run("state.profile.portionMode='automatic'");const before=app.state();
  app.context.fetch=async(url,request)=>{const body=JSON.parse(request.body);if(url==='/api/planner/interpret')return {ok:true,json:async()=>({source:'ai',calories:3000,protein:0,nutritionTargets:{fatMax:100},requests:{}})};if(url==='/api/planner/generate')return {ok:true,status:200,text:async()=>JSON.stringify(conversationalFixture(app,body))};return {ok:false,status:503,text:async()=>''};};
  app.context.KitchenAgentUI.open();app.node('agentQuestion').value=directQuestion;await app.context.KitchenAgentUI.send();
  assert.equal(app.state().kitchenConversation.messages.at(-1).planReceipt.status,'saved',app.state().kitchenConversation.messages.at(-1).text);assert.equal(app.state().week.length,1);assert.equal(app.state().profile.calories,1600);assert.equal(app.state().profile.nutritionTargets.calorieMode,'max');assert.match(app.node('agentMessages').innerHTML,/View my plan/);assert.doesNotMatch(app.node('sheet').innerHTML,/Tailor your next plan|Review my plan request/);
@@ -897,4 +897,37 @@ test('daily favourites persist in settings and planner payloads without waiving 
   assert.match(app.node('editNutritionPreview').innerHTML, /Estimate per serving/);
   app.node('editIngredientName').value = 'Olive oil'; app.node('editIngredientAmount').value = '5'; app.node('editIngredientUnit').value = 'g'; app.context.appendMeasuredIngredient('edit');
   assert.match(app.node('editIngredients').value, /Olive oil \| 5 \| g/);
+});
+
+test('one-portion defaults can replace old solver quantities while preserving cooked food, stock and diary',async()=>{
+ const app=harness();await app.flush();assert.equal(app.state().profile.portionMode,'fixed');
+ app.run("state.mealServings['Monday::0']=2;state.pantryLedger.cooked[PantryCore.slotKey(state,'Monday',0)]={recipeId:state.week[0].meals[0],recipeSignature:PantryCore.recipeSignature(getRecipe(state.week[0].meals[0])),servings:.5}");
+ const before=app.state();app.context.openPortionSettings();
+ for(const cat of ['Breakfast','Lunch','Dinner','Snack'])app.node('portion'+cat).value='1';app.node('automaticPortions').checked=false;
+ app.context.savePortionSettings();const after=app.state();assert.equal(after.mealServings['Monday::0'],2,'partly cooked portions remain authoritative');
+ for(const d of after.week)for(const [i,id] of d.meals.entries())if(!after.pantryLedger.cooked?.[after.pantryLedger.planId+'::'+d.day+'::'+i])assert.equal(after.mealServings[d.day+'::'+i],after.profile.people);
+ for(const key of ['pantry','pantryLedger','foodLog'])assert.deepEqual(after[key],before[key],key);
+ assert.equal(app.context.budgetPlannerPayload().profile.portionMode,'fixed');
+});
+test('70g cereal plus 200g red-top milk makes one exact personal breakfast without scaling lunch or dinner',async()=>{
+ const app=harness();await app.flush();const before=app.state();app.context.openCerealPortion();app.node('cerealGrams').value='70';app.node('milkAmount').value='200';app.node('milkUnit').value='g';app.node('cerealEveryDay').checked=true;
+ app.context.saveCerealPortion();const state=app.state(),r=state.customRecipes.find(r=>r.id===state.profile.cerealRecipeId);assert.ok(r);assert.equal(r.servings,1);assert.equal(r.fixedPortion,true);assert.deepEqual(r.ings,[['FUEL10K Chocolate Multigrain Flakes',70,'g'],['Skimmed milk',200,'g']]);
+ const n=app.context.recipeNutrition(r);assert.equal(n.complete,true);assert.equal(n.kcal,340);assert.ok(Math.abs(n.p-24.5)<.1);
+ assert.equal(state.profile.mealPortions.Lunch,1);assert.equal(state.profile.mealPortions.Dinner,1);assert.equal(state.profile.tailoredMeals.Breakfast.recipeIds[0],r.id);
+ for(const key of ['pantry','pantryLedger','foodLog'])assert.deepEqual(state[key],before[key],key);
+ const restored=harness({state});await restored.flush();assert.equal(restored.context.recipeNutrition(restored.context.getRecipe(r.id)).kcal,340);assert.equal(restored.context.budgetPlannerPayload().recipes.find(x=>x.id===r.id).fixedPortion,true);
+});
+test('empty or unsaved cereal amounts never create a partial recipe or alter the plan',async()=>{
+ const app=harness();await app.flush();const before=app.state();app.context.openCerealPortion();app.node('cerealGrams').value='';app.node('milkAmount').value='200';app.node('milkUnit').value='g';app.context.saveCerealPortion();assert.deepEqual(app.state(),before);
+ app.node('cerealGrams').value='70';app.context.localStorage.setItem=()=>{throw new DOMException('Full','QuotaExceededError')};app.context.saveCerealPortion();assert.deepEqual(app.state(),before);
+});
+test('browser acceptance refuses an otherwise valid automatically resized proposal when fixed portions were chosen',async()=>{
+ const app=harness();await app.flush();const before=app.state(),profile={...before.profile,portionMode:'automatic',days:1,calories:2000,protein:0,varietyMode:'Tailored',tailoredMeals:{},nutritionTargets:{calorieMode:'max'}};
+ const payload=app.context.budgetPlannerPayload(profile),reply=conversationalFixture(app,payload);assert.equal(app.context.budgetPlanValidation(reply,profile),true);
+ assert.equal(app.context.budgetPlanValidation(reply,{...profile,portionMode:'fixed'}),false);assert.deepEqual(app.state(),before);
+});
+test('a manually entered portion becomes the future meal default and disables automatic resizing',async()=>{
+ const app=harness();await app.flush();app.run("state.profile.portionMode='automatic'");const before=app.state();app.context.setMealServings('Monday',1,1);
+ assert.equal(app.state().profile.portionMode,'fixed');assert.equal(app.state().profile.mealPortions.Lunch,1);assert.equal(app.state().mealServings['Monday::1'],1);assert.deepEqual(app.state().week,before.week);
+ const restored=harness({state:app.state()});await restored.flush();assert.equal(restored.context.budgetPlannerPayload().profile.portionMode,'fixed');assert.equal(restored.context.budgetPlannerPayload().profile.mealPortions.Lunch,1);
 });

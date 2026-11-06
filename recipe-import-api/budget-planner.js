@@ -92,6 +92,7 @@ function nutritionValid(rows, factors, targets) {
 // At a linear programme vertex, at most two portions are between their bounds.
 // Enumerating those small vertices is deterministic and avoids an external solver.
 function portionChoices(rows, targets, fixed = [], profile = {}) {
+  fixed=rows.map((row,index)=>fixed[index] ?? Core.portionFactor(row,profile));
   const count = rows.length, result = [], seen = new Set(), bounds = rows.map((_, index) => fixed[index] != null ? [fixed[index], fixed[index]] : [.5, 2]);
   const add = factors => {
     if (factors.some((value, index) => !Number.isFinite(value) || value < bounds[index][0] - EPS || value > bounds[index][1] + EPS)) return;
@@ -99,6 +100,7 @@ function portionChoices(rows, targets, fixed = [], profile = {}) {
     const key = factors.map(value => round(value, 6)).join(','); if (seen.has(key)) return; seen.add(key);
     result.push({ factors, linear: rows.reduce((sum, row, index) => sum + row.linear * factors[index], 0), quality: dailyQuality(rows, factors, profile) });
   };
+  if(fixed.every(value=>value!=null)){add(fixed);return result;}
   const totalK = rows.reduce((sum, row) => sum + row.n.kcal, 0), totalP = rows.reduce((sum, row) => sum + row.n.p, 0);
   const needed = Math.max(.5, targets.min / totalK, targets.protein / Math.max(EPS, totalP));
   for (const factor of [needed, 1, 1.25, 1.5, 1.75, 2]) add(rows.map((_, index) => fixed[index] != null ? fixed[index] : factor));
@@ -246,7 +248,13 @@ function currentDay(request, name, rowsById, slots, people) {
 function withLocks(template, name, request, rowsById, targets, people, slots) {
   const dayIndex=Core.dayNames(Number(request.profile.days)||7).indexOf(name);
   const locked = slots.map((_, slot) => Boolean(request.locked?.[`${name}::${slot}`]));
-  if (!locked.some(Boolean)) return template.rows.every(row=>Intent.allowed(row,request.profile,dayIndex))?{ ...template, name }:null;
+  if (!locked.some(Boolean)) {
+    if(!template.rows.every(row=>Intent.allowed(row,request.profile,dayIndex)))return null;
+    if(template.rows.some((row,index)=>Core.portionFactor(row,request.profile)!=null&&Math.abs(template.factors[index]-Core.portionFactor(row,request.profile))>EPS)){
+      const choice=portionChoices(template.rows,targets,[],request.profile)[0];return choice?{rows:template.rows,factors:choice.factors,name}:null;
+    }
+    return {...template,name};
+  }
   // A newly added breakfast slot may be empty while an existing lunch stays
   // locked. Only locked slots need a prior recipe; the template fills the rest.
   const previous = (request.week || []).find(day => day.day === name);
@@ -268,7 +276,7 @@ function withLocks(template, name, request, rowsById, targets, people, slots) {
 // ranked cheaply first; only a bounded selection needs the portion solver.
 // This keeps low-cost chicken, beans, eggs and fish in the search instead of
 // retaining only uniform seven-day pork templates.
-async function dailyTemplates(pools, slots, targets, profile, people, stock, books, signal) {
+async function dailyTemplates(pools, slots, targets, profile, people, stock, books, signal, portionProfiles=[profile]) {
   const mainIndexes = slots.map((slot, index) => ['Lunch', 'Dinner'].includes(slot) ? index : -1).filter(index => index >= 0);
   const sideIndexes = slots.map((_, index) => index).filter(index => !mainIndexes.includes(index));
   const templates = [], signatures = new Set(); let examined = 0, combinations = 0;
@@ -282,7 +290,11 @@ async function dailyTemplates(pools, slots, targets, profile, people, stock, boo
         combinations++;
         if (!Core.distinctDishes(base)) return;
         const k = base.reduce((sum, row) => sum + row.n.kcal, 0), p = base.reduce((sum, row) => sum + row.n.p, 0);
-        if (p * 2 + EPS < targets.protein || k * 2 + EPS < targets.min || k * .5 > targets.max + EPS) return;
+        const possible=portionProfiles.some(portionProfile=>{
+          const fixed=base.map(row=>Core.portionFactor(row,portionProfile));
+          const maximum=key=>base.reduce((sum,row,index)=>sum+row.n[key]*(fixed[index]??2),0),minimumK=base.reduce((sum,row,index)=>sum+row.n.kcal*(fixed[index]??.5),0);
+          return maximum('p')+EPS>=targets.protein&&maximum('kcal')+EPS>=targets.min&&minimumK<=targets.max+EPS&&(!fixed.every(value=>value!=null)||nutritionValid(base,fixed,targets));
+        });if(!possible)return;
         const factor = Math.max(.5, targets.min / k, targets.protein / Math.max(EPS, p));
         const linear = base.reduce((sum, row) => sum + row.linear, 0) * factor;
         const quality = dailyQuality(base, base.map(() => factor), profile);
@@ -302,7 +314,7 @@ async function dailyTemplates(pools, slots, targets, profile, people, stock, boo
     const sideIds = sideIndexes.map(side => [...new Set(ordered.map(candidate => candidate.rows[side].id))].slice(0, 4));
     const pairedSides = ordered.filter(candidate => sideIndexes.every((side, i) => sideIds[i].includes(candidate.rows[side].id)));
     const choices = [...new Set([...ordered.slice(0, 4), ...cheapCandidates.slice(0, 2), ...sideAlternatives, ...pairedSides])];
-    for (const candidate of choices) for (const choice of portionChoices(candidate.rows, targets, [], profile)) {
+    for (const candidate of choices) for (const choice of portionProfiles.flatMap(portionProfile=>portionChoices(candidate.rows, targets, [], portionProfile))) {
       examined++;
       const signature = candidate.rows.map(row => row.id).join('|') + '::' + choice.factors.map(value => round(value, 5)).join(',');
       if (signatures.has(signature)) continue; signatures.add(signature);
@@ -542,7 +554,15 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   const pools = safePools(recipes, slots, stock, people, daysCount, books, profile, favorites), warnings = [];
   mealCoverage = slots.map(category=>{const selected=recipes.filter(row=>!row.cookedOnly&&(profile.varietyMode!=='Repeat favourites'||!profile.repeatMeals?.[category]||row.id===profile.repeatMeals[category])&&Intent.allowed(row,profile)&&(row.cat===category||category==='Snack'&&row.cat==='Fruit')),complete=selected.filter(row=>Macros.complete(row.n,profile)&&row.known);return {category,selected:selected.length,complete:complete.length,priced:complete.filter(row=>row.priceable).length,unpricedIngredients:[...new Set(complete.filter(row=>!row.priceable).flatMap(row=>row.ings.filter(([name,,unit])=>!Core.isCookingWater(name)&&!Number.isFinite(books.get(bookKey(name,Core.unitMeta(unit,name).dim))?.unitCost)).map(ing=>ing[0])))].slice(0,12)};});
   const emptyPools = pools.some(pool => !pool.length);
-  const generated = emptyPools ? { templates: [], examined: 0, combinations: 0 } : await dailyTemplates(pools, slots, targets, profile, people, stock, books, signal), { templates, examined, combinations } = generated;
+  // Previously cooked/kept meals retain their actual portions. Include their
+  // bounded day configurations without letting them resize untouched days.
+  const portionProfiles=[profile],portionKeys=new Set([JSON.stringify(Core.portionSettings(profile).meals)]);
+  if(profile.portionMode==='fixed')for(const day of request.week||[]){
+    const meals={...Core.portionSettings(profile).meals};let changed=false;
+    for(const [index,id] of day.meals.entries())if(request.locked?.[`${day.day}::${index}`]){const row=byId.get(id),value=Number(request.mealServings?.[`${day.day}::${index}`])/people;if(row&&value>=.25&&value<=10){meals[slots[index]]=value;changed=true;}}
+    const key=JSON.stringify(meals);if(changed&&!portionKeys.has(key)){portionKeys.add(key);portionProfiles.push({...profile,mealPortions:meals});}
+  }
+  const generated = emptyPools ? { templates: [], examined: 0, combinations: 0 } : await dailyTemplates(pools, slots, targets, profile, people, stock, books, signal, portionProfiles), { templates, examined, combinations } = generated;
   let searched = templates.length ? await searchWeek(templates, names, request, byId, slots, targets, people, stock, books, budgetCents, signal) : { best: null, expansions: 0, stages: [], searchVarietyViolations: [] };
   // Soft lower-fat/ease preferences must not be the only route through a tight
   // hard budget. Try a second bounded beam ranked by cost with identical rules.
@@ -554,12 +574,12 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   let best = searched.best;
   // A valid existing plan is another starting point; it never overrides locks.
   const existing = names.map(name => currentDay(request, name, byId, slots, people));
-  if (existing.every((day,dayIndex) => day && day.rows.every((row, index) => Macros.complete(row.n, profile) && (Intent.allowed(row, profile,dayIndex) || request.cookedMeals?.[`${day.name}::${index}`]) && (profile.varietyMode !== 'Repeat favourites' || !profile.repeatMeals?.[slots[index]] || row.id === profile.repeatMeals[slots[index]] || request.cookedMeals?.[`${day.name}::${index}`])) && nutritionValid(day.rows, day.factors, targets))) {
+  if (existing.every((day,dayIndex) => day && day.rows.every((row, index) => Macros.complete(row.n, profile) && (Intent.allowed(row, profile,dayIndex) || request.cookedMeals?.[`${day.name}::${index}`]) && (profile.varietyMode !== 'Repeat favourites' || !profile.repeatMeals?.[slots[index]] || row.id === profile.repeatMeals[slots[index]] || request.cookedMeals?.[`${day.name}::${index}`])) && day.rows.every((row,index)=>request.locked?.[`${day.name}::${index}`]||Core.portionFactor(row,profile)==null||Math.abs(day.factors[index]-Core.portionFactor(row,profile))<EPS) && nutritionValid(day.rows, day.factors, targets))) {
     const cost = basketCost(existing, people, stock, books, request), variety = Core.inspectVariety(planFromDays(existing, names, people).week, recipes, profile, request.cookedMeals);
     if (Number.isFinite(cost) && variety.met && cost <= budgetCents && (!best || best.cost > budgetCents || cost < best.cost && (profile.priority === 'Cheapest' || profile.varietyMode === 'Budget focus'))) best = { days: existing, cost, preference: 0 };
   }
   if (!best && emptyPools) return unavailable(`At least one meal category has no suitable recipe with complete nutrition and published ${store} ingredient prices.${store === 'Lidl' ? ' Lidl does not publish prices for many everyday products, so this budget cannot be verified automatically yet.' : ''} Your saved plan was kept.`);
-  if (!best && !templates.length) return unavailable('The search could not find complete daily meals within the nutrition range. No dietary or nutrition needs have been reduced; add suitable recipes or review the targets.');
+  if (!best && !templates.length) return unavailable(profile.portionMode==='fixed'?'No plan meets your targets at your chosen meal portions. Your portions have not been resized. Review the protein/calorie targets, choose different recipes, or explicitly enable automatic portions. Your saved meals are kept.':'The search could not find complete daily meals within the nutrition range. No dietary or nutrition needs have been reduced; add suitable recipes or review the targets.');
   if (!best) {
     // A clearly rejected, priced proposal explains the constraints. It cannot
     // overwrite the user's plan because its status is never feasible.
