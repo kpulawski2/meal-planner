@@ -16,6 +16,7 @@
     if (['clove','cloves'].includes(u) && /\bgarlic\b/.test(ingredient)) return meta('mass', 3, 'g', 'Garlic cloves estimated at 3 g each; actual weights vary.');
     if (['g', 'gram', 'grams', 'kg', 'kilogram', 'kilograms'].includes(u)) {
       const factor = u.startsWith('k') ? 1000 : 1;
+      if (ingredient === 'skimmed milk') return meta('volume', factor / 1.035, 'ml', 'Weighed skimmed milk uses an estimated density of 1.035 g/ml.');
       if (oil || liquid) return meta('volume', factor / (oil ? .92 : 1), 'ml', oil ? 'Cooking oil density estimated at 0.92 g/ml.' : 'Liquid ingredient density estimated at 1 g/ml.');
       return meta('mass', factor, 'g');
     }
@@ -26,6 +27,7 @@
     if (['tsp', 'teaspoon', 'teaspoons', 'tbsp', 'tablespoon', 'tablespoons'].includes(u)) {
       const tablespoon = u === 'tbsp' || u.startsWith('table'), multiplier = tablespoon ? 3 : 1;
       if (spice) return meta('mass', spiceGrams[spice] * multiplier, 'g', `Typical ${spice} spoon weight used; actual weights vary.`);
+      if (ingredient === 'skimmed milk') return meta('volume', factor / 1.035, 'ml', 'Weighed skimmed milk uses an estimated density of 1.035 g/ml.');
       if (oil || liquid) return meta('volume', 5 * multiplier, 'ml', 'Recipe teaspoons estimated at 5 ml and tablespoons at 15 ml.');
       if (honey) return meta('mass', 5 * multiplier * 1.42, 'g', 'Honey spoon amount uses 1.42 g/ml and 5 ml per teaspoon.');
       return meta(tablespoon ? 'tbsp' : 'tsp', 1, tablespoon ? 'tbsp' : 'tsp');
@@ -42,6 +44,18 @@
       return meta('each', 1, 'pieces');
     }
     return meta('unit:' + u, 1, u || 'units');
+  }
+  function portionSettings(profile = {}, fallback = 'automatic') {
+    const mode = ['fixed','automatic'].includes(profile.portionMode) ? profile.portionMode : fallback;
+    const meals = Object.fromEntries(['Breakfast','Lunch','Dinner','Snack'].map(category => {
+      const value = Number(profile.mealPortions?.[category] ?? 1);
+      return [category, Number.isFinite(value) && value >= .25 && value <= 10 ? value : 1];
+    }));
+    return { mode, meals };
+  }
+  function portionFactor(recipe, profile = {}) {
+    const settings = portionSettings(profile);
+    return settings.mode === 'fixed' || recipe.fixedPortion === true ? settings.meals[recipe.cat === 'Fruit' ? 'Snack' : recipe.cat] ?? 1 : null;
   }
   function dayNames(count) { const names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']; return Array.from({ length: count }, (_, i) => names[i % 7] + (i >= 7 ? ' (Week 2)' : '')); }
   function mealSlots(count) { return Number(count) === 2 ? ['Lunch', 'Dinner'] : Number(count) === 3 ? ['Breakfast', 'Lunch', 'Dinner'] : ['Breakfast', 'Lunch', 'Dinner', 'Snack']; }
@@ -154,5 +168,5 @@
     }
     return Object.fromEntries(Object.entries(map).filter(([, item]) => item.unknown || Object.values(item.groups).some(group => group.remaining > .000001)));
   }
-  root.MealBudgetCore = Object.freeze({ canonicalIngredientName, isCookingWater, unitMeta, buildShopping, dayNames, mealSlots, produceGrams, spiceGrams, proteinFamily, dishFamily, distinctDishes, varietyPolicy, slotVarietyPolicy, inspectVariety });
+  root.MealBudgetCore = Object.freeze({ canonicalIngredientName, isCookingWater, portionSettings, portionFactor, unitMeta, buildShopping, dayNames, mealSlots, produceGrams, spiceGrams, proteinFamily, dishFamily, distinctDishes, varietyPolicy, slotVarietyPolicy, inspectVariety });
 })(globalThis);
