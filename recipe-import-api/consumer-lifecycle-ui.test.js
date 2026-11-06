@@ -934,3 +934,6 @@ test('a manually entered portion becomes the future meal default and disables au
 test('a manual portion change cannot partially update portions or preferences when storage is full',async()=>{
  const app=harness();await app.flush();const before=app.state();app.context.localStorage.setItem=()=>{throw new DOMException('Full','QuotaExceededError')};app.context.setMealServings('Monday',1,2);assert.deepEqual(app.state(),before);
 });
+test('personal cereal amounts cannot bypass a vegan diet or food exclusions',async()=>{
+ const app=harness();await app.flush();app.run("state.profile.diet='Vegan'");app.context.openCerealPortion();const before=app.state();app.node('cerealGrams').value='70';app.node('milkAmount').value='200';app.node('milkUnit').value='g';app.node('cerealEveryDay').checked=true;app.context.saveCerealPortion();assert.deepEqual(app.state(),before);
+});
