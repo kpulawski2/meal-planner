@@ -931,3 +931,6 @@ test('a manually entered portion becomes the future meal default and disables au
  assert.equal(app.state().profile.portionMode,'fixed');assert.equal(app.state().profile.mealPortions.Lunch,1);assert.equal(app.state().mealServings['Monday::1'],1);assert.deepEqual(app.state().week,before.week);
  const restored=harness({state:app.state()});await restored.flush();assert.equal(restored.context.budgetPlannerPayload().profile.portionMode,'fixed');assert.equal(restored.context.budgetPlannerPayload().profile.mealPortions.Lunch,1);
 });
+test('a manual portion change cannot partially update portions or preferences when storage is full',async()=>{
+ const app=harness();await app.flush();const before=app.state();app.context.localStorage.setItem=()=>{throw new DOMException('Full','QuotaExceededError')};app.context.setMealServings('Monday',1,2);assert.deepEqual(app.state(),before);
+});

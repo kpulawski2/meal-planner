@@ -296,9 +296,10 @@ async function dailyTemplates(pools, slots, targets, profile, people, stock, boo
           return maximum('p')+EPS>=targets.protein&&maximum('kcal')+EPS>=targets.min&&minimumK<=targets.max+EPS&&(!fixed.every(value=>value!=null)||nutritionValid(base,fixed,targets));
         });if(!possible)return;
         const factor = Math.max(.5, targets.min / k, targets.protein / Math.max(EPS, p));
-        const linear = base.reduce((sum, row) => sum + row.linear, 0) * factor;
-        const quality = dailyQuality(base, base.map(() => factor), profile);
-        const overshoot = Math.max(0, k * factor - targets.max) * .4;
+        const rankFactors=portionProfiles.map(portionProfile=>base.map(row=>Core.portionFactor(row,portionProfile))).find(values=>values.every(value=>value!=null)&&nutritionValid(base,values,targets))||base.map(()=>factor);
+        const linear = base.reduce((sum,row,index)=>sum+row.linear*rankFactors[index],0);
+        const quality = dailyQuality(base, rankFactors, profile);
+        const overshoot = Math.max(0, base.reduce((sum,row,index)=>sum+row.n.kcal*rankFactors[index],0) - targets.max) * .4;
         candidates.push({ rows: base.slice(), rank: linear + overshoot + quality * .45, linear: linear + overshoot });
         return;
       }
