@@ -2,8 +2,11 @@
 
 Settings now has direct selectors for each active meal. Choose a named meal to
 repeat, tuna wraps and salads for lunch variety, or chicken dinner variety.
-**Update my plan** uses the saved budget, period, meal count, household and
-nutrition settings. Changing a budget or preset refreshes the summary at once;
+**Review chosen meals** saves complete selections at the chosen portions after
+showing target differences and pending shopping prices. **Update my plan** or
+**Find a plan to match targets** runs the strict automatic search using the
+saved budget, period, meal count, household and nutrition settings. See
+[Saving chosen meals](manual-meal-plans.md). Changing a budget or preset refreshes the summary at once;
 settings and meal choices persist across reloads. Existing meals remain visible
 until a replacement passes the checks, with an explicit update message.
 

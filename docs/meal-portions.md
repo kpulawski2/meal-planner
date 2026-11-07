@@ -20,8 +20,9 @@ grams/millilitres are independent. For example, 70 g FUEL10K flakes and 200 g
 skimmed (red-top) milk make one portion. Measured milk uses a labelled estimated
 density of 1.035 g/ml consistently for nutrition, shopping and pantry deduction.
 The estimate is around 340 kcal and 24.5 g protein; the user's label takes
-precedence. Choose Use this breakfast every day to save its repeat rule. Lunch
-and dinner portion settings are retained. Original recipes and already cooked
+precedence. Choose Use this breakfast every day to save its repeat rule. The breakfast portion count, lunch
+and dinner portion settings are retained. The cereal editor shows the full
+breakfast quantity after multiplying by its saved portion count. Original recipes and already cooked
 versions remain unchanged.
 
 Both browser and worker enforce fixed quantities and reject an otherwise valid
@@ -36,4 +37,5 @@ automatic contract. The current browser always sends fixed by default. Profile
 signatures include mode and per-meal amounts, so changing them marks the saved
 plan stale and invalidates late results. Unavailable planning keeps saved meals.
 These changes are delivered by the hosted app in the existing iPhone shell;
-no newly signed IPA is required. Offline cache revision: v56.
+no newly signed IPA is required. Chosen meals can also be saved through the explicit review described in
+[Saving chosen meals](manual-meal-plans.md). Offline cache revision: v57.

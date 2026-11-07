@@ -77,3 +77,10 @@ test('selected repeated recipes survive the 250-recipe planner limit', () => {
   const selected = globalThis.RecipeLibraryCore.selectPlannerRecipes(rows, { profile: { varietyMode: 'Repeat favourites', repeatMeals: { Breakfast: 'row-299' } } });
   assert.equal(selected.length, 250); assert.ok(selected.some(row => row.id === 'row-299'));
 });
+
+test('the reported two breakfasts and single lunch/dinner explain the hidden calorie minimum without changing portions or targets',async()=>{
+ const request=copy(base);Object.assign(request.profile,{calories:2000,protein:150,budget:80,portionMode:'fixed',mealPortions:{Breakfast:2,Lunch:1,Dinner:1},nutritionTargets:{calorieMode:'range',fatMax:40}});
+ const nutrition=[{kcal:265,p:19.7,c:40,f:2.6},{kcal:617,p:66.6,c:67,f:8.6},{kcal:614,p:58.8,c:64.4,f:12.3}];request.recipes.forEach((recipe,index)=>recipe.nutrition={...nutrition[index],complete:true,source:'verified'});
+ const failed=await optimize(request);assert.equal(failed.status,'unavailable');assert.match(failed.warnings.join(' '),/39 kcal below 1800 kcal/);assert.equal(failed.diagnostics.selectedMeals.nutrition.days[0].kcal,1761);assert.equal(failed.diagnostics.selectedMeals.nutrition.met,0);
+ request.profile.nutritionTargets.calorieMode='max';const result=await optimize(request);assert.equal(result.status,'feasible',result.warnings.join(' '));assert.equal(result.nutrition.days[0].kcal,1761);assert.equal(result.nutrition.days[0].p,164.8);assert.equal(result.nutrition.days[0].f,26.1);assert.equal(result.mealServings['Monday::0'],2);assert.equal(result.mealServings['Monday::1'],1);assert.equal(result.mealServings['Monday::2'],1);assert.ok(result.basket.totalCostGBP<=80);
+});

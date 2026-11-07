@@ -937,3 +937,51 @@ test('a manual portion change cannot partially update portions or preferences wh
 test('personal cereal amounts cannot bypass a vegan diet or food exclusions',async()=>{
  const app=harness();await app.flush();app.run("state.profile.diet='Vegan'");app.context.openCerealPortion();const before=app.state();app.node('cerealGrams').value='70';app.node('milkAmount').value='200';app.node('milkUnit').value='g';app.node('cerealEveryDay').checked=true;app.context.saveCerealPortion();assert.deepEqual(app.state(),before);
 });
+
+const exactManualProfile=()=>({days:7,meals:3,people:1,budget:80,calories:2000,protein:150,cookTime:45,supermarket:'Lidl',equipment:['Hob','Oven','Microwave'],portionMode:'fixed',mealPortions:{Breakfast:2,Lunch:1,Dinner:1},nutritionTargets:{calorieMode:'range',fatMax:40},varietyMode:'Repeat favourites',repeatMeals:{Breakfast:'everyday-fuel10k-chocolate-flakes-milk',Lunch:'tuna',Dinner:'extra31'}});
+test('the exact manual breakfast x2, tuna pasta and enchilada choices can be reviewed and saved despite missing prices or the calorie minimum',async()=>{
+ const app=harness({state:{profile:exactManualProfile()}});await app.flush();const before=app.state();app.context.reviewSelectedMeals();
+ assert.match(app.node('sheet').innerHTML,/39 kcal below 1800 kcal/);assert.match(app.node('sheet').innerHTML,/Shopping prices are checked after saving/);assert.match(app.node('sheet').innerHTML,/2 portions per person/);
+ app.context.saveReviewedMeals();const after=app.state();assert.equal(after.planSource,'manual');assert.equal(after.week.length,7);assert.deepEqual(after.week[0].meals,['everyday-fuel10k-chocolate-flakes-milk','tuna','extra31']);assert.equal(after.mealServings['Monday::0'],2);assert.equal(after.mealServings['Monday::1'],1);assert.equal(after.mealServings['Monday::2'],1);assert.equal(after.profile.nutritionTargets.calorieMode,'range');assert.equal(after.profile.nutritionTargets.fatMax,40);assert.equal(after.profile.budget,80);
+ for(const key of ['pantry','leftovers','pantryLedger','foodLog'])assert.deepEqual(after[key],before[key],key);
+ assert.equal(app.run('budgetPlannerState.status'),'manual');assert.match(app.context.settingsPlanStatusHtml(),/chosen meals/);
+ const restored=harness({state:after});await restored.flush();assert.deepEqual(restored.state().week,after.week);assert.equal(restored.state().mealServings['Monday::0'],2);assert.equal(restored.run('budgetPlannerState.status'),'manual');assert.equal(restored.context.dailyTargetStatus().met,0);
+});
+test('manual meal review cannot overwrite later settings, changed recipes, or a closed review',async()=>{
+ const app=harness({state:{profile:exactManualProfile()}});await app.flush();const before=app.state();app.context.reviewSelectedMeals();app.context.closeModal();app.context.saveReviewedMeals();assert.deepEqual(app.state(),before);
+ app.context.reviewSelectedMeals();app.run('state.profile.budget=90');app.context.saveReviewedMeals();assert.deepEqual(app.state().week,before.week);assert.equal(app.state().profile.budget,90);
+ app.context.reviewSelectedMeals();app.run("getRecipe('tuna').ings[0][1]+=1");app.context.saveReviewedMeals();assert.deepEqual(app.state().week,before.week);
+});
+test('saving a manually chosen plan is atomic when device storage is full',async()=>{
+ const app=harness({state:{profile:exactManualProfile()}});await app.flush();const before=app.state();app.context.reviewSelectedMeals();const save=app.context.localStorage.setItem;app.context.localStorage.setItem=()=>{throw new DOMException('Full','QuotaExceededError')};app.context.saveReviewedMeals();assert.deepEqual(app.state(),before);app.context.localStorage.setItem=save;app.context.saveReviewedMeals();assert.equal(app.state().week.length,7);assert.equal(app.state().planSource,'manual');
+});
+test('editing a measured cereal recipe keeps the chosen two breakfast portions and shows the full amount',async()=>{
+ const app=harness({state:{profile:exactManualProfile()}});await app.flush();app.context.openCerealPortion();app.node('cerealGrams').value='70';app.node('milkAmount').value='200';app.node('milkUnit').value='g';app.node('cerealEveryDay').checked=true;app.context.updateCerealAmountPreview();assert.match(app.node('cerealMealSummary').textContent,/140g cereal \+ 400g milk/);
+ app.context.saveCerealPortion();assert.equal(app.state().profile.mealPortions.Breakfast,2);assert.equal(app.state().mealServings['Monday::0'],2);assert.equal(app.state().profile.mealPortions.Lunch,1);assert.equal(app.state().profile.mealPortions.Dinner,1);
+ const restored=harness({state:app.state()});await restored.flush();assert.equal(restored.state().profile.mealPortions.Breakfast,2);
+});
+test('calorie ceilings are the default but an explicit range and fat cap remain selected',async()=>{
+ const fresh=harness();await fresh.flush();assert.equal(fresh.state().profile.nutritionTargets.calorieMode,'max');fresh.context.setFatLimit('40');assert.equal(fresh.state().profile.nutritionTargets.fatMax,40);assert.equal(fresh.state().profile.nutritionTargets.calorieMode,'max');
+ const explicit=harness({state:{profile:exactManualProfile()}});await explicit.flush();assert.equal(explicit.state().profile.nutritionTargets.calorieMode,'range');explicit.context.setCalorieMode('max');assert.equal(explicit.state().profile.nutritionTargets.fatMax,40);assert.equal(explicit.state().profile.calories,2000);
+});
+
+test('assistant plan failures offer the same explicit meal review without saving an unchecked plan',async()=>{
+ const app=harness({state:{week:[],profile:exactManualProfile()}});await app.flush();
+ const before=app.state();
+ app.context.fetch=async(url)=>url==='/api/planner/interpret'?{ok:false,status:503}:{ok:true,status:200,text:async()=>JSON.stringify({status:'unavailable',warnings:['Prices are missing for Greek yoghurt.']})};
+ app.context.KitchenAgentUI.open();app.node('agentQuestion').value='Make a 7-day plan; breakfast: FUEL10K Chocolate Multigrain Flakes & Milk; lunch: Tuna Protein Pasta Salad; dinner: Chicken Enchilada Rice Bake. 2000 calories per day, 150g protein, max 40g fat.';await app.context.KitchenAgentUI.send();
+ assert.match(app.node('agentMessages').innerHTML,/Review chosen meals/);assert.deepEqual(app.state().week,before.week);assert.equal(app.state().kitchenConversation.messages.at(-1).planReceipt.status,'unavailable');
+ app.context.KitchenAgentUI.reviewMeals();assert.match(app.node('sheet').innerHTML,/Your chosen meals/);assert.match(app.node('sheet').innerHTML,/2 portions per person/);
+ app.context.saveReviewedMeals();assert.equal(app.state().week.length,7);assert.equal(app.state().planSource,'manual');assert.equal(app.state().mealServings['Monday::0'],2);assert.equal(app.state().week[0].meals[1],'tuna');assert.equal(app.state().week[0].meals[2],'extra31');
+});
+
+test('assistant review cannot use choices after the household settings change',async()=>{
+ const app=harness({state:{week:[],profile:exactManualProfile()}});await app.flush();
+ app.context.fetch=async(url)=>url==='/api/planner/interpret'?{ok:false,status:503}:{ok:true,status:200,text:async()=>JSON.stringify({status:'unavailable',warnings:['Prices are missing.']})};
+ app.context.KitchenAgentUI.open();app.node('agentQuestion').value='Make my plan: breakfast FUEL10K Chocolate Multigrain Flakes & Milk; lunch Tuna Protein Pasta Salad; dinner Chicken Enchilada Rice Bake.';await app.context.KitchenAgentUI.send();
+ assert.match(app.node('agentMessages').innerHTML,/Review chosen meals/);app.run('state.profile.people=2');app.context.KitchenAgentUI.reviewMeals();assert.match(app.node('toast').textContent,/settings or stock changed/);assert.deepEqual(app.state().week,[]);assert.doesNotMatch(app.node('sheet').innerHTML,/id="manualPlanReview"/);
+});
+
+test('saving chosen meals during setup completes setup and opens the usable plan',async()=>{
+ const app=harness({state:{setupComplete:false,week:[],profile:exactManualProfile()}});await app.flush();assert.equal(app.run('setupActive'),true);app.context.reviewSelectedMeals();app.context.saveReviewedMeals();assert.equal(app.run('setupActive'),false);assert.equal(app.state().setupComplete,true);assert.equal(app.state().week.length,7);assert.equal(app.node('setup').hidden,true);assert.equal(app.node('app').inert,false);assert.equal(JSON.parse(app.storage.get('mealPlannerState')).setupComplete,true);
+});
