@@ -10,7 +10,7 @@
  function sheet(html){api.openSheet('<section class="week-planner" id="weekPlanner">'+html+'</section>');}
  function error(message){const target=node('weekPlannerError');if(target){target.textContent=message;target.focus?.();}}
  async function open(){
-  api.close();api.captureDraft();active=true;busy=false;revision++;preview=null;value=Core().draft(api.state().profile);baseline=api.fingerprint();cerealId='user_week_cereal_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);seedCereal();draw();
+  api.close();api.captureDraft();active=true;busy=false;revision++;preview=null;value=Core().draft(api.state().profile);if(!api.state().profile.cookingStyle)value.cookingStyle=root.WeeklyRoutineCore.normalize(api.state().weeklyRoutine).cookingStyle;baseline=api.fingerprint();cerealId='user_week_cereal_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);seedCereal();draw();
   const current=revision,beforeLoad=JSON.stringify(api.state());try{await api.loadRecipes();if(active&&current===revision&&!busy){if(JSON.stringify(api.state())===beforeLoad)baseline=api.fingerprint();capture();draw();}}catch{ /* Existing recipes remain available. */ }
  }
  function seedCereal(){const id=(value.choices.Breakfast||'').replace(/^recipe:/,''),r=api.recipes().find(r=>r.id===id),grain=r?.ings?.find(row=>/fuel10k/i.test(row[0])),milk=r?.ings?.find(row=>/^skimmed milk$/i.test(row[0]));value.cereal={grams:grain?grain[1]/(r.servings||1):70,milk:milk?milk[1]/(r.servings||1):200,unit:milk?.[2]||'g'};}
