@@ -6,6 +6,7 @@
   const amount = value => Number(Number(value).toFixed(2)).toLocaleString('en-GB');
   const action = (label, method, id, extra = '') => '<button class="btn secondary small" ' + extra
     + ' onclick="MealPrepUI.' + method + '(decodeURIComponent(\'' + arg(id) + '\'))">' + label + '</button>';
+  const dayLabel=day=>root.PlanCalendarCore?.label(api.state(),day)||day;
   const model = () => root.MealPrepCore.session(api.state(), api.recipes(), api.state().prepPlan?.scope);
   const open = content => { root.ConsumerUI?.cleanup(); api.openSheet(content); };
   function stats(value) {
@@ -17,7 +18,7 @@
     if (!api) return '';
     const value = model();
     return '<div class="card prep-centre"><span class="eyebrow">Less cooking. More ready meals.</span><h3>Your prep centre</h3><p class="sub">'
-      + html(value.scope.days.map(day => day.day).join(' · ')) + '</p>' + stats(value)
+      + html(value.scope.days.map(day => dayLabel(day.day)).join(' · ')) + '</p>' + stats(value)
       + '<button class="btn" onclick="MealPrepUI.openSession()">Build prep session</button><p class="sub">Group repeated meals, scale ingredients and keep later portions as leftovers.</p></div>';
   }
   function ingredientsHtml(rows) {
@@ -28,7 +29,7 @@
     const blocked = task.reason || (!task.recipe || !api.allowed(task.recipe) ? 'Review the recipe and your current food settings.' : '');
     return '<article id="prepTask-' + arg(task.id) + '" class="prep-recipe card ' + (task.checked ? 'prep-organised' : '') + '"><div class="prep-recipe-heading"><span class="meal-icon">'
       + html(task.recipe?.icon || '🍽️') + '</span><div><span class="eyebrow">' + (task.fresh ? 'Make on the day' : task.waiting ? 'Start earlier' : 'Cook & portion')
-      + '</span><h3>' + html(task.name) + '</h3></div></div><p class="sub">' + html(task.slots.map(slot => slot.day + ' · ' + amount(slot.portions) + ' portions').join(' / '))
+      + '</span><h3>' + html(task.name) + '</h3></div></div><p class="sub">' + html(task.slots.map(slot => dayLabel(slot.day) + ' · ' + amount(slot.portions) + ' portions').join(' / '))
       + '</p><div class="prep-quantity"><strong>' + (task.preparedServings === null ? 'Amounts need review' : 'Prepare ' + amount(task.preparedServings) + ' portions')
       + '</strong>' + (task.preparedServings > task.portions ? '<small>Includes ' + amount(task.preparedServings - task.portions) + ' extra portions from a whole batch.</small>' : '')
       + '</div><p class="sub">' + html(task.recipe ? api.timeLabel(task.recipe) : '') + (task.recipe?.equipment?.length ? ' · ' + html(task.recipe.equipment.join(', ')) : '')
@@ -43,7 +44,7 @@
     const value = model(); shownSession = value;
     const allDays = api.state().week || [], availableDays = Math.max(0, allDays.length - Math.max(0, allDays.findIndex(day => day.day === value.scope.startDay)));
     open('<div class="prep-session"><span class="eyebrow">Your week, in batches</span><h2>Build a prep session</h2><div class="grid"><div class="field"><label for="prepStartDay">First plan day</label><select id="prepStartDay" onchange="MealPrepUI.scopeChanged()">'
-      + allDays.map(day => '<option ' + (day.day === value.scope.startDay ? 'selected' : '') + '>' + html(day.day) + '</option>').join('')
+      + allDays.map(day => '<option value="' + html(day.day) + '" ' + (day.day === value.scope.startDay ? 'selected' : '') + '>' + html(dayLabel(day.day)) + '</option>').join('')
       + '</select></div><div class="field"><label for="prepDayCount">Days to prepare</label><select id="prepDayCount" onchange="MealPrepUI.scopeChanged()">'
       + Array.from({ length: Math.min(14, availableDays) }, (_, index) => index + 1).map(count => '<option value="' + count + '" '
         + (count === Math.min(value.scope.count, availableDays) ? 'selected' : '') + '>' + count + ' day' + (count === 1 ? '' : 's') + '</option>').join('')
@@ -90,12 +91,12 @@
     document.getElementById('prepTask-' + arg(id))?.classList.toggle('prep-organised', Boolean(checked));
   }
   function exportSession() {
-    const value = model(), lines = ['Meal Planner · prep session', 'Plan days: ' + value.scope.days.map(day => day.day).join(', '),
+    const value = model(), lines = ['Meal Planner · prep session', 'Plan days: ' + value.scope.days.map(day => dayLabel(day.day)).join(', '),
       amount(value.remainingPortions) + ' portions to prepare; ' + amount(value.coveredPortions) + ' cooked or covered by leftovers.', '',
       'Start waiting recipes earlier. Timings are recipe estimates and can change with batch size.', 'Follow each recipe’s storage instructions.', ''];
     for (const row of value.tasks) {
       lines.push((row.checked ? '[x] ' : '[ ] ') + row.name, '  ' + (row.fresh ? 'Make fresh on the day.' : 'Prepare ' + amount(row.preparedServings || row.portions) + ' portions.'),
-        '  Planned: ' + row.slots.map(slot => slot.day + ' (' + amount(slot.portions) + ')').join(', '), '  ' + (row.recipe ? api.timeLabel(row.recipe) : ''),
+        '  Planned: ' + row.slots.map(slot => dayLabel(slot.day) + ' (' + amount(slot.portions) + ')').join(', '), '  ' + (row.recipe ? api.timeLabel(row.recipe) : ''),
         ...row.requirements.map(ingredient => '  ' + ingredient.name + ': ' + amount(ingredient.qty) + ' ' + ingredient.unit + (ingredient.estimated ? ' (estimate)' : '')),
         ...(row.reason ? ['  REVIEW: ' + row.reason] : []), '');
     }
