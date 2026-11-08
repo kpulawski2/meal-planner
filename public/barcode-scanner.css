@@ -1,0 +1,65 @@
+/* The live scanner fills the app viewport, including in the iPhone wrapper. */
+.modal.barcode-fullscreen {
+  padding:0;align-items:stretch;justify-content:stretch;
+  background:#05080d;backdrop-filter:none;
+}
+.sheet.barcode-fullscreen {
+  position:relative;width:100%;height:100%;height:100dvh;max-width:none;
+  max-height:none;margin:0;padding:0;border:0;border-radius:0;
+  overflow:hidden;overscroll-behavior:none;background:#05080d;color:#fff;
+}
+.sheet.barcode-fullscreen>.close {display:none}
+.barcode-live-header,.barcode-live-controls {display:none}
+.barcode-fullscreen .barcode-intake {display:none}
+.barcode-fullscreen .barcode-scanner {position:absolute;inset:0}
+.barcode-fullscreen .barcode-viewfinder {
+  position:absolute;inset:0;display:block;border:0;border-radius:0;
+  width:100%;height:100%;background:#05080d;overflow:hidden;
+}
+.barcode-fullscreen .barcode-video {
+  display:block;position:absolute;inset:0;width:100%;height:100%;
+  max-height:none;margin:0;border-radius:0;background:#05080d;object-fit:cover;
+}
+.barcode-fullscreen .barcode-live-header {
+  position:absolute;inset:0 0 auto;display:flex;align-items:flex-start;
+  justify-content:space-between;gap:16px;
+  padding:calc(18px + env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) 40px max(18px,env(safe-area-inset-left));
+  background:linear-gradient(#05080dd9,#05080d70,transparent);color:#fff;
+}
+.barcode-live-badge {font-size:10px;font-weight:750;letter-spacing:.16em;color:#bdd8ff}
+.barcode-live-header h2 {font-size:23px;line-height:1.2;letter-spacing:-.5px;margin:8px 0;padding:0;color:#fff}
+.barcode-live-header p {margin:0;color:#e0e8f4;font-size:14px}
+.barcode-live-close {
+  flex-shrink:0;width:48px;height:48px;border:1px solid #ffffff60;
+  border-radius:50%;background:#101a2bcc;color:#fff;font-size:30px;
+  display:grid;place-items:center;cursor:pointer;
+}
+.barcode-fullscreen .barcode-live-controls {
+  display:block;position:absolute;inset:auto 0 0;
+  padding:36px max(18px,env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));
+  background:linear-gradient(transparent,#05080dd9 25%,#05080df2);color:#fff;
+  max-height:62%;overflow-y:auto;overscroll-behavior:contain;
+}
+.barcode-live-controls [role=status] {margin:0 0 16px;line-height:1.45;font-size:14px;color:#edf3fc}
+.barcode-live-actions {display:flex;gap:8px;flex-wrap:wrap}
+.barcode-live-actions button,.barcode-fullscreen .barcode-camera-tools .btn {
+  min-width:64px;min-height:46px;padding:10px 14px;border:1px solid #ffffff50;
+  border-radius:14px;background:#21314ae6;color:#fff;font-size:14px;font-weight:650;cursor:pointer;
+}
+.barcode-fullscreen .barcode-camera-tools {
+  border:1px solid #ffffff50;background:#111d30e6;border-radius:14px;
+  padding:10px 14px;margin:12px 0 0;color:#fff;
+}
+.barcode-fullscreen .barcode-camera-tools summary {min-height:28px;color:#e8f1ff;font-size:14px}
+.barcode-fullscreen .barcode-camera-tools label {color:#e8f1ff}
+.barcode-fullscreen .barcode-camera-tools select {background:#1c2b43;border-color:#ffffff50;color:#fff}
+.barcode-fullscreen .barcode-camera-tools input[type=range] {accent-color:#b4d4ff}
+.barcode-fullscreen button:focus-visible,.barcode-fullscreen select:focus-visible,.barcode-fullscreen input:focus-visible {outline:3px solid #bdd8ff;outline-offset:3px}
+.barcode-fullscreen [hidden] {display:none!important}
+@media(orientation:landscape) and (max-height:560px) {
+  .barcode-live-header h2 {font-size:19px;margin:5px 0}
+  .barcode-live-header p {display:none}
+  .barcode-fullscreen .barcode-live-controls {max-height:65%;padding-top:18px}
+  .barcode-fullscreen .barcode-live-header {padding-top:max(10px,env(safe-area-inset-top))}
+  .barcode-live-controls [role=status] {margin-bottom:8px}
+}
