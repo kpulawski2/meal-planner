@@ -1,7 +1,7 @@
 /* Prices the shopper actually saw. Never official catalogue evidence. */
 (function (root) {
   'use strict';
-  const STORAGE_KEY = 'mealPlanner.personalLidlPrices.v1', MAX_PRICES = 300, MAX_BYTES = 250000;
+  const STORAGE_KEY = 'mealPlanner.personalLidlPrices.v1', MAX_PRICES = 300, MAX_BYTES = 1000000;
   const copy = value => JSON.parse(JSON.stringify(value));
   const empty = () => ({ schemaVersion: 1, includeInPlanning: false, prices: [] });
   function text(value, field, maximum, optional = false) {
@@ -74,7 +74,8 @@
       if (ids.has(row.id)) throw new Error('The saved-price data contains duplicate packs. Existing data has not been changed.');
       ids.add(row.id); return row;
     });
-    return { schemaVersion: 1, includeInPlanning: raw.includeInPlanning, prices };
+    if(raw.receipts!==undefined&&!root.ReceiptCore)throw new Error('Receipt support has not loaded. Reload the app before changing saved prices.');
+    return { schemaVersion: 1, includeInPlanning: raw.includeInPlanning, prices,...(raw.receipts!==undefined?{receipts:root.ReceiptCore.normalizeLedger(raw.receipts,options)}:{}) };
   }
   // Pass a Storage-compatible object explicitly for tests or alternate storage.
   // Omitting it uses localStorage; failures are returned and never silently reset it.

@@ -147,11 +147,11 @@
     openRecipe(id, day = null, index = null) {
       const recipe = api.recipes().find(row => row.id === id);
       if (!recipe || !api.recipeNutrition(recipe).complete) { api.toast('Complete the recipe nutrition before logging it.'); return; }
-      draft = { manual: false,meal:recipe.cat==='Fruit'?'Snack':recipe.cat,selection: 'recipe:' + id, portions: day == null ? 1 : api.portions(day, index) / Math.max(1, Number(api.state().profile.people) || 1),
+      draft = { manual: false,logDate:day==null?date:root.PlanCalendarCore?.dateFor(api.state(),day)||date,meal:recipe.cat==='Fruit'?'Snack':recipe.cat,selection: 'recipe:' + id, portions: day == null ? 1 : api.portions(day, index) / Math.max(1, Number(api.state().profile.people) || 1),
         originKey: day == null ? null : (api.state().pantryLedger?.planId || 'current') + '::' + day + '::' + index };
       draw();
     },
-    edit(id) { const row = api.state().foodLog.find(value => value.id === id); if (row) { draft = { entry: row }; draw(); } },
+    edit(id) { const row = api.state().foodLog.find(value => value.id === id); if (row) { draft = { entry: row }; draw();if(root.EverydayUI){const button=document.createElement('button');button.className='btn secondary';button.textContent='Pin this amount as a usual';button.onclick=()=>root.EverydayUI.pinEntry(id);document.getElementById('sheet').appendChild(button);} } },
     remove() { if (!draft?.entry) return;try{const next=structuredClone(api.state());next.foodLog=next.foodLog.filter(row=>row.id!==draft.entry.id);if(api.commit)api.commit(next);else{Object.assign(api.state(),next);api.save();}close();api.changed();api.toast('Food entry removed');}catch(error){api.toast('Entry could not be removed. '+error.message);} },
   });
 })(globalThis);

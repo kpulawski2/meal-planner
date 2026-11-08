@@ -12,11 +12,11 @@ export function isSameOriginImport(req) {
   if (req.get('sec-fetch-site') === 'same-origin') return true;
   try { return new URL(req.get('referer')).origin === expected; } catch { return false; }
 }
-export function createImportAccess({ token = '', windowMs = 600000, limit = 6, now = Date.now } = {}) {
+export function createImportAccess({ token = '', windowMs = 600000, limit = 6, now = Date.now, messages = {} } = {}) {
   const clients = new Map();
   return (req, res, next) => {
     if (!validToken(req.get('x-import-token'), token) && !isSameOriginImport(req)) {
-      return res.status(401).json({ error: 'Open the Meal Planner and import the recipe from its Recipes page. No access token is needed there.' });
+      return res.status(401).json({ error: messages.unauthorized || 'Open the Meal Planner and import the recipe from its Recipes page. No access token is needed there.' });
     }
     const time = now();
     // Periodically discard inactive clients; anonymous imports must not grow an
@@ -26,9 +26,9 @@ export function createImportAccess({ token = '', windowMs = 600000, limit = 6, n
     const recent = (clients.get(key) || []).filter(at => time - at < windowMs);
     if (recent.length >= limit) {
       const retry = Math.max(1, Math.ceil((recent[0] + windowMs - time) / 1000));
-      return res.set('Retry-After', String(retry)).status(429).json({ error: 'You have imported several recipes recently. Please wait a few minutes before trying again. Your recipes are safe.', retryAfterSeconds: retry });
+      return res.set('Retry-After', String(retry)).status(429).json({ error: messages.limit || 'You have imported several recipes recently. Please wait a few minutes before trying again. Your recipes are safe.', retryAfterSeconds: retry });
     }
-    if (clients.size >= 5000 && !clients.has(key)) return res.set('Retry-After', '60').status(503).json({ error: 'Recipe importing is busy. Please retry in a minute.' });
+    if (clients.size >= 5000 && !clients.has(key)) return res.set('Retry-After', '60').status(503).json({ error: messages.busy || 'Recipe importing is busy. Please retry in a minute.' });
     recent.push(time); clients.set(key, recent);
     next();
   };

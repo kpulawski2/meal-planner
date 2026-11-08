@@ -44,6 +44,7 @@
     const next=JSON.parse(JSON.stringify(state)),result=PurchaseRecordCore.commit(next,purchase,lines,value('boughtDate'));
     const error=message=>{const target=document.getElementById('purchaseError');target.textContent=message;target.focus();};
     if(!result.ok){error(result.error);return;}
+    next.shoppingTripActive=false;
     try{localStorage.setItem('mealPlannerState',JSON.stringify(next));}catch{error('Could not save stock on this device. Nothing was added. Free some browser storage and try again.');return;}
     state=next;
     let priceError='';
