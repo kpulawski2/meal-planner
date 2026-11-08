@@ -1,4 +1,6 @@
 import '../public/budget-core.js';
+import '../public/planner-settings-core.js';
+import '../public/manual-plan-core.js';
 import '../public/equipment-core.js';
 import '../public/recipe-library-core.js';
 import '../public/macro-goals-core.js';
@@ -534,7 +536,10 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   const recipes = (Array.isArray(request.recipes) ? request.recipes : []).filter(recipe => recipe && Array.isArray(recipe.ings) && (cookedIds.has(recipe.id) || !excludedRecipeIds.has(recipe.id) && allowedRecipe(recipe, profile))).map(recipe => prepareRecipe({ ...recipe, cookedOnly: cookedIds.has(recipe.id) && (excludedRecipeIds.has(recipe.id) || !allowedRecipe(recipe, profile)) }));
   const byId = new Map(recipes.map(recipe => [recipe.id, recipe])), items = new Map();
   for (const recipe of recipes) for (const [name, , unit] of recipe.ings) { if (Core.isCookingWater(name)) continue; const meta = Core.unitMeta(unit, name), key = bookKey(name, meta.dim); if (!items.has(key)) items.set(key, { key, name, dimension: meta.dim }); }
-  const unavailable = reason => ({ store, status: 'unavailable', week: request.week || [], mealServings: request.mealServings || {}, basket: { store, complete: false, totalCostGBP: null, recommendations: [] }, budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP) }, variety: Core.inspectVariety(request.week || [], recipes, profile, request.cookedMeals), goals: goalReport(profile), warnings: [reason], diagnostics: { elapsedMs: Date.now() - started, mealCoverage } });
+  let selectedReview=null;
+  if(globalThis.ManualPlanCore.hasChoices(profile))try{const review=globalThis.ManualPlanCore.build(request,recipes,profile,{locked:request.locked,cookedMeals:request.cookedMeals,allowed:recipe=>allowedRecipe(recipe,profile),nutrition:recipe=>recipe.n});if(review.ok)selectedReview=review;}catch{}
+  const selectedNotes=()=>{if(!selectedReview)return [];const day=selectedReview.nutrition.days.find(row=>row.issues.length),format=value=>globalThis.MacroGoalsCore.known(value)?round(value):'unknown';return day?['At your chosen portions: '+format(day.kcal)+' kcal, '+format(day.p)+'g protein and '+format(day.f)+'g fat. '+day.issues.map(issue=>issue.label).join('; ')+'.']:[];};
+  const unavailable = reason => {const missing=[...new Set(mealCoverage.filter(row=>row.priced===0).flatMap(row=>row.unpricedIngredients))];return { store, status: 'unavailable', week: request.week || [], mealServings: request.mealServings || {}, basket: { store, complete: false, totalCostGBP: null, recommendations: [] }, budget: { weeklyGBP: round(weeklyBudgetGBP), planGBP: round(budgetGBP) }, variety: Core.inspectVariety(request.week || [], recipes, profile, request.cookedMeals), goals: goalReport(profile), warnings: [reason,...(missing.length?['Missing compatible pack prices: '+missing.slice(0,12).join(', ')+'.']:[]),...selectedNotes()], diagnostics: { elapsedMs: Date.now() - started, mealCoverage, selectedMeals:selectedReview?{nutrition:selectedReview.nutrition,portionMode:'fixed'}:null } };};
   if((request.week||[]).some(day=>(day.meals||[]).some((id,index)=>excludedRecipeIds.has(id)&&request.locked?.[`${day.day}::${index}`]&&!request.cookedMeals?.[`${day.day}::${index}`])))return unavailable('A locked meal is marked Skip next time. Unlock that meal or clear its preference before fitting your plan. Your saved plan was kept.');
   if (!recipes.length) return unavailable('No allowed recipes are available. Add recipes with complete ingredient quantities and nutrition.');
   if (profile.varietyMode === 'Repeat favourites') for (const category of slots) {

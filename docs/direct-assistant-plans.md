@@ -17,7 +17,12 @@ exception when the period changes. The supported period remains 1–14 days and
 2–4 meals per day. Informational nutrition and cooking questions do not create
 plans.
 
-Only a validated result replaces the saved plan and settings. The browser checks
+Only a validated automatic result replaces the saved plan and settings. If
+automatic checks fail for a complete set of meal selections, **Review chosen
+meals** opens the explicit manual review. Users can save those exact portions
+after seeing target differences and pending prices; that manual action does not
+claim a verified automatic plan. See [Saving chosen meals](manual-meal-plans.md).
+For automatic results, The browser checks
 known recipes, quantities, category rules, every day's macro limits, recipe
 variety, a complete priced basket and existing paid spending. Current cooked or
 kept meals and their quantities must remain present. Cancelled, failed, stale or

@@ -1,6 +1,6 @@
 (function(root) {
   'use strict';
-  let api, active = false, busy = false, generation = 0, controller = null, pending = false, routineSaved = false;
+  let api, active = false, busy = false, generation = 0, controller = null, pending = false, routineSaved = false, manualCandidate = null;
   const Core = () => root.KitchenAgentCore;
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const arg = value => encodeURIComponent(String(value)).replace(/'/g, '%27');
@@ -12,7 +12,7 @@
     draw(); void api.loadRecipes();
   }
   function capture() { if (!active) return; const s = session(); s.draft = (document.getElementById('agentQuestion')?.value || '').slice(0, 2000); api.save(); }
-  function stop() { controller?.abort(); controller = null; busy = false; generation++; if (pending) { const s = session(); if (s.messages.at(-1)?.role === 'user') s.messages.pop(); api.save(); pending = false; } }
+  function stop() { manualCandidate = null; controller?.abort(); controller = null; busy = false; generation++; if (pending) { const s = session(); if (s.messages.at(-1)?.role === 'user') s.messages.pop(); api.save(); pending = false; } }
   function cancel() { if (active) capture(); stop(); active = false; }
   function contextChanged() { stop(); const s = session(); s.useSettings = document.getElementById('agentUseSettings')?.checked === true; s.usePantry = document.getElementById('agentUsePantry')?.checked === true; api.save(); draw(); }
   function clear() { stop(); const s = session(); api.state().kitchenConversation = { ...s, messages: [], focus: Core().focus(), draft: '', planDraft:null }; api.save(); document.getElementById('agentQuestion').value = ''; draw(); }
@@ -33,7 +33,7 @@
   }
   async function send() {
     if (!active || busy) return;
-    routineSaved = false;
+    routineSaved = false; manualCandidate = null;
     const s = session(), question = document.getElementById('agentQuestion').value.trim(); let work;
     try { const routine=root.WeeklyRoutineCore?.interpret(question,api.state().weeklyRoutine,api.state().profile);if(routine&&root.WeeklyRoutineUI)return await sendRoutine(question,routine);const parsed=Core().interpret(question,s.focus),last=s.messages.at(-1);if(root.KitchenPlanCore.isPlan(question,parsed.kind,s.planDraft,last?.kind))return await sendPlan(question,s); }
     catch(error){document.getElementById('agentStatus').textContent=error.message;return;}
@@ -117,9 +117,10 @@
           reply={status:'saved',text:'I’ve made and saved your '+state.week.length+'-day plan. The meals, portions, nutrition and full-pack shopping budget passed the planner’s checks. Tell me any changes here and I’ll update it.',cost,budget:candidate.budget*candidate.days/7,days:candidate.days,meals:candidate.meals,store:candidate.supermarket||profile.supermarket||'',signature:Plan.planSignature(state)};
         }else{
           reply={status:['no_feasible_plan','stale','cancelled'].includes(outcome?.status)?outcome.status:'unavailable',text:outcome?.message||'I couldn’t finish the price and nutrition checks. Your saved plan and settings are unchanged. Try again here when the planner is available.'};
-          if(outcome?.result?.warnings?.some(warning=>typeof warning==='string'&&/complete daily meals within the nutrition range/.test(warning)))reply.text='I found measured matches, but the search couldn’t combine their supported portions within all your daily nutrition limits. Your saved plan and targets are unchanged. Which meal choice or target would you like to change?';
+          if(!outcome?.result?.diagnostics?.selectedMeals&&outcome?.result?.warnings?.some(warning=>typeof warning==='string'&&/complete daily meals within the nutrition range/.test(warning)))reply.text='I found measured matches, but the search couldn’t combine their supported portions within all your daily nutrition limits. Your saved plan and targets are unchanged. Which meal choice or target would you like to change?';
           const reported=outcome?.result?.basket?.totalCostGBP,limit=candidate.budget*candidate.days/7,cost=typeof reported==='number'?reported+Number(api.spent?.()||0):NaN;
           if(outcome?.status==='no_feasible_plan'&&outcome.result.basket?.complete===true&&Number.isFinite(cost)&&cost>limit){draft.pendingField='budget';reply.text='The search reported a £'+cost.toFixed(2)+' basket against your £'+limit.toFixed(2)+' household budget. I haven’t changed your saved plan or targets. What weekly budget would you like to use, or would you prefer different meals?';}
+          if(['unavailable','no_feasible_plan'].includes(reply.status)&&guard()&&root.ManualPlanCore?.hasChoices(candidate)&&api.reviewMeals){manualCandidate={profile:structuredClone(candidate),baseline};reply.text+=' You can also review these meals and save your exact portions, with any target differences or missing prices shown.';}
         }
       }
     }catch(error){
@@ -142,6 +143,7 @@
     return '<section class="agent-plan-result"><h4>Your saved plan</h4><p>'+receipt.days+' days · '+receipt.meals+' meals a day · '+esc(state.profile.people)+' '+(Number(state.profile.people)===1?'person':'people')+'</p><p class="sub">'+root.MacroGoalsCore.summary(state.profile).map(esc).join(' · ')+'</p><p><b>'+cost+'</b> / '+budget+' household budget</p><small class="sub">Remaining '+esc(receipt.store)+' packs + recorded purchases, checked when saved. Prices can change.</small><details class="planner-help"><summary>See the meals</summary>'+state.week.map(row=>'<div class="agent-plan-day"><b>'+esc(row.day)+'</b><ul>'+row.meals.map(id=>'<li>'+esc(api.recipes().find(r=>r.id===id)?.name||'Recipe unavailable')+'</li>').join('')+'</ul></div>').join('')+'</details><button class="btn secondary small" onclick="KitchenAgentUI.showPlan()">View my plan</button></section>';
   }
   function showPlan(){cancel();api.showPlan();}
+  function reviewMeals(){const choice=manualCandidate;if(!active||busy||!choice||!api.reviewMeals)return;if(choice.baseline!==planningStateKey()){manualCandidate=null;draw();api.toast('Your meals, settings or stock changed. Ask again before reviewing these choices.');return;}api.reviewMeals(structuredClone(choice.profile));}
   function actionAllowed(id, message) { const recipe = api.recipes().find(row => row.id === id); return recipe && api.ready(recipe, session().focus.diet) && message?.signatures?.[id] === Core().signature({...recipe,method:api.steps(recipe)}) ? recipe : null; }
   function card(id, message, index) {
     const recipe = api.recipes().find(row => row.id === id); if (!recipe) return '<p class="sub">A suggested recipe is no longer available.</p>';
@@ -157,7 +159,7 @@
     const s = session(), target = document.getElementById('agentMessages'); if (!target) return;
     target.innerHTML = s.messages.length ? s.messages.map((message, index) => '<article class="agent-message ' + (message.role === 'user' ? 'agent-user' : 'agent-answer') + '"><span class="eyebrow">' + (message.role === 'user' ? 'You' : message.source === 'ai' ? 'Kitchen assistant · AI' : 'Kitchen assistant · on device') + '</span><p class="agent-answer-text">' + esc(message.text) + '</p>'
       + (message.role === 'assistant' ? '<div class="agent-recipe-grid">' + message.recipeIds.map(id => card(id, message, index)).join('') + '</div>' + (message.kind === 'storage' ? storage(message, index) : '')
-        + (message.kind === 'plan' ? planReceipt(message)+(message.planReceipt?'':'<button class="btn secondary small" onclick="KitchenAgentUI.plan('+index+')">Make this plan</button>') : message.kind === 'diary' ? '<button class="btn" onclick="KitchenAgentUI.diary()">Log food</button>' : '')
+        + (message.kind === 'plan' ? planReceipt(message)+(message.planReceipt?'':'<button class="btn secondary small" onclick="KitchenAgentUI.plan('+index+')">Make this plan</button>')+(manualCandidate&&index===s.messages.length-1?'<button class="btn secondary small" onclick="KitchenAgentUI.reviewMeals()">Review chosen meals</button>':'') : message.kind === 'diary' ? '<button class="btn" onclick="KitchenAgentUI.diary()">Log food</button>' : '')
         + '<div class="agent-followups">' + message.followUps.map(value => '<button class="chip" ' + (busy ? 'disabled' : '') + ' onclick="KitchenAgentUI.follow(decodeURIComponent(\'' + arg(value) + '\'))">' + esc(value) + '</button>').join('') + '</div>' : '') + '</article>').join('')
       : '<div class="agent-welcome"><h3>What would you like to eat?</h3><p>Describe your plan and I’ll build it here. For example: “14 days of varied overnight oats, tuna wraps for lunch and chicken dinners, under 1600 calories with 150g protein.” You can also ask for recipe ideas or prep help.</p></div>';
     const button = document.getElementById('agentSend'); if (button) button.disabled = busy;
@@ -187,5 +189,5 @@
   function prep() { cancel(); root.KitchenAssistantUI.open(); }
   function diary() { cancel(); root.FoodLogUI.open(); }
   function plan(index) { const s=session(),message=s.messages[index],question=s.messages.slice(0,index).reverse().find(row=>row.role==='user')?.text;if(message?.role==='assistant'&&message.kind==='plan'&&question)follow(question); }
-  root.KitchenAgentUI = { configure: value => { api = value; }, panel, open, capture, cancel, contextChanged, clear, follow, send, view, prepare, prep, diary, plan,stopRequest,showPlan };
+  root.KitchenAgentUI = { configure: value => { api = value; }, panel, open, capture, cancel, contextChanged, clear, follow, send, view, prepare, prep, diary, plan,stopRequest,showPlan,reviewMeals };
 })(globalThis);
