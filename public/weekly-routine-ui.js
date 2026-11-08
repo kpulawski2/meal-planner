@@ -8,7 +8,7 @@
  function homePanel(){
   if(!api)return '';const r=routine(),s=Core().status(r),focus=Prefs().focuses.find(row=>row.id===Prefs().focus(api.state().profile.mealFocus)),due=s.reviewDue?'Choose your meals before shopping':s.prepDue?'Your prep day is here':'Your weekly routine';
   if(!r.enabled||!s.reviewDue&&!s.prepDue)return '';
-  return '<section class="card weekly-routine-card" aria-label="Weekly shopping and cooking routine"><div class="section-heading"><div><h2>'+esc(r.enabled?due:'Make the week work for you')+'</h2><p class="sub">'+esc(summary())+'</p></div></div>'+(focus.id!=='balanced'?'<p class="sub">Chosen focus: '+esc(focus.label)+'</p>':'')+'<div class="actions"><button class="btn '+(s.reviewDue?'':'secondary small')+'" onclick="WeeklyChoiceUI.open()">Plan this week</button><button class="text-button" onclick="WeeklyRoutineUI.open()">Shopping & prep days</button>'+(s.prepDue&&api.state().week.length?'<button class="btn secondary small" onclick="WeeklyRoutineUI.prep()">Open prep centre</button>':'')+'</div></section>';
+  return '<section class="card weekly-routine-card" aria-label="Weekly shopping and cooking routine"><div class="section-heading"><div><h2>'+esc(r.enabled?due:'Make the week work for you')+'</h2><p class="sub">'+esc(summary())+'</p></div></div>'+(focus.id!=='balanced'?'<p class="sub">Chosen focus: '+esc(focus.label)+'</p>':'')+'<div class="actions"><button class="btn '+(s.reviewDue?'':'secondary small')+'" onclick="WeekPlannerUI.open()">Plan this week</button><button class="text-button" onclick="WeeklyRoutineUI.open()">Shopping & prep days</button>'+(s.prepDue&&api.state().week.length?'<button class="btn secondary small" onclick="WeeklyRoutineUI.prep()">Open prep centre</button>':'')+'</div></section>';
  }
  function options(values,current){return values.map(([value,label])=>'<option value="'+esc(value)+'" '+(current===value?'selected':'')+'>'+esc(label)+'</option>').join('');}
  function hasRule(p,cat){return p.varietyMode==='Tailored'&&p.tailoredMeals?.[cat]||p.varietyMode==='Repeat favourites'&&p.repeatMeals?.[cat];}
@@ -57,6 +57,6 @@
   commit(next);openedProfile=JSON.stringify(next.profile);api.download('meal-planner-weekly-reminders.ics',text,'text/calendar;charset=utf-8');api.renderAll();api.toast('Calendar file downloaded. Add its events and check alerts in your calendar.');
  }catch(error){fail(error);}}
  function prep(){api.close();api.showTab('week');const node=document.querySelector('[data-ui-section="plan-tools"]');if(node){node.open=true;root.AppExperienceUI?.rememberSection(node);node.scrollIntoView?.({block:'start',behavior:'smooth'});}}
- function handleHash(){if(root.location.hash==='#weekly-routine'){if(!api)return;if(root.WeeklyChoiceUI)root.WeeklyChoiceUI.open();else open();}}
+ function handleHash(){if(root.location.hash==='#weekly-routine'){if(!api)return;if(root.WeekPlannerUI)root.WeekPlannerUI.open();else if(root.WeeklyChoiceUI)root.WeeklyChoiceUI.open();else open();}}
  root.WeeklyRoutineUI={configure(value){api=value;root.addEventListener?.('hashchange',handleHash);},open,homePanel,summary,save,calendar,cookingChanged,styleChanged,prep,handleHash,applyInterpretation};
 })(globalThis);

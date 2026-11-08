@@ -52,7 +52,7 @@
  function show(tab){api.close();api.showTab(tab);}
  function maybePrompt(){
   if(!api||active||!api.canPrompt())return;const s=root.WeeklyRoutineCore.status(api.state().weeklyRoutine);if(!s.promptDue||attemptedDate===s.today)return;
-  attemptedDate=s.today;const next=structuredClone(api.state());next.weeklyRoutine={...s.routine,promptedDate:s.today};try{api.commit(next);api.renderAll();open();}catch{ /* A storage failure must not repeatedly interrupt someone. */ }
+  attemptedDate=s.today;const next=structuredClone(api.state());next.weeklyRoutine={...s.routine,promptedDate:s.today};try{api.commit(next);api.renderAll();if(api.openPlanner)api.openPlanner();else open();}catch{ /* A storage failure must not repeatedly interrupt someone. */ }
  }
  root.WeeklyChoiceUI={configure(value){api=value;root.addEventListener?.('focus',maybePrompt);document.addEventListener('visibilitychange',()=>{if(!document.hidden)maybePrompt();});root.setInterval(maybePrompt,60000);},open,capture,next,back,focus,style,cooking,budgetChanged,build,cancel,dismiss,show,maybePrompt};
 })(globalThis);

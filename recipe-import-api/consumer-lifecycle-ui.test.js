@@ -192,8 +192,8 @@ function kitchenForm(app, overrides = {}) {
 
 function conversationalFixture(app,payload){
  const slots=app.context.MealBudgetCore.mealSlots(payload.profile.meals),week=app.context.MealBudgetCore.dayNames(payload.profile.days).map(day=>({day,meals:slots.map(cat=>payload.recipes.filter(row=>row.cat===cat&&(!payload.profile.tailoredMeals?.[cat]?.recipeIds?.length||payload.profile.tailoredMeals[cat].recipeIds.includes(row.id))).sort((a,b)=>a.nutrition.kcal-b.nutrition.kcal)[0].id)})),mealServings=Object.fromEntries(week.flatMap(row=>row.meals.map((_,i)=>[row.day+'::'+i,app.context.MealBudgetCore.portionFactor(payload.recipes.find(r=>r.id===row.meals[i]),payload.profile)??.25])));
- app.context.planFixture={...app.state(),profile:payload.profile,week,mealServings};
- const shopping=app.run('MealBudgetCore.buildShopping(PantryCore.shoppingInput(planFixture,recipes))'),items=app.context.automaticCatalogItems(Object.entries(shopping));
+ app.context.planFixture={...app.state(),profile:payload.profile,week,mealServings};app.context.planFixtureRecipes=payload.recipes;
+ const shopping=app.run('MealBudgetCore.buildShopping(PantryCore.shoppingInput(planFixture,planFixtureRecipes))'),items=app.context.automaticCatalogItems(Object.entries(shopping));
  const recommendations=items.map(item=>({key:item.key,match:{productName:'Test pack for '+item.name},plan:{requestedQuantity:item.quantity,totalQuantity:item.quantity,totalCostGBP:.25,products:[{packs:1,costGBP:.25,productName:'Test pack',url:'https://groceries.asda.com/product/test'}]}}));
  return {status:'feasible',store:'Asda',week,mealServings,basket:{complete:true,totalCostGBP:recommendations.length*.25,recommendations}};
 }
@@ -984,4 +984,43 @@ test('assistant review cannot use choices after the household settings change',a
 
 test('saving chosen meals during setup completes setup and opens the usable plan',async()=>{
  const app=harness({state:{setupComplete:false,week:[],profile:exactManualProfile()}});await app.flush();assert.equal(app.run('setupActive'),true);app.context.reviewSelectedMeals();app.context.saveReviewedMeals();assert.equal(app.run('setupActive'),false);assert.equal(app.state().setupComplete,true);assert.equal(app.state().week.length,7);assert.equal(app.node('setup').hidden,true);assert.equal(app.node('app').inert,false);assert.equal(JSON.parse(app.storage.get('mealPlannerState')).setupComplete,true);
+});
+
+function weekForm(app,changes={}){
+ const p=app.state().profile;
+ for(const [id,value] of Object.entries({'week-budget':p.budget,'week-people':p.people,'week-days':p.days,'week-meals':p.meals,'week-calories':p.calories,'week-protein':p.protein,'week-supermarket':p.supermarket,'week-cookingStyle':'mixed','week-calorieMode':p.nutritionTargets.calorieMode,'week-fat':p.nutritionTargets.fatMax??'','week-carbs':p.nutritionTargets.carbs??'','week-carbMode':p.nutritionTargets.carbMode||'target','week-meal-Breakfast':'recipe:everyday-fuel10k-chocolate-flakes-milk','week-meal-Lunch':'recipe:tuna','week-meal-Dinner':'recipe:extra31','week-portions-Breakfast':2,'week-portions-Lunch':1,'week-portions-Dinner':1,'week-cereal':70,'week-milk':200,'week-milkUnit':'g',...changes}))app.node(id).value=value;
+}
+
+test('unified weekly preview keeps saved settings and meals unchanged until explicit save, then preserves 2/1/1 and measured cereal',async()=>{
+ const app=harness({state:{week:[],profile:exactManualProfile()}});await app.flush();const before=app.state();await app.context.WeekPlannerUI.open();weekForm(app,{'week-budget':75});await app.context.WeekPlannerUI.preview();assert.match(app.node('sheet').innerHTML,/PREVIEW · NOT SAVED YET/);assert.match(app.node('sheet').innerHTML,/1911 kcal/);assert.match(app.node('sheet').innerHTML,/prices are pending/);assert.deepEqual(app.state(),before);
+ app.context.WeekPlannerUI.save();const saved=app.state();assert.equal(saved.week.length,7);assert.equal(saved.profile.budget,75);assert.equal(saved.mealServings['Monday::0'],2);assert.equal(saved.mealServings['Monday::1'],1);assert.equal(saved.mealServings['Monday::2'],1);assert.equal(saved.customRecipes.length,before.customRecipes.length+1);assert.equal(saved.customRecipes.at(-1).ings[0][1],70);assert.equal(saved.planSource,'manual');assert.equal(saved.weeklyRoutine.cookingStyle,'mixed');assert.equal(saved.weeklyRoutine.reviewedDate,app.context.WeeklyRoutineCore.date(new Date(),saved.weeklyRoutine.timeZone));assert.deepEqual(saved.pantry,before.pantry);assert.deepEqual(saved.pantryLedger,before.pantryLedger);assert.deepEqual(saved.foodLog,before.foodLog);
+ const restored=harness({state:saved});await restored.flush();assert.equal(restored.state().mealServings['Monday::0'],2);assert.equal(restored.state().profile.budget,75);
+});
+test('closing or editing a weekly preview cannot commit stale choices and quota failure leaves the saved week intact',async()=>{
+ const app=harness({state:{profile:exactManualProfile()}});await app.flush();const before=app.state();await app.context.WeekPlannerUI.open();weekForm(app);await app.context.WeekPlannerUI.preview();app.context.closeModal();app.context.WeekPlannerUI.save();assert.deepEqual(app.state(),before);
+ await app.context.WeekPlannerUI.open();weekForm(app);await app.context.WeekPlannerUI.preview();app.run('state.pantry[0].qty+=1');app.context.WeekPlannerUI.save();assert.match(app.node('weekPlannerError').textContent,/stock changed/);assert.deepEqual(app.state().week,before.week);
+ const current=app.state();await app.context.WeekPlannerUI.open();weekForm(app);await app.context.WeekPlannerUI.preview();const original=app.context.localStorage.setItem;app.context.localStorage.setItem=()=>{throw new DOMException('Full','QuotaExceededError')};app.context.WeekPlannerUI.save();assert.deepEqual(app.state(),current);app.context.localStorage.setItem=original;app.context.WeekPlannerUI.save();assert.equal(app.state().week.length,7);
+});
+test('an automatic weekly preview failure preserves settings and explains the failed check without saving',async()=>{
+ const app=harness({state:{profile:exactManualProfile()}});await app.flush();const before=app.state();await app.context.WeekPlannerUI.open();weekForm(app,{'week-meal-Dinner':'auto'});
+ app.context.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({status:'unavailable',warnings:['Missing compatible pack prices: Kidney beans.']})});await app.context.WeekPlannerUI.preview();assert.match(app.node('weekPlannerError').textContent,/Kidney beans/);assert.match(app.node('weekPlannerError').textContent,/saved week is unchanged/);assert.deepEqual(app.state(),before);
+});
+test('plan history previews exact meal undo while preserving current purchases, stock and diary entries',async()=>{
+ const app=harness({state:{profile:exactManualProfile()}});await app.flush();app.run("state.week=MealBudgetCore.dayNames(7).map(day=>({day,meals:['everyday-fuel10k-chocolate-flakes-milk','tuna','extra31']}));state.mealServings=Object.fromEntries(state.week.flatMap(row=>[2,1,1].map((n,i)=>[row.day+'::'+i,n])));state.planProfile=structuredClone(state.profile)");
+ const before=app.state();await app.context.WeekPlannerUI.open();weekForm(app,{'week-budget':70});await app.context.WeekPlannerUI.preview();app.context.WeekPlannerUI.save();assert.equal(app.state().planRevisions.length,1);
+ app.context.WeekPlannerUI.history();assert.match(app.node('sheet').innerHTML,/Preview undo/);await app.context.WeekPlannerUI.restore(0);assert.match(app.node('sheet').innerHTML,/Restoring meal choices/);app.context.WeekPlannerUI.save();assert.deepEqual(app.state().week,before.week);assert.deepEqual(app.state().mealServings,before.mealServings);assert.equal(app.state().profile.budget,80);assert.deepEqual(app.state().pantry,before.pantry);assert.deepEqual(app.state().pantryLedger,before.pantryLedger);assert.deepEqual(app.state().foodLog,before.foodLog);
+});
+test('recipe taste reasons persist and remain independent of the saved meal plan',async()=>{
+ const app=harness();await app.flush();const before=app.state().week;app.context.showRecipe('tuna');app.context.RecipeTasteUI.set('tuna','skip',true);app.context.RecipeTasteUI.reason('tuna','effort');assert.equal(app.state().recipeFeedback.find(r=>r.recipeId==='tuna').reasons[0],'effort');assert.deepEqual(app.state().week,before);assert.match(app.node('sheet').innerHTML,/Too much preparation/);
+ const restored=harness({state:app.state()});await restored.flush();restored.context.showRecipe('tuna');assert.match(restored.node('sheet').innerHTML,/What did you think/);assert.equal(restored.context.RecipeExperience.reasonsFor('tuna',restored.state())[0],'effort');
+});
+
+test('automatic weekly previews use the draft supermarket and measured recipes while retaining the saved week until save',async()=>{
+ const app=harness({state:{profile:exactManualProfile()}});await app.flush();const before=app.state();await app.context.WeekPlannerUI.open();weekForm(app,{'week-days':1,'week-meal-Dinner':'auto','week-supermarket':'Asda','week-protein':0,'week-calories':10000,'week-calorieMode':'max','week-fat':500});let body;
+ app.context.fetch=async(url,request)=>{if(url==='/api/planner/generate'){body=JSON.parse(request.body);return {ok:true,status:200,text:async()=>JSON.stringify(conversationalFixture(app,body))};}return {ok:false,status:503,text:async()=>''};};
+ await app.context.WeekPlannerUI.preview();assert.equal(app.node('weekPlannerError').textContent,'');assert.match(app.node('sheet').innerHTML,/PREVIEW · NOT SAVED YET/);assert.equal(body.profile.supermarket,'Asda');assert.equal(body.profile.mealPortions.Breakfast,2);assert.ok(body.recipes.some(r=>r.id.startsWith('user_week_cereal_')));assert.deepEqual(app.state(),before);app.context.WeekPlannerUI.save();assert.equal(app.state().profile.supermarket,'Asda');assert.equal(app.state().week.length,1);assert.equal(app.state().mealServings['Monday::0'],2);
+});
+test('closing weekly setup aborts a pending automatic preview and discards its late result',async()=>{
+ const app=harness({state:{profile:exactManualProfile()}});await app.flush();const before=app.state();await app.context.WeekPlannerUI.open();weekForm(app,{'week-meal-Dinner':'auto'});let release,entered;const ready=new Promise(resolve=>entered=resolve);
+ app.context.fetch=async(url)=>{if(url==='/api/planner/generate'){entered();await new Promise(resolve=>release=resolve);}return {ok:true,status:200,text:async()=>JSON.stringify({status:'unavailable',warnings:['No fit']})};};const pending=app.context.WeekPlannerUI.preview();await ready;app.context.closeModal();release();await pending;assert.deepEqual(app.state(),before);app.context.WeekPlannerUI.save();assert.deepEqual(app.state(),before);
 });

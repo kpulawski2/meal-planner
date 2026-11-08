@@ -18,7 +18,9 @@
     const rows = recipes.filter(recipe => ids.has(recipe.id)).map(recipe => ({ id: recipe.id, name: recipe.name, cat: recipe.cat,
       ings: recipe.ings, servings: recipe.servings, fixedBatch: recipe.fixedBatch, kcal: recipe.kcal, p: recipe.p,
       c: recipe.c, f: recipe.f, nutritionStatus: recipe.nutritionStatus, nutrition: recipe.nutrition,
-      equipment: recipe.equipment, unavailable: recipe.unavailable, dishFamily: recipe.dishFamily, copiedFrom: recipe.copiedFrom }));
+      equipment: recipe.equipment, cookTime:recipe.cookTime, time:recipe.time, fixedPortion:recipe.fixedPortion,
+      tags:recipe.tags, flavourProfile:recipe.flavourProfile, freezeMinutes:recipe.freezeMinutes,
+      unavailable: recipe.unavailable, dishFamily: recipe.dishFamily, copiedFrom: recipe.copiedFrom }));
     return JSON.stringify({ store, catalogue, personalPrices: personalPayload(store), profile: state.profile, week: state.week, mealServings: state.mealServings,
       locked: state.locked, pantry: state.pantry, ledger: state.pantryLedger, leftovers: state.leftovers,
       feedback: state.recipeFeedback, recent: state.recentMeals, rows });
