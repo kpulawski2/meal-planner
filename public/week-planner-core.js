@@ -14,6 +14,7 @@
  function bounded(value,min,max,label,integer=false){const n=Number(value);if(value==null||String(value).trim()===''||!Number.isFinite(n)||n<min||n>max||integer&&!Number.isInteger(n))throw new Error('Enter '+label+' between '+min+' and '+max+'.');return n;}
  function candidate(value,profile,recipes){
   const p=clone(profile),byId=new Map(recipes.map(r=>[r.id,r]));
+  if(value.startDate!==undefined){if(!root.PlanCalendarCore?.valid(value.startDate))throw new Error('Choose a valid plan start date.');p.startDate=value.startDate;}
   for(const [key,min,max,int] of [['budget',0,10000,false],['people',1,50,true],['days',1,14,true],['meals',2,4,true],['calories',400,10000,false],['protein',0,1000,false]])p[key]=bounded(value[key],min,max,key,int);
   if(!['Asda','Lidl','Aldi'].includes(value.supermarket))throw new Error('Choose a supported supermarket.');
   if(!['batch','fresh','mixed'].includes(value.cookingStyle))throw new Error('Choose how you want to cook.');
@@ -55,5 +56,12 @@
   }
   return output.slice(0,3);
  }
- root.WeekPlannerCore=Object.freeze({draft,candidate,cereal,nutrition,suggestions});
+ function savedDraft(value){
+  const keep=['startDate','budget','people','days','meals','calories','protein','supermarket','cookingStyle','mealFocus','choices','mealPortions','nutritionTargets','cereal'];
+  const clean=Object.fromEntries(keep.filter(key=>Object.hasOwn(value,key)).map(key=>[key,clone(value[key])]));
+  if(JSON.stringify(clean).length>30000)throw new Error('The plan draft is too large to save.');
+  return {schemaVersion:1,value:clean,updatedAt:new Date().toISOString()};
+ }
+ function recoverDraft(saved,profile){if(saved?.schemaVersion!==1||!saved.value||typeof saved.value!=='object'||Array.isArray(saved.value))return null;try{const base=draft(profile),clean=savedDraft(saved.value).value,object=value=>value&&typeof value==='object'&&!Array.isArray(value)?value:{};return {...base,...clean,choices:{...base.choices,...Object.fromEntries(Object.entries(object(clean.choices)).filter(([cat,value])=>['Breakfast','Lunch','Dinner','Snack'].includes(cat)&&typeof value==='string'&&value.length<=200))},mealPortions:{...base.mealPortions,...object(clean.mealPortions)},nutritionTargets:{...base.nutritionTargets,...object(clean.nutritionTargets)},...(clean.cereal?{cereal:object(clean.cereal)}:{})};}catch{return null;}}
+ root.WeekPlannerCore=Object.freeze({draft,candidate,cereal,nutrition,suggestions,savedDraft,recoverDraft});
 })(globalThis);

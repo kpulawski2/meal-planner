@@ -1,4 +1,5 @@
 import express from 'express';
+import { readReceiptImage } from './receipt-reader.js';
 import { createPrivateAccess } from './private-access.js';
 import * as cheerio from 'cheerio';
 import { execFile } from 'node:child_process';
@@ -827,6 +828,18 @@ app.get('/api/foods/barcode/:code', catalogRateLimit, async (req,res) => {
   try{const result=await lookupBarcodeProduct(req.params.code,{signal:controller.signal});if(!res.destroyed)res.json({ok:true,...result});}
   catch(error){if(!res.destroyed&&!res.headersSent){if(error.status===429)res.set('Retry-After','30');res.status(error instanceof TypeError?400:error.status===429?429:502).json({error:cleanString(error.message||'Product lookup is unavailable. Enter the pack label.',300)});}}
   finally{res.off('close',closed);}
+});
+const receiptAccess=createImportAccess({token:IMPORT_API_TOKEN,limit:6,messages:{unauthorized:'Open receipt prices inside Meal Planner to read a photo.',limit:'Several receipts have been read recently. Please wait a few minutes; your saved prices are safe.',busy:'Receipt reading is busy. Please retry in a minute.'}});
+const receiptUpload=multer({storage:multer.memoryStorage(),limits:{fileSize:3*1024*1024,files:1,fields:0},fileFilter:(_req,file,done)=>done(null,file.mimetype==='image/jpeg')});
+app.post('/api/receipts/read',receiptAccess,(req,res)=>{
+ receiptUpload.single('receipt')(req,res,async error=>{
+  if(error)return res.status(400).json({error:'Choose a JPEG receipt photo under 3 MB.'});
+  if(!req.file)return res.status(400).json({error:'Choose a supported receipt photo.'});
+  let releaseAi;
+  try{const image=req.file.buffer;if(image.length<4||image[0]!==255||image[1]!==216||image[2]!==255)throw new TypeError('Use a readable JPEG receipt image.');if(!GROQ_API_KEY)return res.status(503).json({error:'Photo reading is unavailable. Paste receipt text or enter the prices manually.'});releaseAi=claimAiImport();const receipt=await readReceiptImage(req.file.buffer,{generate:groqGenerate});if(!res.destroyed)res.json({ok:true,receipt,reviewRequired:true});}
+  catch(error){if(!res.destroyed){if(error.retryAfterSeconds)res.set('Retry-After',String(error.retryAfterSeconds));res.status(error instanceof TypeError?400:[429,503].includes(error.status)?error.status:502).json({error:cleanString(error.message||'Receipt reading is unavailable. Try a clearer photo or paste receipt text.',300)});}}
+  finally{if(req.file)req.file.buffer=null;releaseAi?.();}
+ });
 });
 const kitchenChatAccess = createImportAccess({ token: IMPORT_API_TOKEN, limit: 20 });
 app.post('/api/kitchen/chat', kitchenChatAccess, async (req, res) => {

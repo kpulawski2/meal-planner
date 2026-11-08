@@ -92,5 +92,5 @@
   // RFC 5545 lines fold at 75 UTF-8 octets, without splitting a code point.
   return lines.map(line=>{let result='',length=0;for(const char of line){const bytes=new TextEncoder().encode(char).length;if(length+bytes>75){result+='\r\n ';length=1;}result+=char;length+=bytes;}return result;}).join('\r\n')+'\r\n';
  }
- root.WeeklyRoutineCore=Object.freeze({days,normalize,parts,date,next,status,interpret,revision,calendar,zone});
+ root.WeeklyRoutineCore=Object.freeze({days,normalize,parts,date,next,status,interpret,revision,calendar,zone,wallToUTC});
 })(globalThis);
