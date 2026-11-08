@@ -12,12 +12,20 @@
  const clone=value=>JSON.parse(JSON.stringify(value));
  const validTime=value=>typeof value==='string'&&Number.isFinite(Date.parse(value));
  const idOf=recipe=>text(typeof recipe==='string'?recipe:recipe?.id);
+ const feedbackReasons=Object.freeze({bland:'Too bland',effort:'Too much preparation',cost:'Too expensive',texture:'Didn’t like the texture',spicy:'Too spicy',flavour:'Great flavour',easy:'Easy to make',value:'Good value'});
+ const reasonKinds={again:['flavour','easy','value'],skip:['bland','effort','cost','texture','spicy'],neutral:[]};
+ const traitCache=new WeakMap();
+ function traits(recipe){
+  if(!recipe||typeof recipe!=='object')return {};if(traitCache.has(recipe))return traitCache.get(recipe);
+  const ingredients=(recipe.ings||[]).map(row=>String(row[0]).toLowerCase()),seasonings=ingredients.filter(name=>/paprika|cumin|garlic|ginger|curry|oregano|basil|thyme|rosemary|coriander|chilli|chili|cajun|fajita|seasoning|lemon|lime|soy sauce|teriyaki|sriracha/.test(name)).length;
+  const value={time:Number(recipe.cookTime??recipe.time)||0,cost:Number(recipe.cost)>0?Number(recipe.cost):null,seasonings,spicy:ingredients.some(name=>/chilli|chili|sriracha|hot sauce|cayenne/.test(name))};traitCache.set(recipe,value);return value;
+ }
  function feedbackRows(state={}){
   const latest=new Map();
   for(const row of Array.isArray(state.recipeFeedback)?state.recipeFeedback:[]){
    const recipeId=text(row?.recipeId),value=row?.value;
    if(!recipeId||!['again','skip','neutral'].includes(value)||!validTime(row.updatedAt))continue;
-   if(!latest.has(recipeId)||Date.parse(latest.get(recipeId).updatedAt)<=Date.parse(row.updatedAt))latest.set(recipeId,{recipeId,value,updatedAt:new Date(row.updatedAt).toISOString()});
+   if(!latest.has(recipeId)||Date.parse(latest.get(recipeId).updatedAt)<=Date.parse(row.updatedAt)){const reasons=[...new Set((Array.isArray(row.reasons)?row.reasons:[]).filter(reason=>reasonKinds[value].includes(reason)))],source=row.traits||{},clean={time:Number.isFinite(source.time)&&source.time>0?Math.min(1440,source.time):0,cost:Number.isFinite(source.cost)&&source.cost>0?Math.min(1000,source.cost):null,seasonings:Number.isInteger(source.seasonings)?Math.max(0,Math.min(30,source.seasonings)):0,spicy:source.spicy===true};latest.set(recipeId,{recipeId,value,updatedAt:new Date(row.updatedAt).toISOString(),...(reasons.length?{reasons,traits:clean}:{})});}
   }
   return [...latest.values()].sort((a,b)=>Date.parse(b.updatedAt)-Date.parse(a.updatedAt)).slice(0,5000);
  }
@@ -45,7 +53,7 @@
   if(!state||typeof state!=='object')return {feedback:new Map(),history:[]};
   const previous=tasteCache.get(state),feedback=state.recipeFeedback,history=state.recentMeals;
   if(previous&&previous.feedbackSource===feedback&&previous.historySource===history&&previous.feedbackLength===feedback?.length&&previous.historyLength===history?.length)return previous;
-  const value={feedbackSource:feedback,historySource:history,feedbackLength:feedback?.length,historyLength:history?.length,feedback:new Map(feedbackRows(state).map(row=>[row.recipeId,row.value])),history:historyRows(state,Infinity)};
+  const normalized=feedbackRows(state),value={feedbackSource:feedback,historySource:history,feedbackLength:feedback?.length,historyLength:history?.length,feedback:new Map(normalized.map(row=>[row.recipeId,row.value])),reasons:normalized.filter(row=>row.reasons?.length).slice(0,50),history:historyRows(state,Infinity)};
   tasteCache.set(state,value);return value;
  }
  function feedbackValue(recipe,state={}){
@@ -69,6 +77,12 @@
   state.recentMeals=historyRows({recentMeals:[{recipeId,dishFamily:text(recipe?.dishFamily,80)||root.MealBudgetCore?.dishFamily?.(recipe)||'',cookedAt,transactionId,portions:options.portions},...current]},now);
   return true;
  }
+ function reasonsFor(recipe,state={}){const id=idOf(recipe),source=text(recipe?.copiedFrom?.recipeId),rows=feedbackRows(state);const own=rows.find(row=>row.recipeId===id);return own?own.reasons||[]:rows.find(row=>row.recipeId===source)?.reasons||[];}
+ function setReasons(state,recipe,reasons){
+  const id=idOf(recipe),value=feedbackValue(recipe,state);if(!value)throw new Error('Like or dislike the recipe before adding a reason.');
+  if(!Array.isArray(reasons)||reasons.some(reason=>!reasonKinds[value].includes(reason)))throw new Error('Choose a supported reason.');
+  const rows=feedbackRows(state).filter(row=>row.recipeId!==id);rows.unshift({recipeId:id,value,reasons:[...new Set(reasons)],traits:traits(recipe),updatedAt:new Date().toISOString()});state.recipeFeedback=feedbackRows({recipeFeedback:rows});return state.recipeFeedback;
+ }
  function excludeFutureChoices(state,recipes){
   const byId=new Map(recipes.map(r=>[r.id,r])),excluded=id=>byId.has(id)&&!allowedFeedback(byId.get(id),state),p=state.profile||{},changes={daily:0,locks:0};
   p.repeatMeals={...p.repeatMeals};for(const [cat,id] of Object.entries(p.repeatMeals))if(excluded(id)){delete p.repeatMeals[cat];changes.daily++;}
@@ -81,6 +95,15 @@
  function feedbackScore(recipe,state={},options={}){
   const now=options.now??Date.now(),id=idOf(recipe),family=text(recipe?.dishFamily,80)||root.MealBudgetCore?.dishFamily?.(recipe)||'';
   let score=feedbackValue(recipe,state)==='again'?24:0,penalty=0;
+  const features=traits(recipe);let preference=0;
+  for(const row of tasteIndex(state).reasons||[]){
+   if(row.reasons.includes('effort')&&row.traits.time>0&&features.time>0)preference+=features.time<row.traits.time?2:-2;
+   if(row.reasons.includes('easy')&&row.traits.time>0&&features.time>0)preference+=features.time<=row.traits.time?2:-1;
+   if(row.reasons.includes('bland')||row.reasons.includes('flavour'))preference+=features.seasonings>=3?2:features.seasonings===0?-1:0;
+   if(row.reasons.includes('spicy')&&features.spicy)preference-=3;
+   if((row.reasons.includes('cost')||row.reasons.includes('value'))&&row.traits.cost&&features.cost)preference+=features.cost<row.traits.cost?2:-1;
+  }
+  score+=Math.max(-12,Math.min(12,preference));
   for(const row of tasteIndex(state).history){
    const age=(now-Date.parse(row.cookedAt))/DAY;if(age<0||age>=21)continue;
    const exact=row.recipeId===id||row.recipeId===recipe?.copiedFrom?.recipeId;
@@ -151,5 +174,5 @@
   next.modifications=[text(recipe.modifications,5000),next.changeNotice].filter(Boolean).join(' ');
   return next;
  }
- root.RecipeExperience=Object.freeze({normalizeState,personalNote,setPersonalNote,feedbackValue,allowedFeedback,setFeedback,excludeFutureChoices,recordCook,feedbackScore,rank,readiness,editableCopy,applyCorrections});
+ root.RecipeExperience=Object.freeze({normalizeState,personalNote,setPersonalNote,feedbackValue,allowedFeedback,setFeedback,excludeFutureChoices,recordCook,feedbackScore,rank,readiness,editableCopy,applyCorrections,feedbackReasons,reasonKinds,reasonsFor,setReasons});
 })(globalThis);
