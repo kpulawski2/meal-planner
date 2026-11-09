@@ -18,6 +18,7 @@ import { PRICE_LOOKUP_STORES, lookupStoreItem, splitBatches } from './price-sear
 import { catalogStoreInfo } from './catalog-adapter.js';
 import { normalizePersonalPriceOptions } from './personal-prices.js';
 import { searchCatalog, browseCatalog, recommendCatalogItems, optimizeMealPlan, findOneOffMeals, fetchProductPage, clearCatalogCache, catalogueStatus, cachedCatalogueStatus } from './catalog-service.js';
+import {MAX_CATALOG_ITEMS} from './catalog-limits.js';
 import { normalizeOneOffRequest } from './one-off-meal.js';
 import { normalizePlannerRequest } from './planner-request.js';
 import { createBarcodeLookup } from './barcode-products.js';
@@ -913,8 +914,8 @@ app.post('/api/catalog/recommend', catalogRateLimit, async (req, res) => {
     const rawItems = req.body?.items;
     if (req.body?.allowReferencePrices !== undefined && typeof req.body.allowReferencePrices !== 'boolean') return res.status(400).json({ error: 'Reference prices must be on or off.' });
     if (!['Asda','Lidl','Aldi'].includes(store)) return res.status(400).json({error:'Store must be Asda, Lidl or Aldi.'});
-    if (!Array.isArray(rawItems) || rawItems.length < 1 || rawItems.length > 200) {
-      return res.status(400).json({ error: 'Send between 1 and 200 shopping-list ingredients.' });
+    if (!Array.isArray(rawItems) || rawItems.length < 1 || rawItems.length > MAX_CATALOG_ITEMS) {
+      return res.status(400).json({ error: `Send between 1 and ${MAX_CATALOG_ITEMS} shopping-list ingredients.` });
     }
     const items = rawItems.map(item => ({
       key: cleanString(item?.key, 180),
