@@ -11,7 +11,8 @@
     return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
   }
   function localDate(date = new Date()) {
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(date));
+    return ['year','month','day'].map(type=>parts.find(part=>part.type===type).value).join('-');
   }
   function nutrition(raw = {}) {
     if (!number(raw.kcal) || Number(raw.kcal) > 100000) throw new Error('Enter valid calories or choose a food with a complete calorie estimate.');

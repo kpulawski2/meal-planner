@@ -300,7 +300,7 @@ test('recent-food shortcuts review frozen label values and selected diary dates 
   const before = app.state(); app.context.FoodPickerUI.open('2026-10-13'); assert.match(app.node('foodPickerResults').innerHTML, /My snack/);
   app.context.FoodLogUI.setDate('2026-10-13'); app.context.FoodLogUI.openRecent('past-snack');
   assert.equal(app.node('diaryAmount').value, '25'); assert.equal(app.node('diaryUnit').value, 'g'); assert.match(app.node('diaryPreview').innerHTML, /100 kcal/); assert.match(app.node('diaryPreview').innerHTML, /missing macros/);
-  assert.deepEqual(app.state(), before, 'Opening the shortcut records nothing.');
+  assert.deepEqual(app.state(), {...before,interfacePreferences:{...before.interfacePreferences,dailyDate:'2026-10-13',selectedOnDate:app.context.FoodLogCore.localDate()}}, 'Browsing remembers only the chosen date; opening the shortcut records nothing.');
   app.node('diaryDate').value = '2026-10-13'; app.node('diarySaveFood').checked = false; app.context.FoodLogUI.commit();
   const current = app.state(); assert.equal(current.foodLog.length, 2); assert.equal(current.foodLog[1].date, '2026-10-13'); assert.equal(current.foodLog[1].nutrition.kcal, 100); assert.equal(current.foodLog[1].nutrition.f, null); assert.equal(current.foodLog[1].originKey, null);
   for (const key of ['week', 'pantry', 'leftovers', 'profile', 'savedFoods', 'pantryLedger']) assert.deepEqual(current[key], before[key], key);
@@ -310,7 +310,7 @@ test('diary date navigation and changing entry mode retain the chosen calendar d
   const app = harness(); await app.flush(); const before = app.state();
   app.context.FoodLogUI.setDate('2026-10-31'); app.context.FoodLogUI.moveDate(1); assert.match(app.context.FoodLogUI.panel(), /value="2026-11-01"/);
   app.context.FoodLogUI.open(); app.node('diaryDate').value = '2026-11-01'; app.context.FoodLogUI.mode(true); assert.match(app.node('sheet').innerHTML, /value="2026-11-01"/);
-  app.context.FoodLogUI.moveDate(-1); assert.match(app.context.FoodLogUI.panel(), /value="2026-10-31"/); assert.deepEqual(app.state(), before);
+  app.context.FoodLogUI.moveDate(-1); assert.match(app.context.FoodLogUI.panel(), /value="2026-10-31"/); assert.deepEqual(app.state(), {...before,interfacePreferences:{...before.interfacePreferences,dailyDate:'2026-10-31',selectedOnDate:app.context.FoodLogCore.localDate()}});
 });
 test('the kitchen assistant builds a real measured batch offline and keeps the plan, diary, stock and targets intact', async () => {
   const app = harness(); await app.flush(); const before = app.state();
@@ -798,13 +798,17 @@ test('changing extra cooked portions at confirmation first shows the revised ing
   assert.equal(app.state().pantry.find(row => row.name === 'Oats').qty, 950);
 });
 
-test('next up advances past cooked meals and shows a finished day once every slot is served', async () => {
+test('cooking progress advances while every prepared meal remains visible and unlogged on the daily page', async () => {
   const app = harness(); await app.flush();
   app.context.PantryUI.openCook('Monday', 0); app.context.PantryUI.confirmCook(false);
   assert.notEqual(app.context.nextMealIndex(app.state().week[0]), 0);
   app.run('for(const [index,id] of state.week[0].meals.entries()){const recipe=getRecipe(id);state.pantryLedger.cooked[PantryCore.slotKey(state,"Monday",index)]={recipeId:id,recipeSignature:PantryCore.recipeSignature(recipe),servings:getMealServings("Monday",index)};}renderHome();');
   assert.equal(app.context.nextMealIndex(app.state().week[0]), -1);
-  assert.match(app.elements.get('home').innerHTML, /You’re done for today/);
+  const markup=app.elements.get('home').innerHTML;
+  assert.doesNotMatch(markup, /You’re done for today/);
+  assert.equal((markup.match(/data-daily-meal=/g)||[]).length,app.state().week[0].meals.length);
+  assert.equal((markup.match(/>Prepared</g)||[]).length,app.state().week[0].meals.length);
+  assert.equal(app.state().foodLog.length,0,'Preparing every meal does not record eating them.');
 });
 
 test('export and actual backup import retain pantry transactions, taste and cooking history', async () => {
@@ -857,7 +861,7 @@ test('saved offline basket keeps its price date while changed quantities require
 test('the actual diary scales personal food, preserves history in backups and leaves household planning unchanged', async () => {
   const app = harness(); await app.flush();
   const original = app.state();
-  assert.match(app.node('home').innerHTML, /Food diary/);
+  assert.match(app.node('home').innerHTML, /Logged intake/);
   app.context.FoodLogUI.mode(true);
   for (const [id, value] of Object.entries({ diaryDate: '2026-10-11', diaryName: 'Snack bar', diaryBasis: '100', diaryBasisUnit: 'g', 'diary-kcal': '400', 'diary-p': '', 'diary-c': '50', 'diary-f': '18', diaryAmount: '25' })) app.node(id).value = value;
   app.node('diarySaveFood').checked = true;
@@ -1043,7 +1047,7 @@ test('scanner uses HD, hardware zoom and continuous focus while close still rele
 });
 test('usual shortcuts and safe undo affect only the diary, never exact plan portions or pantry stock',async()=>{
  const app=harness();await app.flush();const before=app.state();app.run("FoodLogCore.record(state,{date:FoodLogCore.localDate(),meal:'Breakfast',food:{name:'My cereal',quantity:100,unit:'g',nutrition:{kcal:389,p:25,c:60,f:4}},quantity:70},{id:'cereal-entry'})");app.context.EverydayUI.pinEntry('cereal-entry');const id=app.state().foodPins[0].id;assert.equal(app.state().foodPins[0].quantity,70);app.context.EverydayUI.log(id);assert.equal(app.state().foodLog.length,2);assert.equal(app.state().foodLog.at(-1).quantity,70);app.context.EverydayUI.log(id);assert.equal(app.state().foodLog.length,2);app.run('state.foodLog.at(-1).quantity=80');app.context.EverydayUI.undo();assert.equal(app.state().foodLog.length,2);assert.match(app.node('toast').textContent,/entry changed/);for(const key of ['profile','week','mealServings','pantry','pantryLedger'])assert.deepEqual(app.state()[key],before[key]);
- app.context.EverydayUI.simple(true);assert.match(app.node('home').innerHTML,/simple-primary-actions/);assert.doesNotMatch(app.node('home').innerHTML,/Budget &amp; plan checks/);app.context.EverydayUI.simple(false);assert.match(app.node('home').innerHTML,/Your meals/);
+ app.context.EverydayUI.simple(true);assert.match(app.node('home').innerHTML,/simple-primary-actions/);assert.doesNotMatch(app.node('home').innerHTML,/Budget &amp; plan checks/);app.context.EverydayUI.simple(false);assert.match(app.node('home').innerHTML,/Today’s meals/);assert.equal((app.node('home').innerHTML.match(/data-daily-meal=/g)||[]).length,app.state().week[0].meals.length);
 });
 
 test('full-screen camera controls return to manual entry and release tracks without changing the diary or plan',async()=>{

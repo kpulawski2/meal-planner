@@ -9,3 +9,26 @@
 .barcode-camera-tools{margin:16px 0;border:1px solid var(--line);border-radius:14px;padding:12px 16px}.barcode-camera-tools summary{cursor:pointer;min-height:30px}.barcode-camera-tools .field{margin-top:14px}.barcode-camera-tools input[type=range]{width:100%;min-height:44px}.barcode-viewfinder{position:relative;overflow:hidden;border-radius:18px;min-height:0;background:var(--card)}.barcode-viewfinder:has(video[hidden]){display:none}.barcode-viewfinder video{width:100%;max-height:340px;object-fit:contain}.barcode-frame{position:absolute;width:76%;height:30%;top:35%;left:12%;border:2px solid #aacbf0;border-radius:12px;pointer-events:none;box-shadow:0 0 0 1000px #0002}.barcode-video[hidden]{display:none}
 @media(max-width:480px){.simple-primary-actions .btn{font-size:15px;padding:12px}.usual-grid{grid-template-columns:1fr}.usual-food{min-height:88px}.receipt-line .grid{grid-template-columns:1fr}.shopping-list-actions .btn{width:100%}.simple-next h2{font-size:1.4rem}}
 @media(prefers-reduced-motion:reduce){.barcode-frame{animation:none}}
+
+/* Every meal stays visible, with recorded intake shared with the diary. */
+.daily-date-bar{margin:4px 0 16px}.daily-recorded-intake{margin:16px 0}
+.daily-recorded-intake .section-heading{margin:0 0 10px}.daily-recorded-intake .diary-source-note{margin:12px 0}
+.daily-meal-card{min-width:0}.daily-meal-card h3{font-size:1.25rem;line-height:1.35;margin:8px 0;overflow-wrap:anywhere}
+.daily-meal-heading,.daily-meal-status{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.daily-meal-card .actions{display:flex;gap:10px}.daily-meal-card>.actions .btn{flex:1;min-height:44px}
+.daily-meal-log{font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}.daily-meal-tools{margin-top:14px}.daily-meal-tools summary{min-height:36px}
+.daily-log-entry{display:flex;gap:16px;align-items:center;justify-content:space-between;width:100%;text-align:left;color:var(--text);background:var(--card);border:0;border-bottom:1px solid var(--line);padding:14px 0;font:inherit;cursor:pointer}
+.daily-log-entry span{display:grid;gap:6px;min-width:0;overflow-wrap:anywhere}.daily-log-entry small{color:var(--muted)}.daily-log-entry>b{font-size:.85rem;white-space:nowrap}
+.daily-plan-empty h2{font-size:1.25rem}.daily-recorded-intake .diary-energy{margin-top:0}
+#home .daily-page-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+#home .daily-page-heading>.text-button{white-space:nowrap;margin-top:12px}
+.daily-recorded-intake .diary-energy{padding:12px 16px;margin-bottom:10px}.daily-recorded-intake .diary-energy-mark{display:none}
+.daily-recorded-intake .diary-energy>div:first-child{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
+.daily-recorded-intake .diary-energy>div>span{display:none}.daily-recorded-intake .diary-energy h2{font-size:25px;margin:0;letter-spacing:-.5px}
+.daily-recorded-intake .diary-energy p{font-size:12px;margin:0}.daily-recorded-intake .diary-energy small.sub{flex-basis:100%;font-size:11px}
+.daily-recorded-intake .diary-macro{padding:10px 12px;gap:5px}.daily-recorded-intake .diary-macro>b{font-size:20px;margin:0}
+.daily-recorded-intake .macro-track{display:none}.daily-recorded-intake .diary-source-note{font-size:11px;margin:10px 0}
+#home .simple-primary-actions{margin:16px 0 24px}#home .simple-primary-actions .btn{min-height:44px}
+.daily-meal-section>p.sub{font-size:12px;margin:4px 0 10px}
+.daily-meal-section>.section-heading{margin:14px 0 8px}
+@media(max-width:430px){.daily-meal-card>.actions .btn{font-size:.85rem;padding:12px 10px}.daily-meal-heading .eyebrow{font-size:.75rem}.daily-meal-status .meal-state{font-size:.65rem}.daily-recorded-intake .diary-macro>b{overflow-wrap:anywhere}}
