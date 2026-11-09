@@ -8,6 +8,14 @@
   let api, date = core.localDate(), draft = null;
   const extras=()=>root.FoodNutrientsCore?.fields||[];
   const meals=['Breakfast','Lunch','Dinner','Snack'];
+  function prepareDate(state,value){if(root.DailyOverviewCore)state.interfacePreferences=root.DailyOverviewCore.viewPreferences(state,value);}
+  function setDate(value,{persist=true,notify=true}={}){
+    if(!core.validDate(value))return false;
+    try{
+      if(persist&&root.DailyOverviewCore){const next=structuredClone(api.state());prepareDate(next,value);if(api.commit)api.commit(next);else{const before=api.state().interfacePreferences;api.state().interfacePreferences=next.interfacePreferences;try{api.save();}catch(error){api.state().interfacePreferences=before;throw error;}}}
+      date=value;if(notify)api.changed();return true;
+    }catch(error){api.changed();api.toast('Date could not be changed. '+error.message);return false;}
+  }
   function recentButtons(context = 'panel') {
     const rows = core.recentFoods(api.state()); if (!rows.length) return '';
     return '<details class="diary-recents planner-help" ' + (context === 'modal' ? 'open' : '') + '><summary>Log a recent food again</summary><p class="sub">Starts a new diary entry with the last recorded amount and values. Review them against what you ate; check the current label if it changed.</p><div class="diary-recent-list">' + rows.map(row => '<button class="diary-recent-food" onclick="FoodLogUI.openRecent(decodeURIComponent(\'' + arg(row.id) + '\'))"><b>' + html(row.food.name) + '</b><span>' + html(shown(row.quantity) + ' ' + row.food.unit + ' · last logged ' + row.date) + '</span></button>').join('') + '</div></details>';
@@ -119,16 +127,16 @@
       if (document.getElementById('diarySaveFood')?.checked && api.state().savedFoods.length >= 300 && !(food.provenance && api.state().savedFoods.some(row=>root.BarcodeCore?.same(row.provenance?.barcode,food.provenance.barcode)))) throw new Error('Your saved food list is full. Untick Save this label to log it once.');
       const next=structuredClone(api.state());core.record(next, { id: draft.entry?.id, date: nextDate, food, quantity,meal,originKey: draft.entry?.originKey || draft.originKey });
       if (document.getElementById('diarySaveFood')?.checked) core.saveFood(next, food);
+      prepareDate(next,nextDate);
       if(api.commit)api.commit(next);else{Object.assign(api.state(),next);api.save();}
       date = nextDate; close();api.changed();api.toast('Added '+food.name);if(scanNext)root.BarcodeUI.open(nextDate,meal);
     } catch (error) { const target=document.getElementById('diaryPreview');if(target)target.textContent=error.message;api.toast(error.message); }
   }
   function close() { draft = null; api.close(); }
   root.FoodLogUI = Object.freeze({
-    configure(value) { api = value; core.normalizeState(api.state()); }, panel, search, select, preview, commit, close,measure,portion,
-    setDate(value) { if (core.validDate(value)) { date = value; api.changed(); } },
-    moveDate(offset) { try { date = core.shiftDate(date, offset); api.changed(); } catch (error) { api.toast(error.message); } },
-    today() { date = core.localDate(); api.changed(); },
+    configure(value) { api = value; core.normalizeState(api.state());if(root.DailyOverviewCore)date=root.DailyOverviewCore.selectedDate(api.state()); }, panel, search, select, preview, commit, close,measure,portion,setDate,
+    moveDate(offset) { try { setDate(core.shiftDate(date, offset)); } catch (error) { api.toast(error.message); } },
+    today() { setDate(core.localDate()); },
     openRecent(id) {
       const row = api.state().foodLog.find(row => row.id === id);
       if (!row) { api.toast('This diary entry is no longer available.'); return; }
@@ -144,10 +152,10 @@
     openSelection(key,logDate,meal) {const saved=key.startsWith('saved:')&&api.state().savedFoods.find(row=>row.id===key.slice(6));if(saved){this.openLabel({...saved,barcode:saved.provenance?.barcode,source:saved.provenance?.source,sourceUrl:saved.provenance?.sourceUrl},logDate,meal);return;}const recent=key.startsWith('recent:')&&api.state().foodLog.find(row=>row.id===key.slice(7));draft={manual:false,fromPicker:true,selection:key,logDate,meal,...(recent?{snapshotFood:core.definition(recent.food),portions:recent.quantity}: {})};draw();},
     openLabel(product,logDate,meal='Snack') { draft={manual:true,meal,productName:product.name,reviewReady:Boolean(product.name&&product.nutrition?.kcal!=null),provenance:root.BarcodeCore?.provenance(product),logDate:core.validDate(logDate)?logDate:date,warnings:product.warnings||[],brand:product.brand||''}; draw(); document.getElementById('diaryName').value=product.name||'';document.getElementById('diaryBasis').value=product.quantity||100;document.getElementById('diaryBasisUnit').value=['g','ml'].includes(product.unit)?product.unit:'g';document.getElementById('diaryUnit').value=document.getElementById('diaryBasisUnit').value;document.getElementById('diaryAmount').value=product.quantity||100;document.getElementById('diaryServing').value=product.serving?.quantity??'';document.getElementById('diaryPack').value=product.pack?.quantity??'';for(const key of ['kcal','p','c','f',...extras().map(field=>field.key)])document.getElementById('diary-'+key).value=product.nutrition?.[key]??'';const target=document.getElementById('diaryPreview');target.textContent=(product.warnings||[]).join(' '); preview();if(product.serving?.quantity)portion(1); },
     mode(manual) { const nextDate = document.getElementById('diaryDate')?.value; draft = { manual,meal:document.getElementById('diaryMeal')?.value,logDate: core.validDate(nextDate) ? nextDate : date }; draw(); },
-    openRecipe(id, day = null, index = null) {
+    openRecipe(id, day = null, index = null, logDate = null) {
       const recipe = api.recipes().find(row => row.id === id);
       if (!recipe || !api.recipeNutrition(recipe).complete) { api.toast('Complete the recipe nutrition before logging it.'); return; }
-      draft = { manual: false,logDate:day==null?date:root.PlanCalendarCore?.dateFor(api.state(),day)||date,meal:recipe.cat==='Fruit'?'Snack':recipe.cat,selection: 'recipe:' + id, portions: day == null ? 1 : api.portions(day, index) / Math.max(1, Number(api.state().profile.people) || 1),
+      draft = { manual: false,logDate:core.validDate(logDate)?logDate:day==null?date:root.PlanCalendarCore?.dateFor(api.state(),day)||date,meal:recipe.cat==='Fruit'?'Snack':recipe.cat,selection: 'recipe:' + id, portions: day == null ? 1 : api.portions(day, index) / Math.max(1, Number(api.state().profile.people) || 1),
         originKey: day == null ? null : (api.state().pantryLedger?.planId || 'current') + '::' + day + '::' + index };
       draw();
     },

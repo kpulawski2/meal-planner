@@ -4,7 +4,7 @@
  function preferences(value={}){
   // Migrate the old independent views using the weekly plan as the source.
   const plannedDay=[value.plannedDay,value.planDay,value.homeDay].find(day=>typeof day==='string'&&day.length>0)?.slice(0,100)||'';
-  return {simpleMode:value.simpleMode===true,selectedOnDate:/^\d{4}-\d{2}-\d{2}$/.test(value.selectedOnDate||'')?value.selectedOnDate:'',palette:['navy','clay','slate'].includes(value.palette)?value.palette:'navy',theme:['system','light','dark'].includes(value.theme)?value.theme:'system',plannedDay,homeDay:plannedDay,planDay:plannedDay,planView:value.planView==='all'?'all':'focus',recipeSort:['recommended','protein','calories','time','name'].includes(value.recipeSort)?value.recipeSort:'recommended'};}
+  return {simpleMode:value.simpleMode===true,dailyDate:/^\d{4}-\d{2}-\d{2}$/.test(value.dailyDate||'')?value.dailyDate:'',selectedOnDate:/^\d{4}-\d{2}-\d{2}$/.test(value.selectedOnDate||'')?value.selectedOnDate:'',palette:['navy','clay','slate'].includes(value.palette)?value.palette:'navy',theme:['system','light','dark'].includes(value.theme)?value.theme:'system',plannedDay,homeDay:plannedDay,planDay:plannedDay,planView:value.planView==='all'?'all':'focus',recipeSort:['recommended','protein','calories','time','name'].includes(value.recipeSort)?value.recipeSort:'recommended'};}
  function selectedDay(week,preferred,weekday){return week.find(day=>day.day===preferred)||week.find(day=>day.day===weekday)||week[0]||null;}
  function format(value,known=true){return known&&value!=null&&Number.isFinite(Number(value))?Math.round(Number(value)).toLocaleString('en-GB'):'—';}
  root.AppExperienceCore=Object.freeze({preferences,selectedDay,format});
