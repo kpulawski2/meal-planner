@@ -1,0 +1,6 @@
+#mealExtras .grid{grid-template-columns:minmax(0,2fr) minmax(80px,1fr)}
+#mealExtras .field,#mealExtras select{min-width:0}
+#mealExtras .card{padding:15px}
+#mealExtras .card h3{margin:0 0 8px}
+#mealExtras>.actions{position:sticky;bottom:-20px;background:var(--card);padding:12px 0;margin-bottom:0;border-top:1px solid var(--line);z-index:2}
+#mealExtras>.actions .btn{flex:1}

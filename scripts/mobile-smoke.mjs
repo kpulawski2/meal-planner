@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {everydayChecks} from './everyday-mobile.mjs';
 import {fullscreenScannerChecks} from './fullscreen-scanner-mobile.mjs';
+import {creatorExtrasChecks} from './creator-extras-mobile.mjs';
 const repo=fileURLToPath(new URL('..',import.meta.url)),port=Number(process.env.SMOKE_TEST_PORT)||4391,origin='http://127.0.0.1:'+port;
 const output=path.resolve(process.env.SMOKE_ARTIFACT_DIR||'/tmp/meal-planner-mobile-artifacts');await mkdir(output,{recursive:true});
 const server=spawn(process.execPath,['--max-old-space-size=256','recipe-import-api/server.js'],{cwd:repo,env:{...process.env,PORT:String(port),PRIVATE_APP_PASSWORD:'',IMPORT_API_TOKEN:'',GROQ_API_KEY:''},stdio:['ignore','pipe','pipe']});let logs='';server.stdout.on('data',data=>logs+=data);server.stderr.on('data',data=>logs+=data);
@@ -38,9 +39,10 @@ try{
  await page.evaluate(()=>showTab('recipes'));await page.locator('#recipeSearch').fill('tuna pasta');assert.ok(await page.locator('.recipe-photo').count()>0);
  const everyday=await everydayChecks(page,output);
  const scanner=await fullscreenScannerChecks(page,output);
+ const creatorExtras=await creatorExtrasChecks(page,output);
  const layouts=[];for(const width of [320,390,768,1440]){await page.setViewportSize({width,height:900});await openWeek();layouts.push({width,overflow:await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)});await page.locator('#sheet .close').click();}assert.ok(layouts.every(row=>!row.overflow),JSON.stringify(layouts));
  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>AppExperienceUI.theme('dark'));await openWeek();await page.screenshot({path:path.join(output,'phone-setup-dark.png'),fullPage:true});await page.locator('#sheet .close').click();
- await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(()=>navigator.serviceWorker.controller);assert.ok((await page.evaluate(()=>caches.keys())).includes('meal-planner-shell-v60-fullscreen-scanner'));await context.setOffline(true);await page.reload({waitUntil:'load'});await openWeek();await page.getByRole('button',{name:'Preview my week',exact:true}).click();await page.locator('#weekSaveButton').click();assert.equal((await saved()).mealServings['Monday::0'],2);assert.ok((await saved()).recipePhotos.tuna);assert.deepEqual(errors,[]);
- await writeFile(path.join(output,'report.json'),JSON.stringify({passed:true,everyday,scanner,story:'cereal / tuna pasta / chicken enchilada at 2/1/1',draftAndCancel:true,shopping:true,undo:true,tasteReasons:true,localFoodPhoto:true,reload:true,offline:true,layouts,errors},null,2));console.log('Mobile planning, exact portions, cancel, undo, taste reasons, food photo, shopping, reload and offline checks passed.');
+ await page.evaluate(()=>navigator.serviceWorker.ready);await page.waitForFunction(()=>navigator.serviceWorker.controller);assert.ok((await page.evaluate(()=>caches.keys())).includes('meal-planner-shell-v61-creator-meal-extras'));await context.setOffline(true);await page.reload({waitUntil:'load'});await openWeek();await page.getByRole('button',{name:'Preview my week',exact:true}).click();await page.locator('#weekSaveButton').click();assert.equal((await saved()).mealServings['Monday::0'],2);assert.ok((await saved()).recipePhotos.tuna);assert.deepEqual(errors,[]);
+ await writeFile(path.join(output,'report.json'),JSON.stringify({passed:true,everyday,scanner,creatorExtras,story:'cereal / tuna pasta / chicken enchilada at 2/1/1',draftAndCancel:true,shopping:true,undo:true,tasteReasons:true,localFoodPhoto:true,reload:true,offline:true,layouts,errors},null,2));console.log('Mobile planning, exact portions, cancel, undo, taste reasons, food photo, shopping, reload and offline checks passed.');
 }catch(error){if(page)await page.screenshot({path:path.join(output,'failure.png'),fullPage:true}).catch(()=>{});throw error;}
 finally{await writeFile(path.join(output,'server.log'),logs);await browser?.close();server.kill('SIGTERM');}

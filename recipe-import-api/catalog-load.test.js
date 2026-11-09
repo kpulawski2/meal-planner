@@ -6,6 +6,7 @@ import { monitorEventLoopDelay, performance } from 'node:perf_hooks';
 import { fileURLToPath } from 'node:url';
 import { readRecipeLibrary } from './recipe-fixtures.js';
 import { setTimeout as pause } from 'node:timers/promises';
+import {MAX_CATALOG_ITEMS} from './catalog-limits.js';
 
 const cataloguePath = fileURLToPath(new URL('../data/products.json', import.meta.url));
 const metadataPath = fileURLToPath(new URL('../data/catalogue-meta.json', import.meta.url));
@@ -82,9 +83,9 @@ test('a cold full-catalogue shopping request keeps health checks responsive and 
   assert.ok(memory.heapUsed < 100 * 1024 * 1024,
     'The large catalogue must live in the worker, outside the web server heap');
   t.diagnostic(`Matched ${items.length} ingredients against ${metadata.products_saved} products in ${Math.round(elapsedMs)} ms; ${healthChecks.length} health checks, maximum ${Math.round(Math.max(...healthChecks.map(row => row.latencyMs)))} ms; maximum event-loop delay ${Math.round(loopDelay.max / 1e6)} ms; heap ${Math.round(memory.heapUsed / 1024 / 1024)} MiB, RSS ${Math.round(memory.rss / 1024 / 1024)} MiB`);
+  assert.equal(status, 200, data.error);
   assert.ok(healthChecks.filter(row => row.overlappedRecommendation).length >= 2,
     'At least two health checks must finish before the catalogue batch finishes; the batch must yield to other requests');
-  assert.equal(status, 200);
   assert.equal(data.ok, true);
   const catalogueStatus = await statusRequest;
   assert.equal(catalogueStatus.catalogue.healthy, true);
@@ -108,6 +109,7 @@ test('a cold full-catalogue shopping request keeps health checks responsive and 
     { store: 'Asda', items: [] },
     { store: 'Asda', items: [{ key: 'missing-name' }] },
     { store: 'Asda', items: null },
+    { store: 'Asda', items: Array.from({length:MAX_CATALOG_ITEMS+1},(_,index)=>({key:String(index),name:'Milk',quantity:100,dimension:'volume'})) },
     { store: 'Asda', items: [{ key: 'quantity', name: 'Milk', quantity: -1 }] },
     { store: 'Asda', items: [{ key: 'quantity', name: 'Milk', quantity: 'Infinity' }] },
   ]) {

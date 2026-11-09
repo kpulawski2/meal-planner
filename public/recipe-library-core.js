@@ -8,7 +8,7 @@
   return (Array.isArray(recipe.equipment)?recipe.equipment:[]).every(v=>available.has(String(v).toLowerCase()));
  }
  function planReady(recipe){
-  return recipe.needsReview!==true&&Number(recipe.servings)>0&&Number.isFinite(Number(recipe.servings))&&recipe.nutrition?.complete===true&&Number(recipe.nutrition.kcal)>0&&Number.isFinite(Number(recipe.nutrition.kcal))&&recipe.nutrition.p!=null&&Number.isFinite(Number(recipe.nutrition.p))&&Number(recipe.nutrition.p)>=0&&Array.isArray(recipe.ings)&&recipe.ings.length>0&&recipe.ings.length<=40&&recipe.ings.every(row=>Array.isArray(row)&&row[0]&&Number(row[1])>0&&Number.isFinite(Number(row[1])));
+  return recipe.automaticMeal!==false&&recipe.needsReview!==true&&Number(recipe.servings)>0&&Number.isFinite(Number(recipe.servings))&&recipe.nutrition?.complete===true&&Number(recipe.nutrition.kcal)>0&&Number.isFinite(Number(recipe.nutrition.kcal))&&recipe.nutrition.p!=null&&Number.isFinite(Number(recipe.nutrition.p))&&Number(recipe.nutrition.p)>=0&&Array.isArray(recipe.ings)&&recipe.ings.length>0&&recipe.ings.length<=40&&recipe.ings.every(row=>Array.isArray(row)&&row[0]&&Number(row[1])>0&&Number.isFinite(Number(row[1])));
  }
  function hash(value){let h=2166136261;for(const c of String(value)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
  // Bound calculation work, not discovery or browsing. Round-robin category,
@@ -17,10 +17,10 @@
   const max=Math.max(1,Math.min(250,Number(limit)||250)),profile=state.profile||{};
   const allowed=rows.filter(r=>r&&r.id&&(r.cookedOnly===true||equipmentAllowed(r,profile)&&(!root.MealIntentCore||root.MealIntentCore.allowed(r,profile))&&(!root.RecipeExperience||root.RecipeExperience.allowedFeedback(r,state))));
   const byId=new Map(allowed.map(r=>[r.id,r])),selected=new Map();
-  const keep=id=>{if(selected.size<max&&byId.has(id))selected.set(id,byId.get(id));};
-  if(profile.varietyMode==='Repeat favourites')for(const id of Object.values(profile.repeatMeals||{}))keep(id);
-  if(profile.varietyMode==='Tailored')for(const rule of [...Object.values(profile.tailoredMeals||{}),...(profile.scheduledMeals||[])])for(const id of rule.recipeIds||[])keep(id);
-  for(const day of state.week||[])for(const id of day.meals||[])keep(id);
+  const keep=(id,explicit=false)=>{const row=byId.get(id);if(selected.size<max&&row&&(explicit||row.automaticMeal!==false))selected.set(id,row);};
+  if(profile.varietyMode==='Repeat favourites')for(const id of Object.values(profile.repeatMeals||{}))keep(id,true);
+  if(profile.varietyMode==='Tailored')for(const rule of [...Object.values(profile.tailoredMeals||{}),...(profile.scheduledMeals||[])])for(const id of rule.recipeIds||[])keep(id,true);
+  for(const day of state.week||[])for(const id of day.meals||[])keep(id,true);
   for(const id of state.favorites||[])keep(id);
   for(const row of root.RecipeExperience?root.RecipeExperience.rank(allowed,state):[])if(root.RecipeExperience.feedbackValue(row,state)==='again')keep(row.id);
   const ready=allowed.filter(r=>r.cookedOnly!==true&&planReady(r)&&(!root.MacroGoalsCore||root.MacroGoalsCore.complete(r.nutrition,profile)));

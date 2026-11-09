@@ -1,4 +1,5 @@
 import {recipePriceExtras,trustedRecipeExtra} from './recipe-price-extras.js';
+import {MAX_CATALOG_ITEMS} from './catalog-limits.js';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -264,6 +265,14 @@ function productTokens(value) {
     .replace(/\b(?:soft\s+)?cream\s+cheese\b|\bsoft\s+cheese\b/gi, 'creamcheese')
     .replace(/\b(?:parmigiano(?:\s+reggiano)?|parmesan)\b/gi, 'parmesan')
     .replace(/\bcous\s+cous\b/gi, 'couscous')
+    .replace(/\b(?:weetabix|weet[ -]?bix|wheat\s+(?:biscuits?|bisks))\b/gi, 'wheatbiscuitcereal')
+    .replace(/\bworcester(?:shire)?\b/gi, 'worcestershire')
+    .replace(/\bmiso\s+paste\b/gi, 'miso')
+    .replace(/\bbiscoff\b/gi, 'speculoos')
+    .replace(/\bspeculoos\s+biscuit\s+spread\b/gi, 'speculoos spread')
+    .replace(/\bonion\s+granules\b/gi, 'onion powder')
+    .replace(/\bbean\s*sprouts?\b/gi, 'beansprout')
+    .replace(/\b(?:(?:puffed|crisp)\s+rice\s+cereal|rice\s+krispies|rice\s+snaps)\b/gi, 'crispricecereal')
     .replace(/\b(?:easy\s+peelers?|clementines?|satsumas?)\b/gi, 'mandarin')
     .replace(/\b(?:summer|forest)\s+fruits?\b/gi, 'berry')
     .replace(/\ball[ -]+purpose\s+flour\b/gi, 'plain flour')
@@ -284,6 +293,7 @@ function productTokens(value) {
     if (token === 'chili') return 'chilli';
     if (token === 'lighter' || token === 'lite') return 'light';
     if (token === 'natural') return 'plain';
+    if (token === 'speculoos') return token;
     if (token.length > 4 && token.endsWith('ies')) return token.slice(0, -3) + 'y';
     if (token.length > 4 && token.endsWith('oes')) return token.slice(0, -2);
     if (token.length > 3 && token.endsWith('s')) return token.slice(0, -1);
@@ -349,6 +359,32 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   const frozen = frozenProduct(product);
   if (fullWords.has('fresh') && frozen) return false;
   const driedRequested = fullWords.has('dried');
+  if (asked('wheatbiscuitcereal')) {
+    if (!name.has('wheatbiscuitcereal') || !/breakfast.*cereal|cereal/i.test(category)) return false;
+    if (!/\b(?:biscuits?|bisks)\b/i.test(title) && !/wheat biscuits.*mini wheats/i.test(category)) return false;
+    if (unrequested(DAIRY_FLAVOURS) || /bar|drink|shake|bites|crispy|crispies|crunch|bran|oatibix|protein|flake/i.test(title)) return false;
+  }
+  if (asked('crispricecereal')) {
+    if (!name.has('crispricecereal') || !/cereal/i.test(category)) return false;
+    if (unrequested(DAIRY_FLAVOURS) || /bar|square|drink|shake|mallow/i.test(title)) return false;
+  }
+  if (fullWords.has('fresh') && ['ginger','parsley','basil'].some(asked)) {
+    if (!/fresh.*(?:herb|vegetable|salad)/i.test(category) || /paste|puree|powder|dried|frozen|sauce|infusion|tea|drink|juice/i.test(title)) return false;
+  }
+  if (asked('miso')) {
+    if (!name.has('miso') || asked('white') && !name.has('white') || /soup|broth|noodle|ramen|dressing|snack/i.test(title)) return false;
+  }
+  if (asked('gochujang') && (!name.has('gochujang') || !/sauce|ingredient|condiment|marinade/i.test(category) || /pork|ham|chicken|meal|noodle|rice cake/i.test(title))) return false;
+  if (asked('onion') && asked('powder') && (!name.has('onion') || !name.has('powder') || !/spice|seasoning|herb/i.test(category))) return false;
+  if (asked('beansprout') && (!name.has('beansprout') || !/fresh.*(?:vegetable|salad|stir fry)/i.test(category))) return false;
+  if (asked('speculoos')) {
+    if (!name.has('speculoos')) return false;
+    if (asked('spread') ? !name.has('spread') || !/spread|jam|preserve/i.test(category) : !name.has('biscuit') || !/biscuit|cookie/i.test(category)) return false;
+    if (/chocolate|croissant|ice cream|cheesecake|dessert|sandwich/i.test(title)) return false;
+  }
+  if (asked('puree') && asked('tomato') && (!name.has('puree') || !name.has('tomato') || /basil|chilli|garlic|wine|herb|soup|pasta|meal/i.test(title))) return false;
+  if (asked('ketchup') && (!name.has('ketchup') || !/sauce|condiment|ketchup/i.test(category) || /sandwich|wrap|snack|cheese|chicken|masala|spicy|less sugar|reduced|zero/i.test(title))) return false;
+  if (asked('jam') && (!name.has('jam') || !/jam|preserve/i.test(category) || /cake|biscuit|tart|dessert/i.test(title))) return false;
   if (asked('mayonnaise')) {
     if (!name.has('mayonnaise') || !/sauce|condiment|mayonnaise|dressing/i.test(category)) return false;
     for (const word of ['light','lighter','vegan','garlic','chilli','chipotle','truffle','egg','tuna','salad','sandwich','burger'])
@@ -398,7 +434,7 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   // Regular and sweet potatoes have different flavour, texture and nutrition.
   // Their shared name token cannot make either a substitute for the other.
   if (asked('potato') && asked('sweet') !== name.has('sweet')) return false;
-  const preparedProduce = ['juice', 'sauce', 'paste', 'powder', 'chopped', 'tinned', 'dried', 'canned', 'stock'].some(word => fullWords.has(word));
+  const preparedProduce = ['juice', 'sauce', 'paste', 'puree', 'ketchup', 'jam', 'powder', 'chopped', 'tinned', 'dried', 'canned', 'stock'].some(word => fullWords.has(word));
   if (produce && !preparedProduce) {
     if (!(frozenRequested ? /frozen.*(?:vegetable|fruit|pea|bean)/i.test(category) : /fresh (?:fruit|salad|vegetable)|vegetables & flowers/i.test(category))) return false;
     const plainBerryMedley = asked('berry') && /frozen.*fruit/i.test(category) &&
@@ -465,6 +501,7 @@ function ingredientCompatible(query, product, preparedWords = ingredientWords(qu
   }
   if (asked('dark') && asked('chocolate') && /biscuits|cookies|cakes|cereal|fruit & nuts/i.test(category)) return false;
   if (asked('dark') && asked('chocolate') && /biscuit|digestive|cookie|cake|rice cake|wafer|nut bar/i.test(title)) return false;
+  if (asked('white') && asked('chocolate') && /biscuits?|cookies?|cakes?|cereal|yog[hu]*rt|dessert|drink|protein|wafer|nut|caramel|speculoos|biscoff/i.test(title + ' ' + category)) return false;
   if (asked('honey') && !asked('roast')) {
     if (!/honey|jam|preserve|spread/i.test(category) || /whisky|whiskey|gin|rum|bourbon|wine|cider|beer/i.test(title)) return false;
   }
@@ -1015,7 +1052,7 @@ export async function recommendCatalogItems(storeName, items, { signal, allowRef
   if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new Error('Choose Asda, Lidl or Aldi for automatic recommendations.');
   const index = withPersonalPriceIndex(await pricingIndex(storeName, allowReferencePrices), { allowPersonalPrices, personalPrices }, storeName);
   if (index.snapshotStatus !== 'complete' || !Array.isArray(index.products)) throw new Error(`A complete ${storeName} website catalogue snapshot is required for automatic recommendations.`);
-  const rows = Array.isArray(items) ? items.slice(0, 200) : [];
+  const rows = Array.isArray(items) ? items.slice(0, MAX_CATALOG_ITEMS) : [];
   const recommendations = [];
   for (const item of rows) {
       signal?.throwIfAborted();
