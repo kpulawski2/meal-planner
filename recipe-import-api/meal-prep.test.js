@@ -97,3 +97,15 @@ test('date alerts use the London calendar, validate real dates and distinguish p
     assert.equal(core.dateAlerts({ pantry: [{ name: 'Milk', qty: 1, expiry: '2026-10-25' }] }, new Date(instant))[0].days, 0);
   }
 });
+
+test('guided batch session combines measured ingredients, exact containers and instructions without recording food or stock',()=>{
+ const value=state(),before=copy(value),session=core.session(value,[oats],{count:3},now),flow=core.workflow(session);
+ assert.equal(flow.containers,3);assert.equal(flow.ingredients.find(row=>row.name==='Oats').qty,120);assert.equal(flow.ingredients.find(row=>row.name==='Milk').qty,450);
+ assert.ok(flow.steps.some(row=>row.text.includes('Prepare and chill.')));assert.match(flow.steps.at(-1).text,/rice within 24 hours/);assert.deepEqual(value,before);
+ const changed=core.workflow(core.session({...value,mealServings:{'Monday::0':2}},[oats],{count:3},now));assert.notEqual(changed.signature,flow.signature);assert.equal(changed.containers,4);
+});
+test('guided prep starts waiting dishes first and keeps blocked and fresh dishes out of the prepared container count',()=>{
+ const slow={...oats,id:'slow',name:'Slow oats',passiveMinutes:720},quick={...oats,id:'quick',name:'Quick oats',passiveMinutes:0},fresh={...oats,id:'fresh',name:'Smoothie bowl',tags:['smoothie-bowl']},bad={...oats,id:'bad',name:'Needs review',method:[]};
+ const value=state(slow,['Monday']);value.week[0].meals=[slow.id,quick.id,fresh.id,bad.id];const flow=core.workflow(core.session(value,[slow,quick,fresh,bad],{count:1},now));
+ assert.equal(flow.containers,2);assert.equal(flow.blocked,1);assert.equal(flow.ingredients.find(row=>row.name==='Oats').qty,80);assert.ok(flow.steps.findIndex(row=>row.recipeId==='slow')<flow.steps.findIndex(row=>row.recipeId==='quick'));assert.match(flow.steps.at(-1).text,/Make fresh on the day/);assert.equal(flow.steps.some(row=>row.recipeId==='bad'),false);
+});

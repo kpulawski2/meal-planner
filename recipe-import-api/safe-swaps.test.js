@@ -339,3 +339,17 @@ test('invalid candidate IDs produce a useful message instead of an unhandled pro
   const app = harness(); app.ui.open('Monday', 0); await app.ui.check('missing');
   assert.equal(app.calls.length, 0); assert.match(app.messages.at(-1), /no longer available/); assert.equal(app.applied.length, 0);
 });
+
+test('shopping changes compare pantry-adjusted quantities without mixing units or changing either basket',()=>{
+ const c={};vm.runInNewContext(scripts[files.indexOf('swap-core')],c);
+ const before=[{key:'rice::mass',name:'Rice',dimension:'mass',quantity:200},{key:'milk::volume',name:'Milk',dimension:'volume',quantity:100}],after=[{key:'rice::mass',name:'Rice',dimension:'mass',quantity:150},{key:'tuna::mass',name:'Tuna',dimension:'mass',quantity:100}],original=plain([before,after]);
+ const rows=plain(c.MealSwapCore.shoppingDelta(before,after));assert.equal(rows.find(row=>row.name==='Rice').delta,-50);assert.equal(rows.find(row=>row.name==='Milk').after,0);assert.equal(rows.find(row=>row.name==='Tuna').delta,100);assert.deepEqual([before,after],original);
+});
+test('an added unmeasured ingredient is shown as needing review rather than disappearing from swap changes',()=>{
+ const c={};vm.runInNewContext(scripts[files.indexOf('swap-core')],c);const rows=plain(c.MealSwapCore.shoppingDelta([],[{key:'salt::unknown',name:'Salt',dimension:'',quantity:0}]));assert.equal(rows.length,1);assert.equal(rows[0].unknown,true);
+});
+
+test('the swap shortlist starts with three meals and excludes standalone sauce or side components',()=>{
+ const data=fixture();data.recipes.push({...recipe('component-only','Lunch','Chicken breast'),automaticMeal:false});data.state.profile.portionMode='fixed';const app=harness(data),before=plain(app.state);app.ui.open('Monday',0);
+ assert.equal(app.ui.inspect().displayed,3);assert.equal(app.ui.inspect().filters.dayTargets,false);assert.equal(app.ui.inspect().candidates.some(row=>row.id==='component-only'),false);assert.ok((app.nodes.swapOptionList.innerHTML.match(/class="swap-option"/g)||[]).length<=3);app.ui.cancel();assert.deepEqual(plain(app.state),before);
+});

@@ -15,7 +15,7 @@
     return { startDay: startDay || '', count, days: days.slice(start, start + count) };
   }
   function session(state, recipes, options = {}, now = new Date()) {
-    const selected = scope(state, options), coverage = root.PantryCore.plannerCoverage(state, recipes, now);
+    const selected = scope(state, options), coverage = root.PantryCore.plannerCoverage(root.PlanWorkspaceCore?.mode(state)==='next'?{...state,leftovers:[]}:state, recipes, now);
     const lookup = new Map(recipes.map(recipe => [recipe.id, recipe])), grouped = new Map();
     let planned = 0, covered = 0;
     for (const day of selected.days) for (const [index, id] of (day.meals || []).entries()) {
@@ -85,5 +85,17 @@
     return rows.sort((a, b) => priority[a.status] - priority[b.status] || (a.days ?? 999) - (b.days ?? 999)
       || String(a.name).localeCompare(String(b.name)));
   }
-  root.MealPrepCore = Object.freeze({ scope, session, batchRequest, dateAlerts });
+  function workflow(value,steps=recipe=>recipe.method||[],allowed=()=>true){
+    const ready=value.tasks.filter(task=>!task.reason&&!task.fresh&&task.recipe&&allowed(task.recipe)),rows=[],ingredients=new Map();
+    if(ready.length){rows.push({text:'Gather equipment and weigh the combined ingredients below. Keep each recipe’s portioned ingredients separate.'},{text:'Prepare vegetables before handling raw meat. Keep raw meat separate from ready-to-eat food; wash hands and clean utensils between tasks.'});}
+    for(const task of ready){
+      for(const ingredient of task.requirements){const old=ingredients.get(ingredient.key);if(old)old.qty=rounded(old.qty+ingredient.qty);else ingredients.set(ingredient.key,{...ingredient});}
+      rows.push({ingredients:task.requirements,components:root.MealExtrasCore?.componentGroups(task.recipe,task.preparedServings)||[],recipeId:task.id,text:task.name+' — prepare '+task.preparedServings+' portions. Use the scaled quantities for this batch; follow the recipe’s temperatures and doneness checks.'+(task.waiting?' Start its waiting stage first, then prepare other dishes and return to finish.':'')});
+      const method=steps(task.recipe),instructions=Array.isArray(method)?method:String(method||'').split(/\r?\n/);for(const text of instructions)if(typeof text==='string'&&text.trim())rows.push({recipeId:task.id,text:task.name+': '+text});
+    }
+    if(ready.length)rows.push({text:'Portion and label with the dish and cooking date. Cool hot food and refrigerate within two hours (rice within one hour). Eat refrigerated leftovers within two days (rice within 24 hours), or freeze later portions. Follow any shorter recipe or pack instructions.'});
+    const fresh=value.tasks.filter(task=>task.fresh);if(fresh.length)rows.push({text:'Make fresh on the day: '+fresh.map(task=>task.name).join(', ')+'.'});
+    return {steps:rows,ingredients:[...ingredients.values()].sort((a,b)=>a.name.localeCompare(b.name)),containers:Math.ceil(ready.reduce((sum,task)=>sum+task.preparedServings,0)),equipment:[...new Set(ready.flatMap(task=>task.recipe.equipment||[]))],blocked:value.tasks.filter(task=>task.reason||task.recipe&&!allowed(task.recipe)).length,signature:JSON.stringify([value.scope,ready.map(task=>task.signature),rows])};
+  }
+  root.MealPrepCore = Object.freeze({ workflow,scope, session, batchRequest, dateAlerts });
 })(globalThis);

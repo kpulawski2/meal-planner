@@ -61,3 +61,29 @@ Session scope and checklist choices use the existing local `prepPlan` state.
 Backups preserve them automatically. The older prep checklist data remains
 intact. There is no account, server reminder, background notification or
 automatic consumption record.
+
+## Guided session and swap previews
+
+**Build prep session** now includes an ordered cooking checklist: combined
+ingredients, vegetables before raw meat, scaled quantities and instructions
+for each dish, then cooling and storage. Sauce and side quantities remain
+separate where a meal has components. It suggests up to one container per
+prepared portion; the dish determines the container size. Fresh dishes and
+recipes needing review are kept out of the batch-cooking instructions.
+
+Progress survives a reload and resets when the session changes. Named timers
+use the existing three-timer panel while the app is open. Checking a step or
+starting a timer never records food or consumes stock; **Record prepared batch**
+still requires its existing confirmation. Next-week sessions do not assume
+that this week's cooked leftovers will remain available.
+
+**Swap meal** starts with three alternatives, ranked using calories, protein,
+known ingredient costs and preferences, with more available on request. An
+explicit swap can depart from a repeated or scheduled dish request while
+retaining diet, disliked-food, equipment and cooking-time restrictions. Fixed
+portion plans initially leave the optional day-target filter off.
+
+Each alternative previews ingredient changes after pantry allocation and
+before pack rounding. Unknown quantities are marked for checking. The full
+shopping-basket price check and existing budget/target review still run before
+the replacement can be saved. Cancelling leaves the plan untouched.

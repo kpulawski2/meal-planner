@@ -147,5 +147,9 @@
       nutritionMet, slotsMet, days, safe: after.complete && spending.complete && budgetMet && nutritionMet && slotsMet && varietyMet,
       variety, varietyMet, missing: after.missing, generation: after.generation, beforeGeneration: before.generation };
   }
-  root.MealSwapCore = Object.freeze({ category, fingerprint, dayNutrition, prospective, shoppingItems, planValid, basket, spend, evaluate });
+  function shoppingDelta(before,after){
+    const a=new Map(before.map(row=>[row.key,row])),b=new Map(after.map(row=>[row.key,row]));
+    return [...new Set([...a.keys(),...b.keys()])].flatMap(key=>{const old=a.get(key),next=b.get(key),delta=Number(next?.quantity||0)-Number(old?.quantity||0);const unknown=!(next||old).dimension&&(!old||!next);return Math.abs(delta)<.000001&&!unknown?[]:[{unknown,key,name:(next||old).name,dimension:(next||old).dimension,before:Number(old?.quantity||0),after:Number(next?.quantity||0),delta:Number(delta.toFixed(6))}];}).sort((x,y)=>x.name.localeCompare(y.name));
+  }
+  root.MealSwapCore = Object.freeze({ shoppingDelta,category, fingerprint, dayNutrition, prospective, shoppingItems, planValid, basket, spend, evaluate });
 })(globalThis);
