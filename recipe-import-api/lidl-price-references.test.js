@@ -127,7 +127,7 @@ test('reference offers can produce an explicitly estimated plan without relaxing
   const result=await optimizeMealPlan(request);
   assert.equal(result.status,'feasible');assert.equal(result.basket.estimatedPrice,true);assert.ok(result.nutrition.days.every(day=>day.meetsTargets));
   assert.match(result.warnings.join(' '),/historical or undated/);
-  const strict=await optimizeMealPlan({...request,profile:{...request.profile,lidlReferencePrices:false}});assert.notEqual(strict.status,'feasible');
+  const strict=await optimizeMealPlan({...request,profile:{...request.profile,lidlReferencePrices:false}});assert.equal(strict.status,'feasible');assert.ok(strict.basket.recommendations.some(row=>row.plan.products.some(p=>p.priceBasis==='generic_estimate')));
   const tiny=await optimizeMealPlan({...request,profile:{...request.profile,budget:.01}});assert.notEqual(tiny.status,'feasible');
   const quote={store:'Lidl',refreshedAt:new Date().toISOString(),recommendations:result.basket.recommendations};
   const basket=globalThis.MealSwapCore.basket(quote,result.basket.items,'Lidl');assert.equal(basket.complete,true);assert.equal(basket.estimatedPrice,true);

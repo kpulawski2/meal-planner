@@ -75,6 +75,7 @@
     return items;
   }
   function officialUrl(value, store, product = {}, item = {}) {
+    if(product.priceBasis==='generic_estimate')return root.GenericPricesCore?.productMatches(product,{store,ingredient:item.name,dimension:item.dimension})===true;
     if (product.priceBasis === 'personal' || String(value || '').startsWith('personal:')) return root.PersonalPricesCore?.productMatches?.(product, {store, ingredient:item.name, dimension:item.dimension}) === true;
     try {
       const url = new URL(value);
@@ -89,7 +90,7 @@
     if (!plan || !Array.isArray(plan.products) || !plan.products.length || !amount(plan.totalCostGBP) || !amount(plan.requestedQuantity) ||
       !(Number(plan.totalQuantity) > 0) || !Number.isFinite(Number(plan.totalQuantity)) || Math.abs(Number(plan.requestedQuantity) - requested) > .001 ||
       Number(plan.totalQuantity) < requested - .000001 || !(requested > 0)) return false;
-    if (plan.products.some(product => product.priceBasis === 'personal' || ['aldi_estimate','aldi_reference','other_store'].includes(product.priceBasis)) && plan.estimatedPrice !== true) return false;
+    if (plan.products.some(product => product.priceBasis === 'personal' || ['aldi_estimate','aldi_reference','other_store','generic_estimate'].includes(product.priceBasis)) && plan.estimatedPrice !== true) return false;
     if (!plan.products.every(product => Number.isInteger(Number(product.packs)) && Number(product.packs) > 0 && amount(product.costGBP) &&
       amount(product.priceGBP) && Number(product.priceGBP) > 0 && Number(product.totalQuantity) > 0 && Number.isFinite(Number(product.totalQuantity)) &&
       product.available !== false && (product.priceBasis !== 'personal' || Boolean(item.dimension)) && officialUrl(product.url, store, product, item) && Math.abs(Number(product.costGBP) - Number(product.packs) * Number(product.priceGBP)) < .011)) return false;

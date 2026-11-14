@@ -60,7 +60,7 @@ test('prepared leftovers can satisfy unpriced ingredients without treating unmad
   const recipes = [recipe('leftover-lunch', 'Lunch', 'Uncatalogued red lentils zzz'), recipe('leftover-dinner', 'Dinner', 'Uncatalogued rice zzz')];
   const request = { ...copy(base), profile: { ...base.profile, budget: 0 }, recipes, week: [{ day: 'Monday', meals: recipes.map(row => row.id) }], leftovers: recipes.map((row, index) => ({ id: 'prepared-' + index, recipeId: row.id, servings: 1 })) };
   const result = await optimize(request); assertCost(result, 0); assert.deepEqual(result.week, request.week); assert.deepEqual(result.basket.items, []);
-  const short = await optimize({ ...request, leftovers: request.leftovers.map(row => ({ ...row, servings: .5 })) }); assert.notEqual(short.status, 'feasible'); assert.ok(short.basket.complete === false || short.basket.totalCostGBP > 0, 'unprepared ingredients need published prices');
+  const short = await optimize({ ...request, leftovers: request.leftovers.map(row => ({ ...row, servings: .5 })) }); assert.equal(short.status,'feasible');assert.ok(short.basket.totalCostGBP>0,'Unprepared ingredients receive positive estimates, never free stock');assert.ok(short.basket.estimatedPrice);
 });
 
 test('lifecycle shopping compacts slots while preserving cooked nutrition and one leftover allocation', () => {

@@ -32,7 +32,7 @@ test('invalid or ambiguous prices, pack sizes, sources and stores cannot become 
   assert.throws(() => core.normalize(pack({ packQuantity: 1.5, packUnit: 'pieces' }), options));
   assert.throws(() => core.normalize(pack({ packQuantity: 1001, packUnit: 'kg' }), options));
   assert.throws(() => core.normalize(pack({ source: 'website' }), options));
-  assert.throws(() => core.normalize(pack({ store: 'Asda' }), options));
+  assert.throws(() => core.normalize(pack({ store: 'Tesco' }), options));
   assert.throws(() => core.normalize(pack({ id: 'real-lidl-product-123' }), options));
   assert.throws(() => core.normalize(pack({ ingredient: 'Rice\nChicken' }), options));
 });

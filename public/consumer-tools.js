@@ -7,11 +7,11 @@
     return Boolean(plan && Array.isArray(plan.products) && plan.products.length && amount(plan.totalCostGBP)
       && Number.isFinite(Number(plan.requestedQuantity)) && Number(plan.requestedQuantity) > 0
       && Number(plan.totalQuantity) + 1e-6 >= Number(plan.requestedQuantity)
-      && (!plan.products.some(product => product.priceBasis === 'personal') || plan.estimatedPrice === true
+      && (!plan.products.some(product => ['personal','generic_estimate'].includes(product.priceBasis)) || plan.estimatedPrice === true
         && plan.products.every(product => Number.isFinite(Number(product.totalQuantity)) && Number(product.totalQuantity) > 0)
         && Math.abs(plan.products.reduce((total, product) => total + Number(product.totalQuantity), 0) - Number(plan.totalQuantity)) <= 1e-5)
       && plan.products.every(product => Number.isInteger(Number(product.packs)) && Number(product.packs) > 0
-        && amount(product.costGBP) && (product.priceBasis === 'personal' || String(product.url || '').startsWith('personal:')
+        && amount(product.costGBP) && (product.priceBasis === 'generic_estimate' ? plan.estimatedPrice===true && root.GenericPricesCore?.productMatches(product,{store:context.store,ingredient:context.ingredient||context.name,dimension:context.dimension})===true : product.priceBasis === 'personal' || String(product.url || '').startsWith('personal:')
           ? Boolean(context.dimension) && root.PersonalPricesCore?.productMatches?.(product, context) === true
             && Math.abs(Number(product.costGBP) - Number(product.packs) * Number(product.priceGBP)) < .011
           : ['aldi_estimate','aldi_reference'].includes(product.priceBasis) ? plan.estimatedPrice === true && root.RetailerPriceSources?.aldiProduct(product, context.store) === true : /^https:\/\//.test(product.url || '')))
