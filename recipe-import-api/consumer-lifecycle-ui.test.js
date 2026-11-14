@@ -1059,12 +1059,12 @@ test('denied camera access restores the scanner form and keeps label/photo fallb
  const app=harness();await app.flush();app.context.isSecureContext=true;app.context.navigator.mediaDevices={getUserMedia:async()=>{throw new Error('Camera permission denied.');}};app.context.BarcodeUI.open();await app.context.BarcodeUI.camera();assert.equal(app.node('modal').classList.contains('barcode-fullscreen'),false);assert.equal(app.node('sheet').classList.contains('barcode-fullscreen'),false);assert.match(app.node('barcodeStatus').textContent,/permission denied/);assert.match(app.node('sheet').innerHTML,/Choose barcode photo/);assert.match(app.node('sheet').innerHTML,/Enter pack label/);
 });
 
-test('a new week can be prepared early with a chosen start date and the current plan archived',async()=>{
+test('a next week can be prepared early without replacing the current plan',async()=>{
  const app=harness();await app.flush();const before=app.state();app.context.startNextPlan();
- assert.match(app.node('sheet').innerHTML,/before this week ends/);
+ assert.match(app.node('sheet').innerHTML,/Keep this week active/);
  app.node('nextPlanStart').value='2026-11-15';app.context.confirmNextPlan();
  const after=app.state();assert.equal(after.profile.startDate,'2026-11-15');
- assert.deepEqual(after.planHistory[0].week,before.week);
+ assert.deepEqual(app.context.PlanWorkspaceCore.plans(after).current.week,before.week);
  assert.deepEqual(after.pantry,before.pantry);assert.deepEqual(after.foodLog,before.foodLog);
 });
 test('logging a planned meal defaults to today even while viewing a future plan',async()=>{
