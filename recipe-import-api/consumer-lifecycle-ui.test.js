@@ -1062,8 +1062,8 @@ test('denied camera access restores the scanner form and keeps label/photo fallb
 test('a next week can be prepared early without replacing the current plan',async()=>{
  const app=harness();await app.flush();const before=app.state();app.context.startNextPlan();
  assert.match(app.node('sheet').innerHTML,/Keep this week active/);
- app.node('nextPlanStart').value='2026-11-15';app.context.confirmNextPlan();
- const after=app.state();assert.equal(after.profile.startDate,'2026-11-15');
+ const nextStart=app.context.FoodLogCore.shiftDate(app.context.FoodLogCore.localDate(),7);app.node('nextPlanStart').value=nextStart;app.context.confirmNextPlan();
+ const after=app.state();assert.equal(after.profile.startDate,nextStart);
  assert.deepEqual(app.context.PlanWorkspaceCore.plans(after).current.week,before.week);
  assert.deepEqual(after.pantry,before.pantry);assert.deepEqual(after.foodLog,before.foodLog);
 });
