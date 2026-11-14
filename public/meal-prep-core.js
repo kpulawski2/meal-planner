@@ -14,7 +14,7 @@
     const count = Number.isInteger(requested) && requested > 0 ? Math.min(14, requested) : 3;
     return { startDay: startDay || '', count, days: days.slice(start, start + count) };
   }
-  function session(state, recipes, options = {}, now = new Date()) {
+  function session(state, recipes, options = {}, now = new Date(), methodOf = recipe => recipe?.method) {
     const selected = scope(state, options), coverage = root.PantryCore.plannerCoverage(root.PlanWorkspaceCore?.mode(state)==='next'?{...state,leftovers:[]}:state, recipes, now);
     const lookup = new Map(recipes.map(recipe => [recipe.id, recipe])), grouped = new Map();
     let planned = 0, covered = 0;
@@ -31,7 +31,7 @@
       task.portions = rounded(task.portions);
       const needed = root.PantryCore.requiredIngredients(task.recipe, task.portions);
       const missingEquipment = root.KitchenEquipment?.missing(task.recipe, state.profile) || [];
-      const steps = Array.isArray(task.recipe?.method) ? task.recipe.method.filter(Boolean) : String(task.recipe?.method || '').trim();
+      const method = methodOf(task.recipe), steps = Array.isArray(method) ? method.filter(Boolean) : String(method || '').trim();
       const fresh = Boolean(task.recipe?.personalCereal) || (task.recipe?.tags || []).some(tag => ['smoothie-bowl','cereal'].includes(tag));
       const waiting = Math.max(0, Number(task.recipe?.passiveMinutes) || 0, Number(task.recipe?.freezeMinutes) || 0);
       const reason = !needed.ok ? needed.error : !steps.length ? 'Review the recipe steps first.'
@@ -50,7 +50,7 @@
         total.qty = rounded(total.qty + row.qty); total.estimated ||= row.estimated; ingredients.set(row.key, total);
       }
       const signature = JSON.stringify([state.pantryLedger?.planId || '', root.PantryCore.recipeSignature(task.recipe),
-        task.recipe?.method, task.recipe?.equipment, task.slots]);
+        steps, task.recipe?.equipment, task.slots]);
       return { ...task, name: task.recipe?.name || 'Recipe unavailable', preparedServings: needed.preparedServings || null,
         requirements: [...prepIngredients.values()], reason, fresh, waiting, signature,
         checked: state.prepPlan?.sessionChecks?.[task.id] === signature };

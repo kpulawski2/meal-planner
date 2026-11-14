@@ -114,3 +114,10 @@ test('cereal bowls are made on the day rather than counted as prepared batches',
  const cereal={...oats,id:'cereal',name:'Cereal and milk',tags:['cereal']};const value=core.session(state(cereal,['Monday']),[cereal],{count:1},now);
  assert.equal(value.tasks[0].fresh,true);assert.equal(core.workflow(value).containers,0);assert.throws(()=>core.batchRequest(value.tasks[0]),/on the day/);
 });
+
+test('prep readiness and signatures use the same resolved instructions shown in recipe details',()=>{
+ const recipe={...oats,method:undefined};const value=state(recipe,['Monday']);
+ const first=core.session(value,[recipe],{count:1},now,()=>['Season, then cook following recipe temperatures.']);
+ assert.equal(first.tasks[0].reason,'');assert.equal(core.workflow(first,()=>['Season, then cook following recipe temperatures.']).containers,1);
+ const changed=core.session(value,[recipe],{count:1},now,()=>['Use the revised instructions.']);assert.notEqual(first.tasks[0].signature,changed.tasks[0].signature);
+});

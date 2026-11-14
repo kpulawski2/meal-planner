@@ -7,7 +7,7 @@
   const action = (label, method, id, extra = '') => '<button class="btn secondary small" ' + extra
     + ' onclick="MealPrepUI.' + method + '(decodeURIComponent(\'' + arg(id) + '\'))">' + label + '</button>';
   const dayLabel=day=>root.PlanCalendarCore?.label(api.state(),day)||day;
-  const model = () => root.MealPrepCore.session(api.state(), api.recipes(), api.state().prepPlan?.scope);
+  const model = () => root.MealPrepCore.session(api.state(), api.recipes(), api.state().prepPlan?.scope,new Date(),api.steps);
   const open = content => { root.ConsumerUI?.cleanup(); api.openSheet(content); };
   function stats(value) {
     return '<div class="prep-stats"><div><b>' + value.tasks.length + '</b><span>Recipes to prepare</span></div><div><b>'
