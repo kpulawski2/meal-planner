@@ -22,7 +22,7 @@
  }
  function availablePantry(state,recipes,pantry){
   if(mode(state)!=='next'||!state.planWorkspace?.other)return pantry;
-  const current=clone(state);delete current.planWorkspace;install(current,state.planWorkspace.other);
+  const saved=state.planWorkspace.other,current={profile:saved.profile,week:saved.week,mealServings:saved.mealServings,pantry:state.pantry,leftovers:state.leftovers,pantryLedger:{planId:saved.planId,cooked:saved.cooked}};
   const input=root.PantryCore.shoppingInput(current,recipes),requirements=root.MealBudgetCore.buildShopping({...input,pantry:[]}),reserved={};
   for(const [key,item] of Object.entries(requirements))for(const [dim,group] of Object.entries(item.groups))reserved[key+'::'+dim]=group.need;
   return [...pantry].sort((a,b)=>String(a.expiry||'9999-12-31').localeCompare(String(b.expiry||'9999-12-31'))).map(lot=>{const meta=root.MealBudgetCore.unitMeta(lot.unit,lot.name),key=root.MealBudgetCore.canonicalIngredientName(lot.name)+'::'+meta.dim,used=Math.min(Number(lot.qty)*meta.factor,reserved[key]||0);reserved[key]=Math.max(0,(reserved[key]||0)-used);return {...lot,qty:Math.max(0,Number(lot.qty)-used/meta.factor)};}).filter(lot=>lot.qty>0&&(!lot.expiry||lot.expiry>=state.profile.startDate));
