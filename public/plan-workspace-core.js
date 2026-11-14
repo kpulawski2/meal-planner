@@ -1,7 +1,7 @@
 /* Plan-specific fields travel together; food, stock and transactions stay shared. */
 (function(root){
  'use strict';
- const clone=v=>structuredClone(v),fields=['profile','planProfile','week','mealServings','locked','shopping','prepPlan','planSource','planCost','planBudgetResult','weekDraft','mealExtraCaps','shoppingTripActive','shoppingStore'];
+ const clone=v=>structuredClone(v),fields=['profile','planProfile','week','mealServings','locked','shopping','prepPlan','planSource','planCost','planBudgetResult','weekDraft','mealExtraCaps','shoppingTripActive','shoppingStore','savedBaskets'];
  function snapshot(state){const result={};for(const key of fields)if(state[key]!==undefined)result[key]=clone(state[key]);result.planId=state.pantryLedger?.planId;result.cooked=clone(state.pantryLedger?.cooked||{});return result;}
  function install(state,plan){for(const key of fields){delete state[key];if(plan[key]!==undefined)state[key]=clone(plan[key]);}root.PantryCore.initialise(state);state.pantryLedger.planId=plan.planId;state.pantryLedger.cooked=clone(plan.cooked||{});delete state.interfacePreferences?.dailyDate;delete state.interfacePreferences?.selectedOnDate;}
  function mode(state){return state.planWorkspace?.view==='next'?'next':'current';}
@@ -12,7 +12,7 @@
   if(plans(state).next)throw new Error('A next-week plan is already saved. Open it to make changes.');
   root.PantryCore.initialise(state);const current=snapshot(state),next=clone(current);if(repeat&&!next.week?.length)throw new Error('Save a current week before repeating it.');root.PantryCore.resetPlan(state);next.planId=state.pantryLedger.planId;state.pantryLedger.planId=current.planId;state.pantryLedger.cooked=clone(current.cooked);
   next.profile.startDate=startDate;if(next.planProfile)next.planProfile.startDate=startDate;
-  next.cooked={};next.locked={};next.shopping={};next.prepPlan={...(next.prepPlan||{}),checked:{},storage:{}};next.planCost=null;next.shoppingTripActive=false;delete next.weekDraft;delete next.planBudgetResult;
+  next.cooked={};next.locked={};next.shopping={};next.prepPlan={...(next.prepPlan||{}),checked:{},storage:{}};next.planCost=null;next.shoppingTripActive=false;delete next.weekDraft;delete next.planBudgetResult;delete next.savedBaskets;
   if(!repeat){next.week=[];next.mealServings={};}else if(!next.week?.length)throw new Error('Save a current week before repeating it.');
   state.planWorkspace={version:1,view:'current',other:next};select(state,'next');return state;
  }
