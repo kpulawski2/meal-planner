@@ -446,6 +446,8 @@ function budgetPlanValidation(result,profile=state.profile,context={}){
  const items=automaticCatalogItems(Object.entries(shopping)),recommendations=result.basket.recommendations;
  if(!Array.isArray(recommendations)||items.some(item=>!recommendations.some(row=>row.key===item.key&&row.match&&automaticCatalogPlanValid(row.plan,{store:store,name:item.name,dimension:item.dimension})&&Math.abs(Number(row.plan.requestedQuantity)-item.quantity)<.001)))return false;
  const summed=items.reduce((total,item)=>total+Number(recommendations.find(row=>row.key===item.key).plan.totalCostGBP),0);
+ const usesGeneric=items.some(item=>recommendations.find(row=>row.key===item.key).plan.products.some(product=>product.priceBasis==='generic_estimate'));
+ if(summed+planCashSpent()>planBudget(count,profile)+.005&&!usesGeneric)return false;
  return Math.abs(summed-Number(result.basket.totalCostGBP))<.011;
 }
 async function fetchBudgetPlan(payload,signal){
