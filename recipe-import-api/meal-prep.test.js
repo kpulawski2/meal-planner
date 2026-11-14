@@ -109,3 +109,8 @@ test('guided prep starts waiting dishes first and keeps blocked and fresh dishes
  const value=state(slow,['Monday']);value.week[0].meals=[slow.id,quick.id,fresh.id,bad.id];const flow=core.workflow(core.session(value,[slow,quick,fresh,bad],{count:1},now));
  assert.equal(flow.containers,2);assert.equal(flow.blocked,1);assert.equal(flow.ingredients.find(row=>row.name==='Oats').qty,80);assert.ok(flow.steps.findIndex(row=>row.recipeId==='slow')<flow.steps.findIndex(row=>row.recipeId==='quick'));assert.match(flow.steps.at(-1).text,/Make fresh on the day/);assert.equal(flow.steps.some(row=>row.recipeId==='bad'),false);
 });
+
+test('cereal bowls are made on the day rather than counted as prepared batches',()=>{
+ const cereal={...oats,id:'cereal',name:'Cereal and milk',tags:['cereal']};const value=core.session(state(cereal,['Monday']),[cereal],{count:1},now);
+ assert.equal(value.tasks[0].fresh,true);assert.equal(core.workflow(value).containers,0);assert.throws(()=>core.batchRequest(value.tasks[0]),/on the day/);
+});

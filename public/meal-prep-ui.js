@@ -56,7 +56,7 @@
       + '</select></div><div class="field"><label for="prepDayCount">Days to prepare</label><select id="prepDayCount" onchange="MealPrepUI.scopeChanged()">'
       + Array.from({ length: Math.min(14, availableDays) }, (_, index) => index + 1).map(count => '<option value="' + count + '" '
         + (count === Math.min(value.scope.count, availableDays) ? 'selected' : '') + '>' + count + ' day' + (count === 1 ? '' : 's') + '</option>').join('')
-      + '</select></div></div>' + stats(value) + '<p class="sub">Already cooked portions and matching leftovers are counted once across the plan. Start chilling or slow-cooking recipes earlier; make smoothie bowls fresh. Times are for the original recipe; larger batches can take longer. Follow each recipe’s storage instructions.</p>'
+      + '</select></div></div>' + stats(value) + '<p class="sub">Already cooked portions and matching leftovers are counted once across the plan. Start chilling or slow-cooking recipes earlier; make cereal and smoothie bowls fresh. Times are for the original recipe; larger batches can take longer. Follow each recipe’s storage instructions.</p>'
       + (value.tasks.length ? workflowHtml(value)+value.tasks.map(taskHtml).join('') : '<div class="empty">These meals are already cooked or covered by leftovers.</div>')
       + (value.ingredients.length ? '<details class="card planner-help"><summary>All ingredients for this session</summary><p class="sub">Amounts include complete batches. '
         + (value.completeIngredients ? 'Compare with your pantry before shopping.' : 'Some recipes need ingredient amounts confirmed; this list is partial.')

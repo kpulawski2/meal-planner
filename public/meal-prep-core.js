@@ -32,7 +32,7 @@
       const needed = root.PantryCore.requiredIngredients(task.recipe, task.portions);
       const missingEquipment = root.KitchenEquipment?.missing(task.recipe, state.profile) || [];
       const steps = Array.isArray(task.recipe?.method) ? task.recipe.method.filter(Boolean) : String(task.recipe?.method || '').trim();
-      const fresh = (task.recipe?.tags || []).includes('smoothie-bowl');
+      const fresh = Boolean(task.recipe?.personalCereal) || (task.recipe?.tags || []).some(tag => ['smoothie-bowl','cereal'].includes(tag));
       const waiting = Math.max(0, Number(task.recipe?.passiveMinutes) || 0, Number(task.recipe?.freezeMinutes) || 0);
       const reason = !needed.ok ? needed.error : !steps.length ? 'Review the recipe steps first.'
         : task.recipe?.unavailable || task.recipe?.needsReview ? 'Review this recipe first.'
@@ -62,7 +62,7 @@
   }
   function batchRequest(task) {
     if (!task || task.reason) throw new Error(task?.reason || 'Open your prep session again.');
-    if (task.fresh) throw new Error('Make smoothie bowls fresh; record individual meals from your plan.');
+    if (task.fresh) throw new Error('Make smoothie bowls fresh, and add milk to cereal on the day; record individual meals from your plan.');
     const first = task.slots[0]; if (!first) throw new Error('This batch is already covered.');
     const extra = rounded(task.portions - first.portions);
     if (extra > 100) throw new Error('Choose fewer days for this batch; at most 100 extra portions can be recorded at once.');

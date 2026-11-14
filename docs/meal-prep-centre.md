@@ -68,7 +68,7 @@ automatic consumption record.
 ingredients, vegetables before raw meat, scaled quantities and instructions
 for each dish, then cooling and storage. Sauce and side quantities remain
 separate where a meal has components. It suggests up to one container per
-prepared portion; the dish determines the container size. Fresh dishes and
+prepared portion; the dish determines the container size. Cereal with milk, smoothie bowls and
 recipes needing review are kept out of the batch-cooking instructions.
 
 Progress survives a reload and resets when the session changes. Named timers
