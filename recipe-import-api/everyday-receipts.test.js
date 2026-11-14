@@ -31,7 +31,7 @@ test('unknown pack sizes remain references, while reviewed Lidl packs reach the 
 test('review and native pack dimensions are required before receipt prices can influence planning',()=>{
  for(const raw of [receipt({confirmed:false}),receipt({date:'2026-11-09'}),receipt({date:'2026-02-30'}),receipt({currency:'EUR'}),receipt({items:[item({packQuantity:null})]}),receipt({items:[item({packQuantity:1.5,packUnit:'pieces'})]}),receipt({items:[item({unitPriceGBP:1.001})]})])assert.throws(()=>R.reviewed(raw,opts));
  const eggs=R.reviewed(receipt({items:[item({ingredient:'Eggs',productName:'6 mixed free-range eggs',packQuantity:6,packUnit:'pieces',unitPriceGBP:.99,quantity:2})]}),opts);assert.equal(eggs.prices[0].packQuantity,6);assert.equal(eggs.prices[0].priceGBP,.99);
- const other=R.reviewed(receipt({store:'Aldi',items:[item({useInPlanning:false,packQuantity:null})]}),opts);assert.equal(other.prices.length,0);assert.throws(()=>R.reviewed(receipt({store:'Aldi'}),opts),/Lidl receipts/);
+ const other=R.reviewed(receipt({store:'Aldi',items:[item({useInPlanning:false,packQuantity:null})]}),opts);assert.equal(other.prices.length,0);assert.equal(R.reviewed(receipt({store:'Aldi'}),opts).prices[0].store,'Aldi');
 });
 test('receipt correction replaces its earlier mapped pack while retaining unrelated prices and other receipts',()=>{
  const store=storage(),first=R.save(receipt(),store,opts);const second=R.save(receipt({date:'2026-11-08',items:[item({name:'Tuna',ingredient:'Tuna',productName:'Tuna',packQuantity:100,unitPriceGBP:.59})]}),store,opts);assert.equal(second.snapshot.prices.length,2);

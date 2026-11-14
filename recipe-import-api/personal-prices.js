@@ -9,22 +9,22 @@ export const personalIngredientKey = value => String(value || '').trim().replace
 export function normalizePersonalPriceOptions(input = {}, store = 'Lidl', { now = new Date() } = {}) {
   if (input.allowPersonalPrices !== undefined && typeof input.allowPersonalPrices !== 'boolean') throw new TypeError('Saved personal prices must be on or off.');
   if (input.personalPrices !== undefined && (!Array.isArray(input.personalPrices) || input.personalPrices.length > Core.MAX_PRICES)) throw new TypeError(`Send no more than ${Core.MAX_PRICES} saved personal prices.`);
-  if (store !== 'Lidl' && (input.allowPersonalPrices === true || input.personalPrices?.length)) throw new TypeError('Saved personal prices are for Lidl only.');
+  if(!['Lidl','Asda','Aldi'].includes(store))throw new TypeError('Choose Asda, Lidl or Aldi for saved prices.');
   try {
     const snapshot = Core.normalizeSnapshot({ schemaVersion: 1, includeInPlanning: input.allowPersonalPrices === true, prices: input.personalPrices || [] }, { now });
-    return { allowPersonalPrices: snapshot.includeInPlanning, personalPrices: snapshot.prices.filter(row => Core.eligible(row, { now })) };
+    return { allowPersonalPrices: snapshot.includeInPlanning, personalPrices: snapshot.prices.filter(row => row.store===store && Core.eligible(row, { now })) };
   } catch (error) { throw new TypeError(error.message); }
 }
 
 export function personalProduct(row, { now = new Date() } = {}) {
   const record = Core.normalize(row, { now });
   if (!Core.eligible(record, { now })) throw new TypeError('Recheck a saved price after 90 days before using it in a plan.');
-  const product = Object.freeze({ id: record.id, store: 'Lidl', name: record.ingredient, personalProductName: record.productName,
-    url: 'personal:lidl/' + record.id, category: 'Food & Drink > Your saved prices',
+  const product = Object.freeze({ id: record.id, store:record.store, name: record.ingredient, personalProductName: record.productName,
+    url: 'personal:'+record.store.toLowerCase()+'/' + record.id, category: 'Food & Drink > Your saved prices',
     packSize: `${record.packQuantity} ${record.packUnit}`, packQuantity: record.packQuantity, packUnit: record.packUnit, price: record.priceGBP,
     priceBasis: 'personal', estimatedPrice: true, personalPriceId: record.id, personalIngredient: record.ingredient,
     personalSource: record.source, personalBranch: record.branch, personalCheckedAt: record.checkedAt,
-    priceSource: record.source === 'receipt' ? 'Your Lidl receipt price' : 'Your Lidl shelf-label price', priceSourceUrl: null,
+    priceSource: record.source === 'receipt' ? 'Your '+record.store+' receipt price' : 'Your '+record.store+' shelf-label price', priceSourceUrl: null,
     sourcePeriod: record.checkedAt, sourceDate: record.checkedAt, priceCheckedAt: record.checkedAt,
     checkedAt: record.checkedAt, available: null, availability: 'check_in_store', validFrom: null, validThrough: null,
     regionRestricted: false, priceMemberOnly: false });
@@ -58,5 +58,5 @@ export function personalPurchaseMeta(product, dimension) {
 
 export function personalPriceEvidence(product) {
   return { personalPriceId: product.personalPriceId || null, personalIngredient: product.personalIngredient || null,
-    personalSource: product.personalSource || null, personalBranch: product.personalBranch || null, personalCheckedAt: product.personalCheckedAt || null };
+    personalSource: product.personalSource || null, personalBranch: product.personalBranch ?? null, personalCheckedAt: product.personalCheckedAt || null };
 }

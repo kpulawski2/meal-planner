@@ -550,7 +550,7 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   if (items.size > 400) return unavailable('This recipe selection contains more than 400 different ingredient requirements. Select a smaller recipe library to calculate the budget safely.');
   signal?.throwIfAborted();
   let catalogue;
-  try { catalogue = await catalogPurchaseOffers([...items.values()], { signal, store, allowReferencePrices: profile.lidlReferencePrices === true, allowPersonalPrices: request.allowPersonalPrices, personalPrices: request.personalPrices }); }
+  try { catalogue = await catalogPurchaseOffers([...items.values()], { signal, store, allowGenericPrices:true, allowReferencePrices: profile.lidlReferencePrices === true, allowPersonalPrices: request.allowPersonalPrices, personalPrices: request.personalPrices }); }
   catch (error) { if (signal?.aborted) throw error; return unavailable(error.message); }
   const books = new Map(), stock = stockAmounts(pantry);
   for (const [index, row] of catalogue.rows.entries()) {
@@ -584,7 +584,7 @@ export async function optimizeMealPlan(request, { signal } = {}) {
     const cost = basketCost(existing, people, stock, books, request), variety = Core.inspectVariety(planFromDays(existing, names, people).week, recipes, profile, request.cookedMeals);
     if (Number.isFinite(cost) && variety.met && cost <= budgetCents && (!best || best.cost > budgetCents || cost < best.cost && (profile.priority === 'Cheapest' || profile.varietyMode === 'Budget focus'))) best = { days: existing, cost, preference: 0 };
   }
-  if (!best && emptyPools) return unavailable(`At least one meal category has no suitable recipe with complete nutrition and published ${store} ingredient prices.${store === 'Lidl' ? ' Lidl does not publish prices for many everyday products, so this budget cannot be verified automatically yet.' : ''} Your saved plan was kept.`);
+  if (!best && emptyPools) return unavailable('At least one meal category has no suitable recipe with complete nutrition and ingredient quantities for your settings. Your saved plan was kept.');
   if (!best && !templates.length) return unavailable(profile.portionMode==='fixed'?'No plan meets your targets at your chosen meal portions. Your portions have not been resized. Review the protein/calorie targets, choose different recipes, or explicitly enable automatic portions. Your saved meals are kept.':'The search could not find complete daily meals within the nutrition range. No dietary or nutrition needs have been reduced; add suitable recipes or review the targets.');
   if (!best) {
     // A clearly rejected, priced proposal explains the constraints. It cannot
@@ -617,7 +617,9 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   const variety = Core.inspectVariety(plan.week, recipes, profile, request.cookedMeals), goals = goalReport(profile, best.days);
   const rotated=profile.rotateMeals!==false&&recipes.some(row=>row.recentUseScore>0);
   if(rotated)goals.explanation.push('Recent plans guide recipe and flavour rotation. Explicit daily favourites, kept meals, nutrition and budget still take priority.');
-  const feasible = complete && totalCents <= budgetCents && nutritionDays.every(day => day.complete && day.meetsTargets) && variety.met;
+  const genericEstimate=recommendations.some(row=>row.plan?.products?.some(product=>product.priceBasis==='generic_estimate'));
+  if(genericEstimate)warnings.push('Generic planning estimates cover missing store prices and assumed pack sizes. These are not verified '+store+' prices or stock. Save the plan now and add your actual receipt or shelf prices later.');
+  const feasible = complete && (totalCents <= budgetCents || genericEstimate) && nutritionDays.every(day => day.complete && day.meetsTargets) && variety.met;
   if (recommendations.some(row => row.plan?.products?.some(product => product.preparationNote))) warnings.push('Frozen chicken is included. Follow each pack’s full cooking time and storage instructions, including any no-reheat instruction. Nutrition is estimated and can differ with added-water content.');
   if (recommendations.some(row=>row.plan?.products?.some(product=>product.priceBasis==='other_store'))) warnings.push('The requested FUEL10K cereal is priced as a separate ASDA purchase. Its price is included in the budget; it is not a Lidl stock or price claim.');
   if (!complete) warnings.push('Some ingredients could not be priced. Unpriced ingredients are not counted as free, so this proposal cannot be accepted as within budget.');
@@ -628,7 +630,7 @@ export async function optimizeMealPlan(request, { signal } = {}) {
   if (recommendations.some(row => row.plan?.products?.some(product => product.priceBasis === 'reference'))) warnings.push('This budget is an estimate using historical or undated official Lidl reference prices. Check current pack prices and stock in store before shopping.');
   if (recommendations.some(row => row.plan?.products?.some(product => product.priceBasis === 'aldi_estimate'))) warnings.push('Missing Lidl prices use labelled Aldi pack-price estimates. These do not confirm Lidl prices, products or stock; check before shopping.');
   if (recommendations.some(row => row.plan?.products?.some(product => product.priceBasis === 'aldi_reference'))) warnings.push('This budget uses dated UK Aldi pack prices from the curated ingredient catalogue. Check current Aldi prices and stock before shopping.');
-  if (recommendations.some(row => row.plan?.products?.some(product => product.priceBasis === 'personal'))) warnings.push('This budget uses your saved Lidl shelf or receipt prices for selected ingredients. Check those pack prices and stock before shopping; saved prices do not record a new purchase.');
+  if (recommendations.some(row => row.plan?.products?.some(product => product.priceBasis === 'personal'))) warnings.push('This budget uses your saved '+store+' shelf or receipt prices for selected ingredients. Check those pack prices and stock before shopping; saved prices do not record a new purchase.');
   return { store, status: feasible ? 'feasible' : 'no_feasible_plan', ...plan,
     basket: { store, totalCostGBP: round(totalCents / 100), complete, estimatedPrice: recommendations.some(row => row.plan?.estimatedPrice), items: basketItems, recommendations, indexSize: catalogue.indexSize, refreshedAt: catalogue.refreshedAt },
     nutrition: { days: nutritionDays, calorieMin: targets.min, calorieMax: targets.max, proteinTarget: targets.protein, perPerson: true, source: 'recipe nutrition estimates' },

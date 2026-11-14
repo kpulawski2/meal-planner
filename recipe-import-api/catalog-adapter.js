@@ -1,3 +1,4 @@
+import '../public/generic-prices-core.js';
 import {recipePriceExtras,trustedRecipeExtra} from './recipe-price-extras.js';
 import {MAX_CATALOG_ITEMS} from './catalog-limits.js';
 import { readFile, stat } from 'node:fs/promises';
@@ -10,6 +11,21 @@ import { loadPriceReferences, referenceProduct, isTrustedReferencePrice } from '
 import { loadAldiPrices, aldiProduct, isTrustedAldiPrice } from './aldi-prices.js';
 import { withPersonalPriceIndex, personalIngredientKey, isTrustedPersonalPrice, personalPriceEvidence, personalPurchaseMeta } from './personal-prices.js';
 
+const genericProducts = new WeakSet();
+function genericCandidate(item,store){
+  const pack=globalThis.GenericPricesCore.pack(item.name,item.dimension,store);if(!pack)return [];
+  const product={...pack,name:pack.name,price:pack.priceGBP,packSize:pack.packQuantity+' '+pack.packUnit,priceBasis:'generic_estimate',estimatedPrice:true,priceSource:'Generic planning allowance; replace with your receipt price',priceSourceUrl:null,available:null,availability:'not_verified',store};
+  genericProducts.add(product);return [{product,score:100}];
+}
+async function planningIndex(store,allowReferencePrices,options){
+  let index;try{index=await pricingIndex(store,allowReferencePrices);if(index.snapshotStatus!=='complete')throw new Error('Retailer catalogue is incomplete.');}
+  catch(error){if(options.signal?.aborted||!options.allowGenericPrices)throw error;index={snapshotStatus:'unavailable',urls:[],products:[],createdAt:Date.now(),metadata:{}};}
+  return withPersonalPriceIndex(index,options,store);
+}
+function planningCandidates(index,query,dimension){
+  if(index.snapshotStatus==='complete')return indexedCandidates(index,query,dimension);
+  return (index.personalByIngredient?.get(personalIngredientKey(query))||[]).map(product=>({product,score:100})).filter(row=>purchasePackMeta(row.product,dimension));
+}
 const CATALOG_STORES = {
   Aldi: {
     name: 'Aldi',
@@ -699,6 +715,7 @@ const PRODUCE_ITEM_GRAMS = { pepper: 130, cucumber: 300, banana: 120, apple: 180
 const SPICE_GRAMS_PER_TSP = { cinnamon: 2.6, paprika: 2.3, cumin: 2.1, chilli: 1.8, curry: 2, herb: 1, dill: 1, seasoning: 2.5, cocoa: 2.5, salt: 6, pepper: 2.3 };
 
 function purchasePackMeta(product, wantedDimension) {
+  if (genericProducts.has(product)) {const pack=globalThis.GenericPricesCore.pack(product.name,wantedDimension,product.store);return pack&&pack.dimension===product.dimension?{dimension:pack.dimension,capacity:pack.packQuantity,estimatedQuantity:true,quantityBasis:'Assumed planning pack size; replace with the actual pack from your receipt.'}:null;}
   if (isTrustedPersonalPrice(product)) return personalPurchaseMeta(product, wantedDimension);
   let meta = packUnitMeta(product);
   // A variable-weight cabbage can only use a declared typical mass when the
@@ -780,8 +797,8 @@ function priceEvidence(product) {
   const pageSource = product?.store === 'Lidl' && product?.price != null && (!product.priceSource || product.priceSource === 'Lidl GB official product page');
   return {
     estimatedPrice: product.estimatedPrice === true,
-    priceBasis: trustedRecipeExtra(product) ? 'other_store' : isTrustedAldiPrice(product) ? product.priceBasis : product.priceBasis === 'personal' ? 'personal' : product.estimatedPrice === true ? 'reference' : 'website',
-    sourceStore: trustedRecipeExtra(product) ? 'Asda' : isTrustedAldiPrice(product) ? 'Aldi' : product.store || null,
+    priceBasis: genericProducts.has(product) ? 'generic_estimate' : trustedRecipeExtra(product) ? 'other_store' : isTrustedAldiPrice(product) ? product.priceBasis : product.priceBasis === 'personal' ? 'personal' : product.estimatedPrice === true ? 'reference' : 'website',
+    sourceStore: genericProducts.has(product) ? null : trustedRecipeExtra(product) ? 'Asda' : isTrustedAldiPrice(product) ? 'Aldi' : product.store || null,
     ...personalPriceEvidence(product),
     sourcePeriod: product.sourcePeriod || null,
     sourceDate: product.sourceDate || null,
@@ -799,7 +816,7 @@ function productSummary(product, score) {
   const frozenChicken = frozen && /\bchicken\b/i.test(product.name);
   return {
     url: product.url,
-    productName: product.personalProductName || product.name,
+    productName: genericProducts.has(product)?product.name+' (planning estimate)':product.personalProductName || product.name,
     score,
     brand: product.brand || null,
     packSize: product.packSize || null,
@@ -823,7 +840,7 @@ function productSummary(product, score) {
 }
 
 export function productPriceUsable(product, now = new Date()) {
-  if (trustedRecipeExtra(product)) return true;
+  if (genericProducts.has(product) || trustedRecipeExtra(product)) return true;
   if (product?.discoveryStatus === 'not_listed') return false;
   if (product?.price == null || !Number.isFinite(Number(product.price)) || Number(product.price) <= 0) return false;
   if (product.priceBasis === 'personal' || product.personalPriceId) return isTrustedPersonalPrice(product, now);
@@ -1048,17 +1065,18 @@ function makePurchasePlan(counts, offers, requested) {
   return { requestedQuantity: requested, totalQuantity, leftoverQuantity: Number(Math.max(0, totalQuantity - requested).toFixed(6)), totalCostGBP, estimatedPrice: products.some(product => product.estimatedPrice), estimatedQuantity: products.some(product => product.estimatedQuantity), estimateNotes: [...new Set(products.filter(product => product.estimatedQuantity).map(product => product.quantityBasis))], products };
 }
 
-export async function recommendCatalogItems(storeName, items, { signal, allowReferencePrices = false, allowPersonalPrices = false, personalPrices = [] } = {}) {
+export async function recommendCatalogItems(storeName, items, { signal, allowReferencePrices = false, allowPersonalPrices = false, personalPrices = [], allowGenericPrices = false } = {}) {
   if (!Object.hasOwn(CATALOG_STORES, storeName)) throw new Error('Choose Asda, Lidl or Aldi for automatic recommendations.');
-  const index = withPersonalPriceIndex(await pricingIndex(storeName, allowReferencePrices), { allowPersonalPrices, personalPrices }, storeName);
-  if (index.snapshotStatus !== 'complete' || !Array.isArray(index.products)) throw new Error(`A complete ${storeName} website catalogue snapshot is required for automatic recommendations.`);
+  const index = await planningIndex(storeName,allowReferencePrices,{signal,allowPersonalPrices,personalPrices,allowGenericPrices});
+  if (!allowGenericPrices && (index.snapshotStatus !== 'complete' || !Array.isArray(index.products))) throw new Error(`A complete ${storeName} website catalogue snapshot is required for automatic recommendations.`);
   const rows = Array.isArray(items) ? items.slice(0, MAX_CATALOG_ITEMS) : [];
   const recommendations = [];
   for (const item of rows) {
       signal?.throwIfAborted();
       const query = clean(item?.name, 120);
       const dimension = clean(item?.dimension, 30);
-      const candidates = indexedCandidates(index, query, dimension);
+      let candidates = planningCandidates(index, query, dimension);
+      if(allowGenericPrices&&(!candidates.length||candidates[0].score<9||!ingredientWords(query).every(token=>ingredientNameWords(candidates[0].product.name).includes(token))||!calculatePackPurchase(candidates,Number(item?.quantity),dimension)))candidates=genericCandidate(item,storeName);
       const bestScore = candidates[0]?.score || 0;
       const relevant = candidates;
       const quantity = Number(item?.quantity);
@@ -1093,14 +1111,16 @@ export async function recommendCatalogItems(storeName, items, { signal, allowRef
 
 // Reuse the same safety filters and quantity assumptions when evaluating many
 // meal plans. The worker builds compact price tables without reloading products.
-export async function catalogPurchaseOffers(items, { signal, store = 'Asda', allowReferencePrices = false, allowPersonalPrices = false, personalPrices = [] } = {}) {
-  const index = withPersonalPriceIndex(await pricingIndex(store, allowReferencePrices), { allowPersonalPrices, personalPrices }, store);
-  if (index.snapshotStatus !== 'complete') throw new Error(`A complete ${store} website catalogue is required to calculate a meal budget.`);
+export async function catalogPurchaseOffers(items, { signal, store = 'Asda', allowReferencePrices = false, allowPersonalPrices = false, personalPrices = [], allowGenericPrices = false } = {}) {
+  const index = await planningIndex(store,allowReferencePrices,{signal,allowPersonalPrices,personalPrices,allowGenericPrices});
+  if (!allowGenericPrices && index.snapshotStatus !== 'complete') throw new Error(`A complete ${store} website catalogue is required to calculate a meal budget.`);
   const rows = [];
   for (const item of items) {
     signal?.throwIfAborted();
     const query = clean(item.name, 120), dimension = canonicalDimension(item.dimension);
-    const candidates = indexedCandidates(index, query, dimension), best = candidates[0];
+    let candidates = planningCandidates(index, query, dimension);
+    if(allowGenericPrices&&(!candidates.length||candidates[0].score<9||!ingredientWords(query).every(token=>ingredientNameWords(candidates[0].product.name).includes(token))||!candidates.some(candidate=>purchasableOffer(candidate,dimension))))candidates=genericCandidate(item,store);
+    const best=candidates[0];
     const high = best && best.score >= 9 && ingredientWords(query).every(token => ingredientNameWords(best.product.name).includes(token));
     const offers = high ? candidates.map(candidate => {
       const offer = purchasableOffer(candidate, dimension);

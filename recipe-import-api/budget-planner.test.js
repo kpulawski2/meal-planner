@@ -245,10 +245,10 @@ test('an infeasible penny budget cannot be reported as successful or silently lo
   if (result.basket.complete) assert.ok(result.basket.totalCostGBP > result.budget.planGBP);
 });
 
-test('missing ingredient prices prevent a false feasible status', async () => {
+test('missing ingredient prices receive positive labelled estimates rather than preventing a plan', async () => {
   const recipes = fixtureRecipes.map(row => row.cat === 'Dinner' ? { ...row, ings: [['Uncatalogued ingredient zzz', 100, 'g']] } : row);
   const result = await optimize({ recipes });
-  assert.notEqual(result.status, 'feasible');
+  assert.equal(result.status,'feasible');assert.equal(result.basket.complete,true);assert.ok(result.basket.recommendations.some(row=>row.plan.products.some(p=>p.priceBasis==='generic_estimate'&&p.costGBP>0)));assert.match(result.warnings.join(' '),/Generic planning estimates/);
 });
 
 test('locked slots preserve recipe and exact portions while the other slots are optimized', async () => {

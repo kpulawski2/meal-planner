@@ -36,11 +36,11 @@ test('website menu filtering and member offers do not change public budget price
   assert.equal((await catalog.browseCatalog('Lidl',{menu:'no-such-menu'})).matched,0);
   const milk=await catalog.recommendCatalogItems('Lidl',[{key:'milk',name:'Milk',dimension:'volume',quantity:1000}]);assert.equal(milk.recommendations[0].plan,null,'a member-only number cannot fill an unpublished public price');
 });
-test('Lidl budget retains saved meals when milk has no published price',async()=>{
+test('Lidl fills missing milk prices with a labelled generic estimate',async()=>{
   const recipes=[{id:'lunch',name:'Milk lunch',cat:'Lunch',servings:1,ings:[['Milk',1000,'ml']],nutrition:{kcal:400,p:40,complete:true}},{id:'dinner',name:'Chicken dinner',cat:'Dinner',servings:1,ings:[['Chicken breast',100,'g']],nutrition:{kcal:400,p:40,complete:true}}];
   const week=[{day:'Monday',meals:['lunch','dinner']}];
   const result=await optimizeMealPlan({profile:{supermarket:'Lidl',days:1,meals:2,people:1,calories:800,protein:80,budget:45},recipes,week,pantry:[],locked:{}});
-  assert.equal(result.store,'Lidl');assert.equal(result.status,'unavailable');assert.equal(result.basket.complete,false);assert.equal(result.basket.totalCostGBP,null);assert.deepEqual(result.week,week);assert.match(result.warnings[0],/Lidl does not publish prices/);
+  assert.equal(result.store,'Lidl');assert.equal(result.status,'feasible');assert.equal(result.basket.complete,true);assert.ok(result.basket.totalCostGBP>0);assert.deepEqual(result.week,week);assert.match(result.warnings.join(' '),/Generic planning estimates/);
 });
 test('expired, future, regional and member-only substitutes are excluded',()=>{
   const base={...rows[2],price:1,priceSource:'Lidl GB official product page'};const now=new Date('2026-10-10T12:00:00Z');

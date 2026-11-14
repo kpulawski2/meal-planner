@@ -47,11 +47,12 @@ test('repeated favourites never silently substitute another recipe after diet, r
     { profile: { ...base.profile, diet: 'Vegetarian' } },
     { profile: { ...base.profile, repeatMeals: { Breakfast: 'not-in-library' } } },
     { recipes: recipes.map(row => row.id === 'oats' ? { ...row, nutrition: { kcal: null, p: null, complete: false } } : row) },
-    { recipes: recipes.map(row => row.id === 'oats' ? { ...row, ings: [['Unpublished snack dust', 100, 'g']] } : row) },
   ]) {
     const result = await optimize({ ...base, ...patch, week: saved });
     assert.notEqual(result.status, 'feasible'); assert.deepEqual(result.week, saved);
   }
+  const estimated=await optimize({...base,recipes:recipes.map(row=>row.id==='oats'?{...row,ings:[['Unpublished snack dust',100,'g']]}:row),week:saved});
+  assert.equal(estimated.status,'feasible');assert.ok(estimated.week.every(day=>day.meals[0]==='oats'));assert.ok(estimated.basket.recommendations.some(row=>row.plan.products.some(p=>p.priceBasis==='generic_estimate'&&p.costGBP>0)));
 });
 
 test('repeat mode does not waive nutrition, budget, meal roles or within-day dish uniqueness', async () => {

@@ -107,7 +107,7 @@ test('only independently validated personal products can enter costing, with exp
   assert.deepEqual(normalizePersonalPriceOptions({ allowPersonalPrices: true, personalPrices: [aged] }).personalPrices, []);
   assert.throws(() => personalProduct(aged), /90 days/);
   for (const bad of [observed('Rolled oats', 0, 1), observed('Rolled oats', 1000, -1), observed('Rolled oats', 1000, 1, { checkedAt: dayAgo(-1) }), observed('Rolled oats', 1.5, 1, { packUnit: 'pieces' })]) assert.throws(() => normalizePersonalPriceOptions({ allowPersonalPrices: true, personalPrices: [bad] }), TypeError);
-  assert.throws(() => normalizePersonalPriceOptions(options, 'Asda'), /Lidl only/);
+  assert.deepEqual(normalizePersonalPriceOptions(options,'Asda').personalPrices,[], 'Lidl records are never used for another store');
   assert.throws(() => normalizePersonalPriceOptions({ allowPersonalPrices: 'true', personalPrices: prices }), TypeError);
   const baseIndex = { urls: [], products: [] }, before = JSON.stringify(baseIndex);
   const overlaid = withPersonalPriceIndex(baseIndex, options, 'Lidl');
@@ -118,7 +118,7 @@ test('an oats, tuna and chicken routine can be costed with explicit personal pac
   const request = normalizePlannerRequest(mealRequest());
   assert.equal(request.profile.lidlReferencePrices, false); assert.equal(request.allowPersonalPrices, true);
   const strict = await optimizeMealPlan({ ...request, allowPersonalPrices: false });
-  assert.equal(strict.status, 'unavailable'); assert.equal(strict.basket.complete, false); assert.equal(strict.basket.totalCostGBP, null);
+  assert.equal(strict.status,'feasible');assert.equal(strict.basket.complete,true);assert.ok(strict.basket.totalCostGBP>0);assert.ok(strict.basket.recommendations.some(row=>row.plan.products.some(p=>p.priceBasis==='generic_estimate')));
   const result = await optimizeMealPlan(request);
   assert.equal(result.status, 'feasible', result.warnings.join(' ')); assert.equal(result.week.length, 2); assert.equal(result.basket.complete, true); assert.equal(result.basket.estimatedPrice, true);
   assert.ok(result.nutrition.days.every(day => day.complete && day.meetsTargets)); assert.ok(result.basket.totalCostGBP <= result.budget.planGBP);
@@ -128,7 +128,7 @@ test('an oats, tuna and chicken routine can be costed with explicit personal pac
     assert.ok(recommendation.plan.products.every(product => product.priceBasis === 'personal' && product.estimatedPrice && !product.priceSourceUrl));
   }
   const again = await optimizeMealPlan({ ...request, allowPersonalPrices: false });
-  assert.equal(again.status, 'unavailable', 'an earlier personal plan cannot change the shared catalogue');
+  assert.equal(again.status,'feasible');assert.ok(again.basket.recommendations.every(row=>row.plan.products.every(p=>p.priceBasis!=='personal')), 'personal observations do not change the shared catalogue');
 });
 
 test('HTTP recommendations and planning reject malformed personal inputs and require the explicit opt-in', { timeout: 45000 }, async t => {
@@ -139,12 +139,12 @@ test('HTTP recommendations and planning reject malformed personal inputs and req
   const base = `http://127.0.0.1:${httpServer.address().port}`;
   const send = (route, body) => fetch(base + route, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(20000) });
   const body = { store: 'Lidl', items: [item()], ...options };
-  for (const patch of [{ allowPersonalPrices: 'true' }, { personalPrices: {} }, { personalPrices: [observed('Rolled oats', 1000, 0)] }, { personalPrices: [observed('Rolled oats', 1000, 1, { checkedAt: dayAgo(-1) })] }, { store: 'Asda' }]) {
+  for (const patch of [{ allowPersonalPrices: 'true' }, { personalPrices: {} }, { personalPrices: [observed('Rolled oats', 1000, 0)] }, { personalPrices: [observed('Rolled oats', 1000, 1, { checkedAt: dayAgo(-1) })] }]) {
     const response = await send('/api/catalog/recommend', { ...body, ...patch });
     assert.equal(response.status, 400, JSON.stringify(patch)); assert.equal(typeof (await response.json()).error, 'string');
   }
   const optedOut = await send('/api/catalog/recommend', { ...body, allowPersonalPrices: false });
-  assert.equal(optedOut.status, 200); assert.equal((await optedOut.json()).recommendations[0].plan, null);
+  assert.equal(optedOut.status, 200); assert.equal((await optedOut.json()).recommendations[0].plan.products[0].priceBasis,'generic_estimate');
   const enabled = await send('/api/catalog/recommend', body);
   assert.equal(enabled.status, 200); const priced = await enabled.json(); assert.equal(priced.recommendations[0].plan.totalCostGBP, 2); assert.equal(priced.recommendations[0].plan.products[0].priceBasis, 'personal');
   const invalidPlan = await send('/api/planner/generate', { ...mealRequest(), allowPersonalPrices: 'yes' });

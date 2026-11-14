@@ -930,7 +930,7 @@ app.post('/api/catalog/recommend', catalogRateLimit, async (req, res) => {
     claimedSlot = true;
     res.once('close', disconnected);
     const personal = normalizePersonalPriceOptions(req.body, store);
-    const result = await recommendCatalogItems(store, items, { signal: controller.signal, allowReferencePrices: req.body?.allowReferencePrices === true, ...personal });
+    const result = await recommendCatalogItems(store, items, { signal: controller.signal, allowGenericPrices:true, allowReferencePrices: req.body?.allowReferencePrices === true, ...personal });
     if (!res.destroyed) res.json({ ok: true, ...result });
   } catch (e) {
     if (!res.destroyed && !res.headersSent) res.status(e instanceof TypeError ? 400 : 502).json({ error: `Could not build automatic retailer pack recommendations: ${cleanString(e?.message || 'unknown error', 300)}` });
