@@ -799,7 +799,7 @@ test('changing extra cooked portions at confirmation first shows the revised ing
 });
 
 test('cooking progress advances while every prepared meal remains visible and unlogged on the daily page', async () => {
-  const app = harness(); await app.flush();
+  const app = harness(); await app.flush();app.run('state.profile.startDate=FoodLogCore.localDate()');
   app.context.PantryUI.openCook('Monday', 0); app.context.PantryUI.confirmCook(false);
   assert.notEqual(app.context.nextMealIndex(app.state().week[0]), 0);
   app.run('for(const [index,id] of state.week[0].meals.entries()){const recipe=getRecipe(id);state.pantryLedger.cooked[PantryCore.slotKey(state,"Monday",index)]={recipeId:id,recipeSignature:PantryCore.recipeSignature(recipe),servings:getMealServings("Monday",index)};}renderHome();');
@@ -1046,7 +1046,7 @@ test('scanner uses HD, hardware zoom and continuous focus while close still rele
  app.context.BarcodeUI.open();await app.context.BarcodeUI.camera();assert.equal(requested.video.width.ideal,1920);assert.equal(requested.video.height.ideal,1080);assert.equal(app.node('barcodeZoomField').hidden,false);assert.ok(applied[0].advanced.some(row=>row.focusMode==='continuous'));await app.context.BarcodeUI.zoom(2);assert.deepEqual(applied.at(-1),{advanced:[{zoom:2}]});await app.context.BarcodeUI.zoom(9);assert.deepEqual(applied.at(-1),{advanced:[{zoom:2}]});app.context.closeModal();assert.equal(stops,1);assert.equal(app.node('barcodeVideo').srcObject,null);
 });
 test('usual shortcuts and safe undo affect only the diary, never exact plan portions or pantry stock',async()=>{
- const app=harness();await app.flush();const before=app.state();app.run("FoodLogCore.record(state,{date:FoodLogCore.localDate(),meal:'Breakfast',food:{name:'My cereal',quantity:100,unit:'g',nutrition:{kcal:389,p:25,c:60,f:4}},quantity:70},{id:'cereal-entry'})");app.context.EverydayUI.pinEntry('cereal-entry');const id=app.state().foodPins[0].id;assert.equal(app.state().foodPins[0].quantity,70);app.context.EverydayUI.log(id);assert.equal(app.state().foodLog.length,2);assert.equal(app.state().foodLog.at(-1).quantity,70);app.context.EverydayUI.log(id);assert.equal(app.state().foodLog.length,2);app.run('state.foodLog.at(-1).quantity=80');app.context.EverydayUI.undo();assert.equal(app.state().foodLog.length,2);assert.match(app.node('toast').textContent,/entry changed/);for(const key of ['profile','week','mealServings','pantry','pantryLedger'])assert.deepEqual(app.state()[key],before[key]);
+ const app=harness();await app.flush();app.run('state.profile.startDate=FoodLogCore.localDate()');const before=app.state();app.run("FoodLogCore.record(state,{date:FoodLogCore.localDate(),meal:'Breakfast',food:{name:'My cereal',quantity:100,unit:'g',nutrition:{kcal:389,p:25,c:60,f:4}},quantity:70},{id:'cereal-entry'})");app.context.EverydayUI.pinEntry('cereal-entry');const id=app.state().foodPins[0].id;assert.equal(app.state().foodPins[0].quantity,70);app.context.EverydayUI.log(id);assert.equal(app.state().foodLog.length,2);assert.equal(app.state().foodLog.at(-1).quantity,70);app.context.EverydayUI.log(id);assert.equal(app.state().foodLog.length,2);app.run('state.foodLog.at(-1).quantity=80');app.context.EverydayUI.undo();assert.equal(app.state().foodLog.length,2);assert.match(app.node('toast').textContent,/entry changed/);for(const key of ['profile','week','mealServings','pantry','pantryLedger'])assert.deepEqual(app.state()[key],before[key]);
  app.context.EverydayUI.simple(true);assert.match(app.node('home').innerHTML,/simple-primary-actions/);assert.doesNotMatch(app.node('home').innerHTML,/Budget &amp; plan checks/);app.context.EverydayUI.simple(false);assert.match(app.node('home').innerHTML,/Today’s meals/);assert.equal((app.node('home').innerHTML.match(/data-daily-meal=/g)||[]).length,app.state().week[0].meals.length);
 });
 
@@ -1057,4 +1057,18 @@ test('full-screen camera controls return to manual entry and release tracks with
 });
 test('denied camera access restores the scanner form and keeps label/photo fallbacks available',async()=>{
  const app=harness();await app.flush();app.context.isSecureContext=true;app.context.navigator.mediaDevices={getUserMedia:async()=>{throw new Error('Camera permission denied.');}};app.context.BarcodeUI.open();await app.context.BarcodeUI.camera();assert.equal(app.node('modal').classList.contains('barcode-fullscreen'),false);assert.equal(app.node('sheet').classList.contains('barcode-fullscreen'),false);assert.match(app.node('barcodeStatus').textContent,/permission denied/);assert.match(app.node('sheet').innerHTML,/Choose barcode photo/);assert.match(app.node('sheet').innerHTML,/Enter pack label/);
+});
+
+test('a new week can be prepared early with a chosen start date and the current plan archived',async()=>{
+ const app=harness();await app.flush();const before=app.state();app.context.startNextPlan();
+ assert.match(app.node('sheet').innerHTML,/before this week ends/);
+ app.node('nextPlanStart').value='2026-11-15';app.context.confirmNextPlan();
+ const after=app.state();assert.equal(after.profile.startDate,'2026-11-15');
+ assert.deepEqual(after.planHistory[0].week,before.week);
+ assert.deepEqual(after.pantry,before.pantry);assert.deepEqual(after.foodLog,before.foodLog);
+});
+test('logging a planned meal defaults to today even while viewing a future plan',async()=>{
+ const app=harness();await app.flush();app.run("state.profile.startDate='2026-12-06'");
+ app.context.FoodLogUI.openRecipe(basic.id,'Monday',0,'2026-12-06');
+ assert.ok(app.node('sheet').innerHTML.includes('value="'+app.context.FoodLogCore.localDate()+'"'));
 });
