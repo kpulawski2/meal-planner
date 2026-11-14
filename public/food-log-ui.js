@@ -155,7 +155,7 @@
     openRecipe(id, day = null, index = null, logDate = null) {
       const recipe = api.recipes().find(row => row.id === id);
       if (!recipe || !api.recipeNutrition(recipe).complete) { api.toast('Complete the recipe nutrition before logging it.'); return; }
-      draft = { manual: false,logDate:core.validDate(logDate)?logDate:day==null?date:root.PlanCalendarCore?.dateFor(api.state(),day)||date,meal:recipe.cat==='Fruit'?'Snack':recipe.cat,selection: 'recipe:' + id, portions: day == null ? 1 : api.portions(day, index) / Math.max(1, Number(api.state().profile.people) || 1),
+      draft = { manual: false,logDate:core.localDate(),meal:recipe.cat==='Fruit'?'Snack':recipe.cat,selection: 'recipe:' + id, portions: day == null ? 1 : api.portions(day, index) / Math.max(1, Number(api.state().profile.people) || 1),
         originKey: day == null ? null : (api.state().pantryLedger?.planId || 'current') + '::' + day + '::' + index };
       draw();
     },
