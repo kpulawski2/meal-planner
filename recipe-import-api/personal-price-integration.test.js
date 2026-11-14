@@ -97,6 +97,7 @@ test('the real budget-plan acceptance check rejects personal packs that cannot c
  const app=harness(),c=app.context;
  c.PersonalPricesCore.write(app.snapshot);
  vm.runInContext(await readFile(new URL('../public/macro-goals-core.js',import.meta.url),'utf8'),c);
+ vm.runInContext(await readFile(new URL('../public/plan-workspace-core.js',import.meta.url),'utf8'),c);
  c.state.profile={supermarket:'Lidl',days:1,meals:3,people:1,budget:35,calories:1200,protein:90,varietyMode:'Repeat favourites'};
  c.recipes=['Breakfast','Lunch','Dinner'].map((cat,index)=>({id:'aggregate-fixture-'+index,name:cat,cat,servings:1,ings:[['Oats',400,'g']],nutrition:{kcal:400,p:30,complete:true}}));
  c.selectedShoppingStore=()=>c.state.profile.supermarket;
