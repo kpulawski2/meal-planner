@@ -31,7 +31,7 @@
       task.portions = rounded(task.portions);
       const needed = root.PantryCore.requiredIngredients(task.recipe, task.portions);
       const missingEquipment = root.KitchenEquipment?.missing(task.recipe, state.profile) || [];
-      const method = methodOf(task.recipe), steps = Array.isArray(method) ? method.filter(Boolean) : String(method || '').trim();
+      const method = task.recipe ? methodOf(task.recipe) : null, steps = Array.isArray(method) ? method.filter(Boolean) : String(method || '').trim();
       const fresh = Boolean(task.recipe?.personalCereal) || (task.recipe?.tags || []).some(tag => ['smoothie-bowl','cereal'].includes(tag));
       const waiting = Math.max(0, Number(task.recipe?.passiveMinutes) || 0, Number(task.recipe?.freezeMinutes) || 0);
       const reason = !needed.ok ? needed.error : !steps.length ? 'Review the recipe steps first.'
