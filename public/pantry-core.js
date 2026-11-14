@@ -58,7 +58,7 @@
     return coverage;
   }
   function shoppingInput(state, recipes = [], now = new Date()) {
-    const week = [], mealServings = {}, coverage = plannerCoverage(state, recipes, now);
+    const week = [], mealServings = {}, coverage = plannerCoverage(root.PlanWorkspaceCore?.mode(state)==='next'?{...state,leftovers:[]}:state, recipes, now);
     for (const day of state.week || []) {
       const row = { ...day, meals: [] };
       for (const [index, id] of (day.meals || []).entries()) {
@@ -68,7 +68,7 @@
       }
       week.push(row);
     }
-    return { week, recipes, mealServings, people: state.profile?.people || 1, pantry: activePantry(state.pantry, now) };
+    return { week, recipes, mealServings, people: state.profile?.people || 1, pantry: root.PlanWorkspaceCore?root.PlanWorkspaceCore.availablePantry(state,recipes,activePantry(state.pantry,now)):activePantry(state.pantry, now) };
   }
   function revision(state, recipes = []) { return stable({ week: state.week, mealServings: state.mealServings, people: state.profile?.people, store: state.shoppingStore, shopping: state.shopping, pantry: state.pantry, leftovers: state.leftovers, ledger: state.pantryLedger, recipes: recipes.filter(recipe => (state.week || []).some(day => day.meals?.includes(recipe.id))).map(recipeSignature) }); }
   function officialProductUrl(url, store) {

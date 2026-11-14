@@ -15,6 +15,7 @@ const foodCore=await readFile(new URL('../public/food-log-core.js',import.meta.u
 const favouritesUI=await readFile(new URL('../public/favourites-ui.js',import.meta.url),'utf8');
 const catalogueBrowser=await readFile(new URL('../public/catalogue-browser.js',import.meta.url),'utf8');
 const foodUI=await readFile(new URL('../public/food-log-ui.js',import.meta.url),'utf8');
+const workspaceModules=(await Promise.all(['plan-workspace-core','plan-workspace-ui'].map(name=>readFile(new URL('../public/'+name+'.js',import.meta.url),'utf8')))).join('\n');
 const lighter=await readFile(new URL('../public/lighter-recipes.js',import.meta.url),'utf8');
 const tailoredModules=(await Promise.all(['macro-goals-core','meal-intent-core','tailored-plan-ui','tailored-recipes'].map(name=>readFile(new URL('../public/'+name+'.js',import.meta.url),'utf8')))).join('\n');
 const worldContext={};vm.runInNewContext(world+'\n'+tailoredModules,worldContext);const shippedRecipeCount=292+worldContext.WORLD_RECIPES.length+worldContext.TAILORED_RECIPES.length;
@@ -48,7 +49,7 @@ test('the complete app starts and renders every panel with a new or saved plan',
   const appElement={inert:false};
   const context={AbortController,DOMException,AbortSignal,FormData,Blob,console,navigator:{},location:{origin:'https://meal-planner.example',protocol:'https:',hostname:'meal-planner.example'},localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)},document:{body:element(),hidden:false,getElementById:id=>elements[id]||(elements[id]=element()),querySelectorAll:selector=>selector==='.tabs button'?nav:selector==='.screen'?['home','week','shop','pantry','recipes','favourites','profile'].map(id=>elements[id]):[],querySelector:selector=>selector==='.screen.active'?{id:'home'}:selector==='.app'?appElement:null,addEventListener(){}},setTimeout:()=>0,clearTimeout(){},fetch:async()=>({ok:false,status:503,text:async()=>''})};
   const scrolls=[];context.window=context;context.addEventListener=()=>{};context.scrollTo=options=>scrolls.push(options);
-  vm.runInNewContext(tailoredModules+'\n'+equipment+'\n'+social+'\n'+core+'\n'+affordable+'\n'+creami+'\n'+world+'\n'+lighter+'\n'+libraryCore+'\n'+foodCore+'\n'+foodUI+'\n'+favouritesUI+'\n'+catalogueBrowser+'\n'+inline,context);
+  vm.runInNewContext(tailoredModules+'\n'+equipment+'\n'+social+'\n'+core+'\n'+affordable+'\n'+creami+'\n'+world+'\n'+lighter+'\n'+libraryCore+'\n'+foodCore+'\n'+foodUI+'\n'+favouritesUI+'\n'+catalogueBrowser+'\n'+workspaceModules+'\n'+inline,context);
   if(existingPlan==='first-use'||existingPlan==='draft'){assert.equal(elements.setup.hidden,false);assert.equal(appElement.inert,true);assert.match(elements.setupContent.innerHTML,/Your supermarket/);assert.match(elements.setupContent.innerHTML,/Goals/);assert.equal(elements.profile.innerHTML,'');assert.equal(context.selectedShoppingStore(),existingPlan==='draft'?'Lidl':'Asda');assert.match(html,/if\(!state.setupComplete\)openSetup/);continue;}
   for(const id of ['home','week','shop','pantry','recipes','favourites','profile'])assert.ok(elements[id].innerHTML.length>30,id+' rendered on '+(existingPlan?'saved':'fresh')+' startup');
   assert.ok(elements.recipes.innerHTML.includes(shippedRecipeCount+' recipes'));
