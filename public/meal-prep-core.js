@@ -14,8 +14,8 @@
     const count = Number.isInteger(requested) && requested > 0 ? Math.min(14, requested) : 3;
     return { startDay: startDay || '', count, days: days.slice(start, start + count) };
   }
-  function session(state, recipes, options = {}, now = new Date()) {
-    const selected = scope(state, options), coverage = root.PantryCore.plannerCoverage(state, recipes, now);
+  function session(state, recipes, options = {}, now = new Date(), methodOf = recipe => recipe?.method) {
+    const selected = scope(state, options), coverage = root.PantryCore.plannerCoverage(root.PlanWorkspaceCore?.mode(state)==='next'?{...state,leftovers:[]}:state, recipes, now);
     const lookup = new Map(recipes.map(recipe => [recipe.id, recipe])), grouped = new Map();
     let planned = 0, covered = 0;
     for (const day of selected.days) for (const [index, id] of (day.meals || []).entries()) {
@@ -31,8 +31,8 @@
       task.portions = rounded(task.portions);
       const needed = root.PantryCore.requiredIngredients(task.recipe, task.portions);
       const missingEquipment = root.KitchenEquipment?.missing(task.recipe, state.profile) || [];
-      const steps = Array.isArray(task.recipe?.method) ? task.recipe.method.filter(Boolean) : String(task.recipe?.method || '').trim();
-      const fresh = (task.recipe?.tags || []).includes('smoothie-bowl');
+      const method = task.recipe ? methodOf(task.recipe) : null, steps = Array.isArray(method) ? method.filter(Boolean) : String(method || '').trim();
+      const fresh = Boolean(task.recipe?.personalCereal) || (task.recipe?.tags || []).some(tag => ['smoothie-bowl','cereal'].includes(tag));
       const waiting = Math.max(0, Number(task.recipe?.passiveMinutes) || 0, Number(task.recipe?.freezeMinutes) || 0);
       const reason = !needed.ok ? needed.error : !steps.length ? 'Review the recipe steps first.'
         : task.recipe?.unavailable || task.recipe?.needsReview ? 'Review this recipe first.'
@@ -50,7 +50,7 @@
         total.qty = rounded(total.qty + row.qty); total.estimated ||= row.estimated; ingredients.set(row.key, total);
       }
       const signature = JSON.stringify([state.pantryLedger?.planId || '', root.PantryCore.recipeSignature(task.recipe),
-        task.recipe?.method, task.recipe?.equipment, task.slots]);
+        steps, task.recipe?.equipment, task.slots]);
       return { ...task, name: task.recipe?.name || 'Recipe unavailable', preparedServings: needed.preparedServings || null,
         requirements: [...prepIngredients.values()], reason, fresh, waiting, signature,
         checked: state.prepPlan?.sessionChecks?.[task.id] === signature };
@@ -62,7 +62,7 @@
   }
   function batchRequest(task) {
     if (!task || task.reason) throw new Error(task?.reason || 'Open your prep session again.');
-    if (task.fresh) throw new Error('Make smoothie bowls fresh; record individual meals from your plan.');
+    if (task.fresh) throw new Error('Make smoothie bowls fresh, and add milk to cereal on the day; record individual meals from your plan.');
     const first = task.slots[0]; if (!first) throw new Error('This batch is already covered.');
     const extra = rounded(task.portions - first.portions);
     if (extra > 100) throw new Error('Choose fewer days for this batch; at most 100 extra portions can be recorded at once.');
@@ -85,5 +85,17 @@
     return rows.sort((a, b) => priority[a.status] - priority[b.status] || (a.days ?? 999) - (b.days ?? 999)
       || String(a.name).localeCompare(String(b.name)));
   }
-  root.MealPrepCore = Object.freeze({ scope, session, batchRequest, dateAlerts });
+  function workflow(value,steps=recipe=>recipe.method||[],allowed=()=>true){
+    const ready=value.tasks.filter(task=>!task.reason&&!task.fresh&&task.recipe&&allowed(task.recipe)),rows=[],ingredients=new Map();
+    if(ready.length){rows.push({text:'Gather equipment and weigh the combined ingredients below. Keep each recipe’s portioned ingredients separate.'},{text:'Prepare vegetables before handling raw meat. Keep raw meat separate from ready-to-eat food; wash hands and clean utensils between tasks.'});}
+    for(const task of ready){
+      for(const ingredient of task.requirements){const old=ingredients.get(ingredient.key);if(old)old.qty=rounded(old.qty+ingredient.qty);else ingredients.set(ingredient.key,{...ingredient});}
+      rows.push({ingredients:task.requirements,components:root.MealExtrasCore?.componentGroups(task.recipe,task.preparedServings)||[],recipeId:task.id,text:task.name+' — prepare '+task.preparedServings+' portions. Use the scaled quantities for this batch; follow the recipe’s temperatures and doneness checks.'+(task.waiting?' Start its waiting stage first, then prepare other dishes and return to finish.':'')});
+      const method=steps(task.recipe),instructions=Array.isArray(method)?method:String(method||'').split(/\r?\n/);for(const text of instructions)if(typeof text==='string'&&text.trim())rows.push({recipeId:task.id,text:task.name+': '+text});
+    }
+    if(ready.length)rows.push({text:'Portion and label with the dish and cooking date. Cool hot food and refrigerate within two hours (rice within one hour). Eat refrigerated leftovers within two days (rice within 24 hours), or freeze later portions. Follow any shorter recipe or pack instructions.'});
+    const fresh=value.tasks.filter(task=>task.fresh);if(fresh.length)rows.push({text:'Make fresh on the day: '+fresh.map(task=>task.name).join(', ')+'.'});
+    return {steps:rows,ingredients:[...ingredients.values()].sort((a,b)=>a.name.localeCompare(b.name)),containers:Math.ceil(ready.reduce((sum,task)=>sum+task.preparedServings,0)),equipment:[...new Set(ready.flatMap(task=>task.recipe.equipment||[]))],blocked:value.tasks.filter(task=>task.reason||task.recipe&&!allowed(task.recipe)).length,signature:JSON.stringify([value.scope,ready.map(task=>task.signature),rows])};
+  }
+  root.MealPrepCore = Object.freeze({ workflow,scope, session, batchRequest, dateAlerts });
 })(globalThis);

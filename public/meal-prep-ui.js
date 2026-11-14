@@ -1,13 +1,13 @@
 (function (root) {
   'use strict';
-  let api, shownSession = null;
+  let api, shownSession = null, shownWorkflow=null;
   const html = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
   const arg = value => encodeURIComponent(String(value)).replace(/'/g, '%27');
   const amount = value => Number(Number(value).toFixed(2)).toLocaleString('en-GB');
   const action = (label, method, id, extra = '') => '<button class="btn secondary small" ' + extra
     + ' onclick="MealPrepUI.' + method + '(decodeURIComponent(\'' + arg(id) + '\'))">' + label + '</button>';
   const dayLabel=day=>root.PlanCalendarCore?.label(api.state(),day)||day;
-  const model = () => root.MealPrepCore.session(api.state(), api.recipes(), api.state().prepPlan?.scope);
+  const model = () => root.MealPrepCore.session(api.state(), api.recipes(), api.state().prepPlan?.scope,new Date(),api.steps);
   const open = content => { root.ConsumerUI?.cleanup(); api.openSheet(content); };
   function stats(value) {
     return '<div class="prep-stats"><div><b>' + value.tasks.length + '</b><span>Recipes to prepare</span></div><div><b>'
@@ -39,6 +39,14 @@
       + (!task.fresh ? action('Record prepared batch', 'record', task.id, blocked ? 'disabled' : '') : '') + '</div><label class="prep-organise-check"><input type="checkbox" '
       + (task.checked ? 'checked' : '') + ' onchange="MealPrepUI.check(decodeURIComponent(\'' + arg(task.id) + '\'),this.checked)">Ingredients organised</label></article>';
   }
+  function workflowHtml(value){
+    const flow=root.MealPrepCore.workflow(value,api.steps||((r)=>r.method||[]),api.allowed);shownWorkflow=flow.signature;
+    const saved=api.state().prepPlan?.guidedSession,checked=saved?.signature===flow.signature?(Array.isArray(saved.checked)?saved.checked.filter(i=>Number.isInteger(i)&&i>=0&&i<flow.steps.length):[]):[];
+    return '<details class="card guided-prep" open><summary><b>Guided batch session</b> · '+checked.length+' / '+flow.steps.length+' steps</summary><p class="sub">Allow up to '+flow.containers+' one-portion containers; the size depends on each recipe. '+html(flow.equipment.join(' · '))+'</p>'+(flow.blocked?'<p role="status">'+flow.blocked+' recipes need review before preparation; see their cards below.</p>':'')+'<details class="planner-help"><summary>Shared prep ingredients</summary>'+ingredientsHtml(flow.ingredients)+'</details><ol>'+flow.steps.map((row,index)=>'<li style="margin:14px 0"><label><input type="checkbox" id="guidedStep'+index+'" '+(checked.includes(index)?'checked':'')+' onchange="MealPrepUI.checkStep('+index+',this.checked)"> '+html(row.text)+'</label>'+(row.ingredients?'<details class="planner-help"><summary>Quantities for this recipe batch</summary>'+(row.components?.length?row.components.map(group=>'<h4>'+html(group.name)+'</h4>'+ingredientsHtml(group.ings.map(([name,qty,unit])=>({name,qty,unit})))).join(''):ingredientsHtml(row.ingredients))+'</details>':'')+'</li>').join('')+'</ol><p class="sub">Start waiting recipes first; cook sequentially unless you can supervise separate equipment safely. Checking steps does not record cooking or eating. Use each recipe card to confirm its prepared batch.</p><div class="grid"><div class="field"><label for="prepTimerLabel">Timer name</label><input id="prepTimerLabel" maxlength="80" value="Batch prep"></div><div class="field"><label for="prepTimerMinutes">Minutes</label><input id="prepTimerMinutes" type="number" min="0.1" max="720" step="any" value="10"></div></div><div class="actions"><button class="btn secondary" onclick="MealPrepUI.startTimer()">Start timer</button><button class="btn secondary" onclick="CookingSessionUI.openTimers()">Manage timers</button></div><p class="sub">Timers run while the app is open. Up to three timers can run together.</p></details>';
+  }
+  function saveGuided(next){if(api.commit)api.commit(next);else{const previous=api.state().prepPlan;api.state().prepPlan=next.prepPlan;try{api.save();}catch(error){api.state().prepPlan=previous;throw error;}}}
+  function checkStep(index,checked){try{const value=model(),flow=root.MealPrepCore.workflow(value,api.steps||((r)=>r.method||[]),api.allowed);if(flow.signature!==shownWorkflow||!Number.isInteger(index)||!flow.steps[index])throw new Error('The prep session changed. Reopen it before continuing.');const next=structuredClone(api.state()),old=next.prepPlan?.guidedSession;next.prepPlan=next.prepPlan||{};const ids=new Set(old?.signature===flow.signature&&Array.isArray(old.checked)?old.checked:[]);if(checked)ids.add(index);else ids.delete(index);next.prepPlan.guidedSession={signature:flow.signature,checked:[...ids].sort((a,b)=>a-b)};saveGuided(next);openSession();document.getElementById('guidedStep'+index)?.focus();}catch(error){api.toast(error.message);openSession();}}
+  function startTimer(){try{const next=structuredClone(api.state());next.kitchenTimers=root.CookingSessionCore.create(next.kitchenTimers||[],Number(document.getElementById('prepTimerMinutes').value),document.getElementById('prepTimerLabel').value||'Batch prep');if(!api.commit)throw new Error('Reload the app to enable prep timers.');api.commit(next);root.CookingSessionUI.restore();api.renderAll();api.toast('Prep timer started');}catch(error){api.toast(error.message);}}
   function openSession() {
     if (!api) return;
     const value = model(); shownSession = value;
@@ -48,8 +56,8 @@
       + '</select></div><div class="field"><label for="prepDayCount">Days to prepare</label><select id="prepDayCount" onchange="MealPrepUI.scopeChanged()">'
       + Array.from({ length: Math.min(14, availableDays) }, (_, index) => index + 1).map(count => '<option value="' + count + '" '
         + (count === Math.min(value.scope.count, availableDays) ? 'selected' : '') + '>' + count + ' day' + (count === 1 ? '' : 's') + '</option>').join('')
-      + '</select></div></div>' + stats(value) + '<p class="sub">Already cooked portions and matching leftovers are counted once across the plan. Start chilling or slow-cooking recipes earlier; make smoothie bowls fresh. Times are for the original recipe; larger batches can take longer. Follow each recipe’s storage instructions.</p>'
-      + (value.tasks.length ? value.tasks.map(taskHtml).join('') : '<div class="empty">These meals are already cooked or covered by leftovers.</div>')
+      + '</select></div></div>' + stats(value) + '<p class="sub">Already cooked portions and matching leftovers are counted once across the plan. Start chilling or slow-cooking recipes earlier; make cereal and smoothie bowls fresh. Times are for the original recipe; larger batches can take longer. Follow each recipe’s storage instructions.</p>'
+      + (value.tasks.length ? workflowHtml(value)+value.tasks.map(taskHtml).join('') : '<div class="empty">These meals are already cooked or covered by leftovers.</div>')
       + (value.ingredients.length ? '<details class="card planner-help"><summary>All ingredients for this session</summary><p class="sub">Amounts include complete batches. '
         + (value.completeIngredients ? 'Compare with your pantry before shopping.' : 'Some recipes need ingredient amounts confirmed; this list is partial.')
         + '</p>' + ingredientsHtml(value.ingredients) + '</details>' : '') + '<div class="actions"><button class="btn secondary" onclick="MealPrepUI.exportSession()">Save checklist</button><button class="btn secondary" onclick="closeModal()">Done</button></div></div>');
@@ -67,7 +75,7 @@
     if (!current || !shown || current.signature !== shown.signature) { api.toast('This batch changed. Open the prep session again.'); return null; }
     return current;
   }
-  function viewRecipe(id) { const row = task(id); if (row?.recipe) api.showRecipe(id); }
+  function viewRecipe(id) { const row = task(id); if (row?.recipe) {api.showRecipe(id);const actions=root.document?.querySelector?.('#sheet .actions');if(actions){const button=document.createElement('button');button.className='btn secondary';button.textContent='Back to prep session';button.onclick=openSession;actions.appendChild(button);}} }
   function cook(id) {
     const row = task(id); if (!row) return;
     if (row.reason || !api.allowed(row.recipe)) { api.toast(row.reason || 'Review your recipe and equipment settings first.'); return; }
@@ -141,5 +149,5 @@
     if (input.dataset && batchPreview) input.dataset.prepBatchPreview = 'true';
   }
   root.MealPrepUI = Object.freeze({ configure(value) { api = value; }, panel, openSession, scopeChanged, viewRecipe, cook, record, check,
-    exportSession, useSoonPanel, openDates, date, portionButtons, choosePortions });
+    checkStep,startTimer,exportSession, useSoonPanel, openDates, date, portionButtons, choosePortions });
 })(globalThis);

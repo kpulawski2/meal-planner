@@ -5,6 +5,7 @@ import '../public/food-log-core.js';
 import '../public/pantry-core.js';
 import '../public/plan-calendar-core.js';
 import '../public/plan-workspace-core.js';
+import '../public/meal-prep-core.js';
 const core=PlanWorkspaceCore,recipes=[{id:'oats',name:'Oats and milk',cat:'Breakfast',servings:1,ings:[['Oats',70,'g'],['Skimmed milk',200,'g']]},{id:'chicken',name:'Chicken',cat:'Dinner',servings:1,ings:[['Chicken breast',200,'g']]}];
 function fixture(){const state={profile:{startDate:FoodLogCore.localDate(),people:1,days:1,meals:2,calories:2000,diet:'No restrictions',equipment:['Hob']},week:[{day:'Monday',meals:['oats','chicken']}],mealServings:{'Monday::0':2,'Monday::1':1},locked:{'Monday::0':true},shopping:{oats:true},prepPlan:{checked:{a:true},storage:{}},pantry:[{name:'Oats',qty:500,unit:'g'},{name:'Chicken breast',qty:500,unit:'g'}],leftovers:[],foodLog:[{id:'existing'}],customRecipes:[{id:'personal-cereal',ings:[['Cereal',70,'g'],['Milk',200,'g']]}],interfacePreferences:{theme:'dark'}};PantryCore.initialise(state);return state;}
 const start=()=>FoodLogCore.shiftDate(FoodLogCore.localDate(),7);
@@ -34,4 +35,8 @@ test('soon-expiring stock is reserved for current meals before reserving longer-
 });
 test('activation from the current view retains advance cooking and the latest shared food restrictions',()=>{
  const s=fixture();core.create(s,start(),{repeat:true});s.profile.budget=95;const id=s.pantryLedger.planId,key=PantryCore.slotKey(s,'Monday',1);s.pantryLedger.cooked[key]={recipeId:'chicken',recipeSignature:PantryCore.recipeSignature(recipes[1]),servings:1};core.select(s,'current');s.profile.dislikes='mushrooms';assert.equal(core.activateDue(s,start()),true);assert.equal(s.profile.budget,95);assert.equal(s.profile.dislikes,'mushrooms');assert.equal(s.pantryLedger.planId,id);assert.equal(PantryCore.cookedPortions(s,'Monday',1,recipes),1);
+});
+
+test('next-week batch prep does not reuse leftovers reserved for the current week',()=>{
+ const s=fixture();s.leftovers=[{id:'saved-oats',recipeId:'oats',recipeSignature:PantryCore.recipeSignature(recipes[0]),servings:2,storage:'Fridge',expiry:FoodLogCore.shiftDate(FoodLogCore.localDate(),1)}];core.create(s,start(),{repeat:true});const prep=MealPrepCore.session(s,recipes,{count:1});assert.equal(prep.remainingPortions,3);assert.equal(prep.coveredPortions,0);assert.equal(s.leftovers[0].servings,2);
 });
